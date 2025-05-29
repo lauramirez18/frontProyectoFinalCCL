@@ -3,8 +3,8 @@ import { ref } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref('')
-  const user = ref(null)
-
+  const user = ref()
+const cartItems = ref([])
   function setToken(newToken) {
     if (newToken) {
       token.value = newToken
@@ -24,6 +24,27 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('No está llegando el usuario')
     }
   }
+  
+
+  function addToCart(item) {
+    if (!item || !item.id || !item.precio) {
+      console.warn('Item inválido:', item)
+      return
+    }
+  
+    const existingItem = cartItems.value.find(i => i.id === item.id)
+    if (existingItem) {
+      existingItem.quantity++
+    } else {
+      cartItems.value.push({ 
+        ...item,
+        precio: item.precio,
+        discountPrice: item.discountPrice || item.precio,
+        quantity: 1 
+      })
+    }
+  }
+  
 
   function getUser() {
     return user.value
@@ -37,6 +58,8 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token,
     user,
+    cartItems,
+    addToCart,
     setToken,
     getToken,
     setUser,
@@ -44,5 +67,5 @@ export const useAuthStore = defineStore('auth', () => {
     logout
   }
 }, {
-  persist: true
+  persist: true
 })

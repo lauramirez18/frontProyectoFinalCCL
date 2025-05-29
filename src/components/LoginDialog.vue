@@ -1,9 +1,19 @@
+<!-- src/components/LoginDialog.vue -->
 <template>
-  <body class="containerG">
- 
-    <div class="login-container">
-      <div class="login-card">
-        <div class="card">
+  <q-dialog v-model="dialogVisible" persistent>
+    <q-card class="q-pa-md" style="min-width: 400px; max-width: 1000px; padding: 30px; position: relative;">
+      <!-- Botón de cerrar en la esquina superior derecha -->
+      <q-btn 
+        dense 
+        flat 
+        icon="close" 
+        v-close-popup 
+        class="absolute-top-right"
+        style="top: 10px; right: 10px; z-index: 1;"
+      />
+      
+      <q-card-section>
+        <!-- Formulario -->
            <h1 class="login-title">Iniciar Sesión</h1>
         <p class="welcome-text">Bienvenido de vuelta</p>
         
@@ -48,58 +58,17 @@
           <span>¿No tienes cuenta?</span>
           <router-link to="/Register">Crear cuenta</router-link>
         </div>
-        </div>
-       
-      </div>
-      
-      <div class="welcome-card">
-        <div class="banner-welcome">
-         <img src="/logo2.png" alt="Welcome" class="welcome-icon" />
-        <h1 class="welcome-title">¡Bienvenido de vuelta!</h1>
-        <p class="welcome-subtitle">Descubre las últimas novedades en tecnología</p>
-        
-        <div class="features-list">
-          <div class="feature-item">
-            <div class="feature-icon blue" style="background-color: #068FFF;">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <span>Accede a tu historial de compras</span>
-          </div>
-          
-          <div class="feature-item">
-            <div class="feature-icon yellow" style="background-color: #068FFF;">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span>Revisa el estado de tus pedidos</span>
-          </div>
-          
-          <div class="feature-item">
-            <div class="feature-icon orange" style="background-color: #068FFF;">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </div>
-            <span>Gestiona tus productos favoritos</span>
-          </div>
-        </div> 
-        </div>
-        
-      </div>
-    </div>
 
-  </body>
-  
+
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
 import { ref, onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { getData, postData } from '../services/apiClient.js';
-import { useAuthStore } from '../store/store.js';
 
 const router = useRouter();
 
@@ -107,7 +76,6 @@ const router = useRouter();
 const email = ref('');
 const password = ref('');
 const isLoading = ref(false);
-const authStore = useAuthStore();
 
 // Control de errores
 const errors = reactive({
@@ -179,7 +147,7 @@ const handleLogin = async () => {
     if (response.token) {
       const authData = { token: response.token };
       localStorage.setItem('auth', JSON.stringify(authData));
-       authStore.setUser(response.user);
+      
       console.log(response.user);
       router.push('/dashboard');
     } else {

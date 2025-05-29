@@ -3,10 +3,10 @@
 
     <BannerSlider />
   <!-- Marcas -->
-    <BrandsBar class="q-mt-xl" />
+    <BrandsBar class="q-mt-md"  />
     <!-- Categoría Slider -->
     <CategorySlider />
-
+    <LoginDialog v-model="showLoginDialog" />
     <!-- Lo más recomendado -->
     <RecommendedProducts class="q-mt-xl" />
 

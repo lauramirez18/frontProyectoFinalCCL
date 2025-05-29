@@ -7,6 +7,8 @@ import Details from '../views/Details.vue'
 import Admin from '../views/admin.vue'
 import Register from '../views/Register.vue'
 import Products from '../views/Products.vue'
+import Category from '../views/Category.vue'
+import Payments from '../views/Payments.vue'
 
 const routes = [
   {
@@ -23,7 +25,7 @@ const routes = [
     path: '/admin',
     name: 'admin',
     component: Admin
-   
+
   },
   {
     path: '/',
@@ -33,31 +35,43 @@ const routes = [
         path: '',
         name: 'Home',
         component: Home,
-        meta: { requiresAuth: true } 
+        meta: { requiresAuth: true }
       },
       {
-        path: 'products',
-        name: 'products',
+        path: '/products/:categoryId',
+        name: 'CategoryProducts',
         component: Products,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '/payments',
+        name: 'Payments',
+        component: Payments,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'category/:id',
+        name: 'category',
+        component: Category,
         meta: { requiresAuth: true }
       },
       {
         path: 'Car',
         name: 'Car',
         component: Car,
-        meta: { requiresAuth: true } 
+        meta: { requiresAuth: true }
       },
-      
+
       {
         path: 'Details/:id',
         name: 'Details',
         component: Details,
         meta: { requiresAuth: true }
       }
-     
+
     ]
   },
-  
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'

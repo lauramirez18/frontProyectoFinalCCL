@@ -1,22 +1,17 @@
 <template>
   <div class="product-detail-container">
-    <!-- Cargando -->
     <div v-if="loading" class="text-center q-pa-md">
       <q-spinner color="primary" size="3em" />
       <p>Cargando detalles del producto...</p>
     </div>
 
-    <!-- Error -->
     <div v-else-if="error" class="text-center text-negative q-pa-md">
       <p>Error al cargar los detalles del producto.</p>
       <q-btn label="Reintentar" color="primary" @click="fetchProduct" />
     </div>
 
-    <!-- Contenido -->
     <div v-else class="product-content">
-      <!-- Sección principal del producto -->
       <div class="product-main-section">
-        <!-- Galería de imágenes -->
         <div class="product-gallery">
           <div class="main-image-container">
             <img 
@@ -46,7 +41,6 @@
           </div>
         </div>
 
-        <!-- Información del producto -->
         <div class="product-info">
           <h1 class="product-title">{{ producto.nombre }}</h1>
           <p class="product-brand">Marca: {{ producto.marca }}</p>
@@ -56,12 +50,18 @@
             <div class="price-label">PRECIO</div>
             <p class="product-price">$ {{ formatPrice(producto.precio) }}</p>
             <div class="stock-info">Disponibles: {{ producto.stock }} unidades</div>
-            <button class="add-to-cart-btn">Agregar al Carrito</button>
+            <button class="add-to-cart-btn" @click="addToCart">Agregar al Carrito</button>
+          </div>
+          <div class="product-rating">
+            <div class="rating-stars">
+              <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= Math.round(averageRating) }">★</span>
+            </div>
+            <span class="rating-value">{{ averageRating.toFixed(1) }}</span>
+            <span class="rating-count">({{ reviews.length }} reseñas)</span>
           </div>
         </div>
       </div>
 
-      <!-- Especificaciones del producto -->
       <div class="product-specs-section">
         <h2 class="section-title">DETALLES DEL PRODUCTO</h2>
         <div class="specs-grid">
@@ -72,13 +72,39 @@
         </div>
       </div>
 
-      <!-- Reseñas del producto -->
       <div class="product-reviews-section">
         <h2 class="section-title">RESEÑAS</h2>
         
-        <!-- Formulario de reseña -->
         <div class="review-form">
-          <div class="form-title">TÍTULO</div>
+          <div class="form-header">
+            <q-avatar
+              color="primary"
+              text-color="white"
+              font-size="1.2rem"
+              v-if="authStore.user && authStore.user.name"
+            >
+              {{ getInitial(authStore.user.name) }}
+            </q-avatar>
+            <q-avatar
+              color="primary"
+              text-color="white"
+              font-size="1.2rem"
+              v-else-if="authStore.user && authStore.user.email"
+            >
+              {{ getInitial(authStore.user.email) }}
+            </q-avatar>
+            <q-avatar
+              color="grey-5"
+              text-color="white"
+              font-size="1.2rem"
+              v-else
+            >
+              ?
+            </q-avatar>
+            <div class="form-title">
+              {{ isEditingReview ? 'EDITAR TU RESEÑA' : 'ESCRIBE UNA RESEÑA' }}
+            </div>
+          </div>
           <div class="star-rating">
             <span 
               v-for="star in 5" 
@@ -96,49 +122,71 @@
           <button class="submit-review" @click="submitReview">Enviar Reseña</button>
         </div>
         
-        <!-- Lista de reseñas -->
         <div class="reviews-list">
-          <div class="review-item" v-for="(review, idx) in reviews" :key="idx">
+          <div v-if="reviews.length === 0" class="no-reviews">
+            No hay reseñas para este producto. ¡Sé el primero en opinar!
+          </div>
+          <div class="review-item" v-for="(review, idx) in reviews" :key="review._id || idx">
             <div class="reviewer-info">
               <div class="reviewer-avatar">
-                <i class="fas fa-user"></i>
+                <!-- Avatar con la inicial del nombre del usuario -->
+                <q-avatar
+                  color="primary"
+                  text-color="white"
+                  font-size="1.2rem"
+                >
+                  {{ getInitial(review.nombreUsuario || review.usuario?.nombre || 'Usuario') }}
+                </q-avatar>
               </div>
-              <div class="reviewer-name">{{ review.usuario }}</div>
+              <div class="reviewer-name">
+                {{ review.nombreUsuario || review.usuario?.nombre || 'Usuario anónimo' }}
+              </div>
             </div>
             <div class="review-content">
               <div class="review-header">
                 <div class="review-stars">
-                  <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= review.estrellas }">★</span>
+                  <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= review.calificacion }">★</span>
                 </div>
+                <div class="review-date">{{ new Date(review.fecha).toLocaleDateString() }}</div>
               </div>
               <p class="review-text">{{ review.comentario }}</p>
-              <div class="review-actions">
-                <button class="like-btn" @click="likeReview(idx)">
-                  <i class="fas fa-thumbs-up"></i> {{ review.likes || 0 }}
-                </button>
-                <button class="dislike-btn" @click="dislikeReview(idx)">
-                  <i class="fas fa-thumbs-down"></i> {{ review.dislikes || 0 }}
-                </button>
-              </div>
+              <!-- Botón de editar si la reseña es del usuario actual -->
+            
             </div>
           </div>
         </div>
       </div>
     </div>
+    <!-- Sidebar del Carrito -->
+<div class="cart-sidebar" :class="{ 'visible': showCartSidebar }">
+  <div class="sidebar-header">
+    <h3>Producto agregado</h3>
+    <button class="close-sidebar" @click="showCartSidebar = false">&times;</button>
+  </div>
+  <div class="sidebar-content">
+    <img :src="mainImage" :alt="producto.nombre" class="sidebar-product-image" />
+    <div class="sidebar-product-info">
+      <h4>{{ producto.nombre }}</h4>
+      <p>$ {{ formatPrice(producto.precio) }}</p>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <button class="btn-view-cart" @click="goToCart">Ver Carrito</button>
+  </div>
+</div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router' // Importa useRoute en lugar de createRouter
+import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
+import { useAuthStore } from '../store/store.js'
 import api from '../plugins/axios'
 
-// Obtener la ruta actual
-const route = useRoute()
+const router = useRoute()
 const $q = useQuasar()
 
-// Resto de tu código permanece igual...
 const producto = ref({
   _id: '',
   nombre: '',
@@ -146,10 +194,31 @@ const producto = ref({
   precio: 0,
   marca: '',
   imagenes: [],
-  detalles: '{}',
+  especificaciones: {}, 
   stock: 0,
   state: '1'
 })
+
+const showCartSidebar = ref(false);
+const authStore = useAuthStore()
+
+const addToCart = () => {
+
+  if (!authStore.token) { 
+    alert ('Debes iniciar sesión para agregar productos al carrito')
+    return
+  }
+
+  authStore.addToCart({
+    id: producto.value._id,
+    name: producto.value.nombre,
+    precio: producto.value.precio,
+    image: mainImage.value
+  })
+
+  showCartSidebar.value = true
+}
+
 const loading = ref(true)
 const error = ref(false)
 const activeImageIndex = ref(0)
@@ -160,80 +229,101 @@ const newReview = ref({
   comment: ''
 })
 
-// Reseñas iniciales
 const reviews = ref([])
+const averageRating = ref(0)
 
-// Parsear los detalles del producto
 const parsedDetails = computed(() => {
-  try {
-    return JSON.parse(producto.value.detalles || '{}')
-  } catch (e) {
-    console.error('Error parsing product details:', e)
-    return {}
+  
+  if (producto.value.especificaciones && typeof producto.value.especificaciones === 'object') {
+    return producto.value.especificaciones;
   }
-})
+  return {}; 
+});
 
-// Formatear claves para mostrarlas mejor
+
+
+
 const formatKey = (key) => {
   const words = key.replace(/([A-Z])/g, ' $1')
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-// Formatear precio
+
 const formatPrice = (price) => {
   return new Intl.NumberFormat('es-CO').format(price)
 }
 
-// Obtener imagen principal
+
 const mainImage = computed(() => {
   return producto.value.imagenes && producto.value.imagenes.length > 0 
     ? producto.value.imagenes[activeImageIndex.value] 
     : placeholderImage
 })
 
-// Obtener datos del producto
+
 const fetchProduct = async () => {
   try {
-    loading.value = true
-    error.value = false
-    const { id } = route.params
+    loading.value = true;
+    error.value = false;
+    const { id } = router.params;
     
-    const response = await api.get(`/productos/${id}`)
-    producto.value = response.data
+    const response = await api.get(`/productos/${id}`);
+    producto.value = response.data;
     
-    // Si no hay imágenes, agregamos una placeholder
     if (!producto.value.imagenes || producto.value.imagenes.length === 0) {
-      producto.value.imagenes = [placeholderImage]
+      producto.value.imagenes = [placeholderImage];
     }
     
-    // Cargar reseñas (puedes hacer otra llamada API aquí si es necesario)
-    reviews.value = [
-      { usuario: 'Cliente Satisfecho', estrellas: 5, comentario: 'Excelente producto, cumple con todas mis expectativas.', likes: 12, dislikes: 0 },
-      { usuario: 'Usuario Verificado', estrellas: 4, comentario: 'Muy buen producto, lo recomiendo.', likes: 5, dislikes: 1 }
-    ]
+    // Obtener reseñas del producto
+    const reviewsResponse = await api.get(`/resenas/producto/${id}`);
+    
+    // Procesar las reseñas para asegurarse de que tengan todos los campos necesarios
+    reviews.value = reviewsResponse.data.map(review => {
+      // Si no hay nombreUsuario, intentar obtenerlo de otras propiedades
+      if (!review.nombreUsuario) {
+        review.nombreUsuario = review.usuario?.nombre || 
+                              review.usuario?.name || 
+                              review.usuario?.email || 
+                              'Usuario';
+      }
+      return review;
+    });
+    
+    console.log('Reseñas procesadas:', reviews.value);
+    
+    // Calcular promedio de calificaciones
+    if (reviews.value.length > 0) {
+      averageRating.value = reviews.value.reduce((sum, review) => 
+        sum + review.calificacion, 0) / reviews.value.length;
+    } else {
+      averageRating.value = 0;
+    }
     
   } catch (err) {
-    console.error('Error al cargar el producto:', err)
-    error.value = true
-    $q.notify({
-      type: 'negative',
-      message: 'Error al cargar los detalles del producto'
-    })
+    console.error('Error al cargar el producto:', err);
+    error.value = true;
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 onMounted(() => {
-  fetchProduct()
-})
+  fetchProduct();
+  
+  // Depurar el objeto de usuario
+  console.log('Auth store:', authStore);
+  console.log('Usuario actual:', authStore.user);
+  if (authStore.user) {
+    console.log('Propiedades del usuario:', Object.keys(authStore.user));
+  }
+});
 
-// Cambiar imagen principal
+
 const changeMainImage = (index) => {
   activeImageIndex.value = index
 }
 
-// Navegación de imágenes
+// Navegación de imágenes (funciona igual)
 const nextImage = () => {
   if (producto.value.imagenes && producto.value.imagenes.length > 0) {
     activeImageIndex.value = (activeImageIndex.value + 1) % producto.value.imagenes.length
@@ -246,30 +336,91 @@ const prevImage = () => {
   }
 }
 
-// Enviar reseña
-const submitReview = () => {
-  if (newReview.value.rating > 0 && newReview.value.comment.trim()) {
-    reviews.value.unshift({
-      usuario: 'Tú',
-      estrellas: newReview.value.rating,
-      comentario: newReview.value.comment,
-      likes: 0,
-      dislikes: 0
-    })
-    newReview.value = { rating: 0, comment: '' }
-    $q.notify({
-      type: 'positive',
-      message: '¡Gracias por tu reseña!'
-    })
-  } else {
-    $q.notify({
-      type: 'warning',
-      message: 'Por favor califica el producto y escribe un comentario'
-    })
-  }
-}
 
-// Like/dislike reseñas
+const submitReview = async () => {
+  try {
+    // Verificar si el usuario está autenticado
+    if (!authStore.token) {
+      alert('Debes iniciar sesión para enviar reseñas');
+      return;
+    }
+
+    // Verificar que se hayan completado los campos
+    if (newReview.value.rating === 0 || !newReview.value.comment.trim()) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    // 1. Depurar el token
+    console.log('Token actual:', authStore.token);
+    
+    // 2. Verificar si el token ha expirado
+    const isTokenExpired = (token) => {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+        console.log('Token payload:', payload);
+        console.log('Token expira en:', new Date(payload.exp * 1000));
+        console.log('Tiempo actual:', new Date());
+        console.log('Token expirado:', payload.exp < currentTime);
+        return payload.exp < currentTime;
+      } catch (error) {
+        console.log('Error al decodificar token:', error);
+        return true;
+      }
+    };
+
+    if (isTokenExpired(authStore.token)) {
+      alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      return;
+    }
+
+    // 3. Verificar headers que se van a enviar
+    const headers = {
+      'Authorization': `Bearer ${authStore.token}`,
+      'Content-Type': 'application/json'
+    };
+    console.log('Headers que se enviarán:', headers);
+
+    // 4. Verificar datos que se envían
+    const requestData = {
+      productoId: producto.value._id,
+      calificacion: newReview.value.rating,
+      comentario: newReview.value.comment,
+      // Asegurarse de enviar el nombre del usuario
+      nombreUsuario: authStore.user?.name || authStore.user?.nombre || authStore.user?.email || 'Usuario'
+    };
+    console.log('Datos de la reseña:', requestData);
+
+    // 5. Hacer la petición con headers explícitos
+    console.log('Enviando petición a:', '/resenas');
+    
+    const response = await api.post('/resenas', requestData, { headers });
+
+    console.log('Reseña enviada exitosamente:', response.data);
+    
+    // Actualizar las reseñas localmente
+    reviews.value.push(response.data);
+    
+    // Limpiar el formulario
+    newReview.value = {
+      rating: 0,
+      comment: ''
+    };
+    
+    // Recalcular promedio
+    averageRating.value = reviews.value.reduce((sum, review) => 
+      sum + review.calificacion, 0) / reviews.value.length;
+
+    alert('Reseña enviada correctamente');
+  } catch (error) {
+    console.error('Error al enviar reseña:', error);
+    alert('Error al enviar la reseña. Por favor, intenta nuevamente.');
+  }
+}; 
+
+
+
 const likeReview = (index) => {
   if (!reviews.value[index].likes) {
     reviews.value[index].likes = 0
@@ -283,338 +434,56 @@ const dislikeReview = (index) => {
   }
   reviews.value[index].dislikes++
 }
+
+// Función mejorada para obtener la inicial del nombre
+const getInitial = (name) => {
+  // Verificar si name existe y no está vacío
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    console.log('Nombre no válido para avatar:', name);
+    return '?';
+  }
+  
+  // Obtener la primera letra y convertirla a mayúscula
+  return name.trim().charAt(0).toUpperCase();
+};
+
+// Función para verificar si la reseña es del usuario actual
+const isUserReview = (review) => {
+  return authStore.user && review.usuarioId === authStore.user._id;
+};
+
+// Función para editar una reseña
+const editReview = (review) => {
+  isEditingReview.value = true;
+  newReview.value = {
+    rating: review.calificacion,
+    comment: review.comentario
+  };
+};
 </script>
 
-
 <style scoped>
-/* Estilos generales */
-.product-detail-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 30px 0 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-/* Sección principal del producto */
-.product-main-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 30px;
-  margin-bottom: 40px;
-}
-
-.product-gallery {
-  flex: 1;
-  min-width: 300px;
-}
-
-.main-image-container {
-  width: 100%;
-  height: 400px;
-  margin-bottom: 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f9f9f9;
-}
-
-.main-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.thumbnail-gallery {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.gallery-nav {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: #666;
-  padding: 5px 10px;
-}
-
-.gallery-nav:hover {
-  color: #0066cc;
-}
-
-.thumbnails {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  flex: 1;
-  padding: 5px 0;
-}
-
-.thumbnail {
-  width: 80px;
-  height: 60px;
-  object-fit: cover;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.thumbnail:hover, .thumbnail.active {
-  border-color: #0066cc;
-}
-
-.product-info {
-  flex: 1;
-  min-width: 300px;
-}
-
-.product-title {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin: 0 0 10px;
-  color: #222;
-}
-
-.product-brand {
-  font-size: 1.1rem;
-  color: #666;
-  margin: 0 0 20px;
-}
-
-.product-pricing {
-  margin-top: 20px;
-}
-
-.price-label {
-  font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 5px;
-}
-
-.product-price {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #d32f2f;
-  margin: 0 0 20px;
-}
-
-.add-to-cart-btn {
-  background-color: #0066cc;
-  color: white;
-  border: none;
-  padding: 12px 25px;
-  font-size: 1rem;
-  font-weight: 600;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.add-to-cart-btn:hover {
-  background-color: #0052a3;
-}
-
-/* Especificaciones del producto */
-.product-specs-section {
-  margin-bottom: 40px;
-}
-
-.specs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 15px;
-}
-
-.spec-item {
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  padding: 15px;
-  background-color: #f9f9f9;
-}
-
-.spec-label {
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-}
-
-.spec-value {
-  font-size: 1rem;
-}
-
-/* Reseñas del producto */
-.product-reviews-section {
-  margin-bottom: 40px;
-}
-
-.review-form {
-  background-color: #f5f5f5;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-}
-
-.form-title {
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.star-rating {
-  margin-bottom: 15px;
-}
-
-.star {
-  font-size: 1.5rem;
-  color: #ccc;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.star.filled {
-  color: #ffc107;
-}
-
-.review-textarea {
-  width: 100%;
-  min-height: 100px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.submit-review {
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.submit-review:hover {
-  background-color: #3d8b40;
-}
-
-.reviews-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.review-item {
-  display: flex;
-  gap: 15px;
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-}
+@import url('../styles/Details.css');
 
 .reviewer-info {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 100px;
+  margin-right: 20px;
+  min-width: 80px;
 }
 
 .reviewer-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin-bottom: 10px;
-  color: #666;
 }
 
 .reviewer-name {
-  font-weight: 600;
   font-size: 0.9rem;
   text-align: center;
-}
-
-.review-content {
-  flex: 1;
-}
-
-.review-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.review-title {
-  font-weight: 600;
-}
-
-.review-text {
-  margin: 0 0 15px;
-  line-height: 1.5;
-}
-
-.review-actions {
-  display: flex;
-  gap: 15px;
-}
-
-.like-btn, .dislike-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #666;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.like-btn:hover {
-  color: #4caf50;
-}
-
-.dislike-btn:hover {
-  color: #f44336;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .product-main-section {
-    flex-direction: column;
-  }
-  
-  .main-image-container {
-    height: 300px;
-  }
-  
-  .review-item {
-    flex-direction: column;
-  }
-  
-  .reviewer-info {
-    flex-direction: row;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 10px;
-  }
+  color: #555;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

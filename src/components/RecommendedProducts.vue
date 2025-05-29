@@ -10,7 +10,12 @@
         flat
       >
         <div class="img-wrapper">
-          <q-img :src="product.imagenes[0]" :alt="product.nombre" ratio="1" class="q-mb-sm" />
+          <q-img
+              :src="getProductImage(product)"
+              :alt="product.nombre" 
+              ratio="1" 
+              class="q-mb-sm" 
+            />
           <q-btn
             round
             dense
@@ -56,25 +61,70 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import { getData } from '../services/apiclient'
 import { useThousandsFormat } from '../composables/useThousandFormat'
-
+const currentImages = reactive({})
 const { formatThousands } = useThousandsFormat()
+const loading = ref(true)
 const bestSellers = ref([])
 
 const fetchBestSellers = async () => {
+  loading.value = true
   try {
-    const res = await getData('productos')
-    bestSellers.value = res
+    const res = await getData('productos', { 
+      sort: 'popular', 
+      limit: 8 
+    })
+    
+  
+    if (res) {
+      let productos = []
+      
+      if (Array.isArray(res)) {
+        productos = res
+      } else if (res.productos && Array.isArray(res.productos)) {
+        productos = res.productos
+      } else {
+        console.error('Formato de respuesta no esperado:', res)
+        productos = []
+      }
+      
+   
+      bestSellers.value = productos.map(product => {
+    
+        return {
+          ...product,
+          _id: product._id || `temp-${Math.random()}`,
+          nombre: product.nombre || 'Producto sin nombre',
+          descripcion: product.descripcion || 'Sin descripción',
+          precio: product.precio || 0,
+          brand: product.brand || 'Sin marca',
+          imagenes: Array.isArray(product.imagenes) ? product.imagenes : []
+        }
+      })
+    } else {
+      bestSellers.value = []
+    }
   } catch (error) {
-    console.error('Error fetching recommended products:', error)
+    console.error('Error al obtener productos más vendidos:', error)
+    bestSellers.value = []
+  } finally {
+    loading.value = false
   }
 }
 
 onMounted(() => {
-fetchBestSellers()
+  fetchBestSellers()
 })
+
+const getProductImage = (product) => {
+  if (product && product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
+    return currentImages[product._id] || product.imagenes[0]
+  }
+  return '/placeholder.png'
+}
+
 
 </script>
 

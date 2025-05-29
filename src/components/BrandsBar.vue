@@ -1,17 +1,18 @@
 <template>
-  <div class="q-pa-md bg-grey full-width">
+  <div class=" bg-black full-width banner-brand ">
+    <h6>Las mejores marcas de la Industria</h6>
     
     <div class="q-gutter-sm row items-center justify-center">
       <div
         v-for="(brand, index) in brands"
         :key="index"
-        class="col-4 col-sm-2 col-md-2 col-lg-1"
+        class="col-4 col-sm-2 col-md-2 col-lg-2"
       >
         <q-card flat bordered class="q-pa-sm flex flex-center brand-card">
           <q-img
             :src="brand.image"
             :alt="brand.name"
-            style="height: 35px; max-width: 70px;"
+            style="height: 55px; max-width: 70px;"
             fit="contain"
           />
         </q-card>
@@ -38,12 +39,28 @@ const brands = ref([
 </script>
 
 <style scoped>
+
+.banner-brand {
+  background-color: black;
+  color: white;
+  padding: 8px 0px;
+}
+
 .brand-card {
   transition: transform 0.3s ease;
   cursor: pointer;
+
 }
 .brand-card:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h6 {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
 }
 </style>

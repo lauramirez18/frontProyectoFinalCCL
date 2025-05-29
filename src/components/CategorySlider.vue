@@ -25,7 +25,7 @@
             v-for="(category, index) in duplicatedCategories"
             :key="`${category._id}-${index}`"
             class="category-card"
-            @click="goToCategory(category._id)"
+            @click="goToCategoryProducts(category)"
           >
             <q-img
               :src="category.img"
@@ -80,9 +80,14 @@ const duplicatedCategories = computed(() => [
   ...categories.value,
 ])
 
-const goToCategory = (id) => {
-  router.push(`/products/${id}`)
+const goToCategoryProducts = (category) => {
+  router.push({
+    name: 'CategoryProducts',
+    params: { categoryId: category._id },
+    query: { categoryName: category.name }
+  })
 }
+
 
 const resetAutoScroll = () => {
   isAutoScroll.value = false
@@ -101,7 +106,6 @@ const scrollRight = () => {
   carousel.value.scrollBy({ left: 300, behavior: 'smooth' })
   resetAutoScroll()
 }
-
 
 onMounted(fetchCategories)
 </script>

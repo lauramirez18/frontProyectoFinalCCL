@@ -99,115 +99,51 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useAuthStore } from '../store/store.js'; 
 
-// Datos de ejemplo con múltiples productos
-const cartItems = ref([
-  {
-    id: 1,
-    name: 'Smart TV 4K UHD 55"',
-    description: 'Premium Series',
-    seller: 'TechShop',
-    image: '/api/placeholder/160/120',
-    originalPrice: 1199990,
-    discountPrice: 899990,
-    quantity: 1,
-    expressDelivery: true,
-    discountPercentage: 25
-  },
-  {
-    id: 2,
-    name: 'Smartphone X9 Pro',
-    description: '128GB RAM - Negro',
-    seller: 'MobileWorld',
-    image: '/api/placeholder/160/120',
-    originalPrice: 599990,
-    discountPrice: 499990,
-    quantity: 2,
-    expressDelivery: false,
-    discountPercentage: 17
-  },
-  {
-    id: 3,
-    name: 'Audífonos Inalámbricos',
-    description: 'Cancelación de Ruido',
-    seller: 'AudioTech',
-    image: '/api/placeholder/160/120',
-    originalPrice: 199990,
-    discountPrice: 199990,
-    quantity: 1,
-    expressDelivery: true,
-    discountPercentage: 0
-  },
-  {
-    id: 4,
-    name: 'Tablet Pro 10.5"',
-    description: '256GB - WiFi + LTE',
-    seller: 'TechShop',
-    image: '/api/placeholder/160/120',
-    originalPrice: 399990,
-    discountPrice: 349990,
-    quantity: 1,
-    expressDelivery: true,
-    discountPercentage: 13
-  },
-  {
-    id: 5,
-    name: 'Smartwatch Fitness',
-    description: 'Monitor de ritmo cardíaco',
-    seller: 'GadgetWorld',
-    image: '/api/placeholder/160/120',
-    originalPrice: 149990,
-    discountPrice: 129990,
-    quantity: 3,
-    expressDelivery: false,
-    discountPercentage: 13
-  }
-]);
+const authStore = useAuthStore();
 
+// Usamos los items del store
+const cartItems = computed(() => authStore.cartItems);
+
+// Notificación
 const showNotification = ref(false);
 const notificationMessage = ref('');
 
 // Totales calculados
 const totalItems = computed(() => {
-  return cartItems.value.reduce((total, item) => total + item.quantity, 0);
+  return authStore.cartItems.reduce((total, item) => total + item.quantity, 0);
 });
 
 const subtotal = computed(() => {
-  return cartItems.value.reduce((total, item) => total + (item.originalPrice * item.quantity), 0);
-});
-
-const totalDiscount = computed(() => {
-  return cartItems.value.reduce((total, item) => {
-    return total + ((item.originalPrice - item.discountPrice) * item.quantity);
-  }, 0);
+  return authStore.cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 });
 
 const shipping = computed(() => {
-  // Envío gratis si hay al menos un producto con envío express
-  const hasExpress = cartItems.value.some(item => item.expressDelivery);
-  return hasExpress ? 0 : 4990; // $4.990 de envío estándar
+  
+  return 0; 
 });
 
 const total = computed(() => {
-  return subtotal.value - totalDiscount.value + shipping.value;
+  return subtotal.value + shipping.value;
 });
 
-// Métodos para cantidad
+
 const increaseQuantity = (index) => {
-  cartItems.value[index].quantity++;
-  showNotificationFn(`Añadido 1 ${cartItems.value[index].name}`);
+  authStore.cartItems[index].quantity++;
+  showNotificationFn(`Añadido 1 ${authStore.cartItems[index].name}`);
 };
 
 const decreaseQuantity = (index) => {
-  if (cartItems.value[index].quantity > 1) {
-    cartItems.value[index].quantity--;
-    showNotificationFn(`Eliminado 1 ${cartItems.value[index].name}`);
+  if (authStore.cartItems[index].quantity > 1) {
+    authStore.cartItems[index].quantity--;
+    showNotificationFn(`Eliminado 1 ${authStore.cartItems[index].name}`);
   }
 };
 
 const removeItem = (index) => {
-  const removedItem = cartItems.value[index].name;
-  cartItems.value.splice(index, 1);
+  const removedItem = authStore.cartItems[index].name;
+  authStore.cartItems.splice(index, 1);
   showNotificationFn(`${removedItem} eliminado del carrito`);
 };
 
