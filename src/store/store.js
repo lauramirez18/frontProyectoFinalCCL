@@ -27,20 +27,24 @@ const cartItems = ref([])
   
 
   function addToCart(item) {
-    if (!item || !item.id || !item.precio) {
+    // Verificación mejorada del item
+    if (!item || !item.id) {
       console.warn('Item inválido:', item)
       return
     }
-  
+    
     const existingItem = cartItems.value.find(i => i.id === item.id)
     if (existingItem) {
       existingItem.quantity++
     } else {
+      // Aseguramos que todos los campos necesarios estén presentes
       cartItems.value.push({ 
-        ...item,
-        precio: item.precio,
-        discountPrice: item.discountPrice || item.precio,
-        quantity: 1 
+        id: item.id,
+        name: item.name || 'Producto',
+        price: item.price || 0,
+        image: item.image || '',
+        quantity: 1,
+        seller: item.seller || 'Vendedor'
       })
     }
   }

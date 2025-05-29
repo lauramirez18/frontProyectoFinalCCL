@@ -107,7 +107,7 @@ const fetchBestSellers = async () => {
       limit: 8 
     })
     
-    // Validar la respuesta y asegurarse de que los productos tengan formato correcto
+    
     if (res) {
       let productos = []
       
@@ -120,9 +120,9 @@ const fetchBestSellers = async () => {
         productos = []
       }
       
-      // Verificar y normalizar cada producto
+   
       bestSellers.value = productos.map(product => {
-        // Asegurarse de que todos los campos necesarios estén presentes
+        
         return {
           ...product,
           _id: product._id || `temp-${Math.random()}`,

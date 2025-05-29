@@ -3,17 +3,17 @@
     <q-header elevated class="text-white header">
       <q-toolbar class=" row items-center justify-around q-col-gutter-sm">
 
-        <!-- Logo -->
+      
         <router-link to="/">
           <q-avatar square size="80px" class="cursor-pointer">
             <img src="/logo2.png" alt="Logo" />
           </q-avatar>
         </router-link>
 
-        <!-- Buscador con botón de categorías -->
+        
         <div class="col-grow q-mx-sm" style="max-width: 600px;">
           <div v-if="$q.screen.gt.xs" class="search-container">
-            <!-- Botón de categorías -->
+          
             <q-btn-dropdown
               no-caps
               class="categories-btn"
@@ -62,10 +62,10 @@
           </div>
         </div>
 
-        <!-- Botones de acción -->
+       
         <q-section class="row items-center q-gutter-sm no-wrap flex" style="justify-content: space-around;">
           
-          <!-- Botón de usuario con menú hover -->
+         
           <q-btn
             flat
             no-caps
@@ -195,13 +195,13 @@ let hideTimer = null
 
 
 
-// Categorías disponibles
+
 const categories = ref([])
 
-// Carga de categorías
+
 onMounted(async () => {
   try {
-    const response = await getData('categorias') // Ajusta la URL
+    const response = await getData('categorias') 
     categories.value = [
       { label: 'Todas las categorías', value: 'all' },
       ...response.map(c => ({
@@ -216,20 +216,20 @@ onMounted(async () => {
 
 function goTo(route) {
   router.push(route)
-  showMenu.value = false // Cerrar menú al navegar
+  showMenu.value = false 
 }
 
 function logout() {
   authStore.logout()
-  showMenu.value = false // Cerrar menú al hacer logout
+  showMenu.value = false 
 }
 
 function openLogin() {
   showLoginDialog.value = true
-  showMenu.value = false // Cerrar menú al abrir login
+  showMenu.value = false 
 }
 
-// Funciones para controlar el hover del menú de usuario
+
 function keepMenuOpen() {
   if (hideTimer) {
     clearTimeout(hideTimer)
@@ -240,7 +240,7 @@ function keepMenuOpen() {
 function hideMenuDelayed() {
   hideTimer = setTimeout(() => {
     showMenu.value = false
-  }, 1000) // 1000ms de delay antes de cerrar
+  }, 1000) 
 }
 
 function showMenuOnHover() {
@@ -251,7 +251,7 @@ function showMenuOnHover() {
   showMenu.value = true
 }
 
-// Función para controlar el clic del menú de categorías
+
 function toggleCategories() {
   showCategories.value = !showCategories.value
 }
@@ -259,19 +259,30 @@ function toggleCategories() {
 function selectCategory(category) {
   selectedCategory.value = category.label
   showCategories.value = false
-  // Aquí puedes agregar lógica para filtrar productos por categoría
+
   console.log('Categoría seleccionada:', category)
 }
 
 function performSearch() {
-  // Lógica de búsqueda
-  console.log('Buscando:', search.value, 'en categoría:', selectedCategory.value)
+  const queryParams = {
+    search: search.value
+  };
+
+  const foundCategory = categories.value.find(cat => cat.label === selectedCategory.value);
+  if (foundCategory && foundCategory.id !== 'all') { 
+    queryParams.category = foundCategory.id; 
+  }
+
+  
+  router.push({ path: '/search-results', query: queryParams });
+
+  
 }
 </script>
 
 <style>
 
-/* Para activar el menú con hover del botón */
+
 .user-btn {
   transition: all 0.2s ease;
 }
@@ -340,7 +351,7 @@ function performSearch() {
 }
 
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
   .categories-btn {
     min-width: 120px;
@@ -348,3 +359,5 @@ function performSearch() {
   }
 }
 </style>
+
+

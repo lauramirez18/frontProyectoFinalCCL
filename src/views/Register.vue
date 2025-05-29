@@ -233,20 +233,20 @@ const handleSignup = async () => {
   };
 
   try {
-    // Registrar al usuario
+    
     await postData('usuarios/registro', signupData);
     console.log('Usuario registrado con éxito');
 
-    // Iniciar sesión inmediatamente
+
     const loginResponse = await postData('usuarios/login', {
       email: signupData.email,
       password: signupData.password
     });
 
-    // Guardar el token en localStorage
+ 
     localStorage.setItem('token', loginResponse.token);
 
-    // Redirigir al home
+   
     router.push('/');
 
   } catch (error) {
