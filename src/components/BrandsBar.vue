@@ -10,7 +10,7 @@
       >
         <q-card flat bordered class="q-pa-sm flex flex-center brand-card">
           <q-img
-            :src="brand.image"
+            :src="brand.logo"
             :alt="brand.name"
             style="height: 55px; max-width: 70px;"
             fit="contain"
@@ -22,20 +22,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { getData } from '../services/apiclient'
 
-const brands = ref([
-  { name: 'HP', image: 'https://upload.wikimedia.org/wikipedia/commons/4/43/HP_logo_2008.svg' },
-  { name: 'Lenovo', image: 'https://1000marcas.net/wp-content/uploads/2020/01/Lenovo-logo-1.jpg' },
-  { name: 'Apple', image: 'https://1000logos.net/wp-content/uploads/2017/02/iPhone-Logo-2007.png' },
-  { name: 'ASUS', image: 'https://companylogos.org/wp-content/uploads/2024/08/Asus-1995-300x169.png' },
-  { name: 'Acer', image: 'https://1000marcas.net/wp-content/uploads/2020/01/Logo-Acer.png' },
-  { name: 'dell', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Dell_Logo.svg/1200px-Dell_Logo.svg.png' },
-  { name: 'Samsung', image: 'https://upload.wikimedia.org/wikipedia/commons/2/24/Samsung_Logo.svg' },
-  { name: 'oppo', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/OPPO_LOGO_2019.svg/2560px-OPPO_LOGO_2019.svg.png' },
-  { name: 'sony', image: 'https://upload.wikimedia.org/wikipedia/commons/c/ca/Sony_logo.svg' },
-  { name: 'Xiaomi', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Xiaomi_logo.svg/2048px-Xiaomi_logo.svg.png' }
-])
+const brands = ref([])
+
+const getBrands = async () => {
+  try {
+    const res = await getData('marcas')
+    brands.value = res
+  } catch (error) {
+    console.error('Error al obtener las marcas:', error)
+    brands.value = []
+  }
+}
+
+onMounted(() => {
+  getBrands()
+})
 </script>
 
 <style scoped>
