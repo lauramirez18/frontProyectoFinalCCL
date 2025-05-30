@@ -4,7 +4,9 @@ import { ref } from 'vue'
 export const useAuthStore = defineStore('auth', () => {
   const token = ref('')
   const user = ref()
-const cartItems = ref([])
+  const cartItems = ref([])
+  const favorites = ref([]) // Add favorites array
+
   function setToken(newToken) {
     if (newToken) {
       token.value = newToken
@@ -59,10 +61,45 @@ const cartItems = ref([])
     user.value = null
   }
 
+  function addToFavorites(product) {
+    if (!product || !product.id) {
+      console.warn('Item inválido:', product)
+      return
+    }
+
+    
+    
+    const existingItem = favorites.value.find(i => i.id === product.id)
+    if (!existingItem) {
+      favorites.value.push({ 
+        id: product.id,
+        name: product.name || 'Producto',
+        price: product.price || 0,
+        image: product.image || '',
+        seller: product.seller || 'Vendedor'
+      })
+    }
+  }
+
+  function removeFromFavorites(productId) {
+    const index = favorites.value.findIndex(item => item.id === productId)
+    if (index !== -1) {
+      favorites.value.splice(index, 1)
+    }
+  }
+
+  function isFavorite(productId) {
+    return favorites.value.some(item => item.id === productId)
+  }
+
   return {
     token,
     user,
     cartItems,
+    favorites,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite,
     addToCart,
     setToken,
     getToken,
@@ -71,5 +108,5 @@ const cartItems = ref([])
     logout
   }
 }, {
-  persist: true
+  persist: true
 })

@@ -49,6 +49,14 @@
             <div class="price-label">PRECIO</div>
             <p class="product-price">$ {{ formatPrice(producto.precio) }}</p>
             <div class="stock-info">Disponibles: {{ producto.stock }} unidades</div>
+            <q-btn
+              :color="isFavorite ? 'red' : 'grey-7'"
+              :icon="isFavorite ? 'favorite' : 'favorite_border'"
+              :label="isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'"
+              outline
+              class="q-mr-sm"
+              @click="toggleFavorite"
+            />
             <button class="add-to-cart-btn" @click="addToCart">Agregar al Carrito</button>
           </div>
           <div class="product-rating">
@@ -225,8 +233,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import { useAuthStore } from '../store/store.js' 
-import api from '../plugins/axios' 
+import { useAuthStore } from '../store/store.js'
+import api from '../plugins/axios'
+import { showNotification } from '../utils/notifications'
 
 const route = useRoute() 
 const router = useRouter() 
@@ -429,22 +438,12 @@ const confirmDeleteReview = (reviewId) => {
 const deleteReview = async (reviewId) => {
   try {
     await api.delete(`/resenas/${reviewId}`);
-    reviews.value = reviews.value.filter(r => r._id !== reviewId); // Remove from list
-    $q.notify({
-      type: 'positive',
-      message: 'Reseña eliminada correctamente.',
-      position: 'top'
-    });
-    // Re-fetch product to update average rating displayed on product info
+    reviews.value = reviews.value.filter(r => r._id !== reviewId);
+    showNotification('success', 'Reseña eliminada correctamente.')
     await fetchProduct();
   } catch (error) {
     console.error('Error al eliminar reseña:', error.response?.data || error.message);
-    $q.notify({
-      type: 'negative',
-      message: 'Error al eliminar la reseña.',
-      caption: error.response?.data?.msg || error.message,
-      position: 'top'
-    });
+    showNotification('error', 'Error al eliminar la reseña.', error.response?.data?.msg || error.message)
   }
 };
 
@@ -457,11 +456,7 @@ const getInitial = (name) => {
 
 const addToCart = () => {
   if (!authStore.token) {
-    $q.notify({
-      type: 'warning',
-      message: 'Debes iniciar sesión para agregar productos al carrito.',
-      position: 'top'
-    });
+    showNotification('warning', 'Debes iniciar sesión para agregar productos al carrito.')
     return;
   }
 
@@ -478,11 +473,7 @@ const addToCart = () => {
   // Verificamos que los datos sean válidos antes de enviarlos
   if (!cartItem.id || !cartItem.name || !cartItem.price) {
     console.error('Datos de producto incompletos:', cartItem);
-    $q.notify({
-      type: 'negative',
-      message: 'Error al agregar el producto al carrito.',
-      position: 'top'
-    });
+    showNotification('error', 'Error al agregar el producto al carrito.')
     return;
   }
   
@@ -490,11 +481,7 @@ const addToCart = () => {
   authStore.addToCart(cartItem);
 
   showSidebar();
-  $q.notify({
-    type: 'positive',
-    message: `${producto.value.nombre} agregado al carrito.`,
-    position: 'top'
-  });
+  showNotification('positive', `${producto.value.nombre} agregado al carrito.`)
 }
 
 const goToCart = () => {
@@ -568,6 +555,52 @@ const calculateSubtotal = () => {
   return authStore.cartItems.reduce((total, item) => {
     return total + (item.price * item.quantity)
   }, 0)
+}
+
+const isFavorite = computed(() => {
+  return authStore.isFavorite(producto.value._id)
+})
+
+const toggleFavorite = async () => {
+  if (!authStore.token) {
+    showNotification('warning', 'Debes iniciar sesión para agregar productos a favoritos.')
+    return
+  }
+  
+  try {
+    // Check if user object and ID exist
+    if (!authStore.user || !authStore.user.id) {
+      showNotification('error', 'Error de sesión. Intenta iniciar sesión nuevamente.')
+      return
+    }
+    
+    const userId = authStore.user.id
+    const productId = producto.value._id
+    
+    if (isFavorite.value) {
+      // Remove from favorites
+      await api.delete(`/usuarios/users/${userId}/favorites/${productId}`)
+      authStore.removeFromFavorites(productId)
+      showNotification('success', 'Producto eliminado de favoritos')
+    } else {
+      // Add to favorites
+      await api.post(`/usuarios/users/${userId}/favorites/${productId}`)
+      
+      const favoriteItem = {
+        id: producto.value._id,
+        name: producto.value.nombre,
+        price: producto.value.precio,
+        image: mainImage.value,
+        seller: producto.value.marca || 'Vendedor oficial'
+      }
+      
+      authStore.addToFavorites(favoriteItem)
+      showNotification('success', 'Producto agregado a favoritos')
+    }
+  } catch (error) {
+    console.error('Error al gestionar favoritos:', error)
+    showNotification('error', 'Error al gestionar favoritos', error.response?.data?.error || error.message)
+  }
 }
 </script>
 

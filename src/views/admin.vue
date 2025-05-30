@@ -530,12 +530,13 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../plugins/axios.js';
-import { useQuasar } from 'quasar'; 
+import { useQuasar } from 'quasar';
+import { showNotification } from '../utils/notifications';
 
-const $q = useQuasar(); 
+const $q = useQuasar();
 
-const CLOUDINARY_CLOUD_NAME = 'dwlsakic6'; 
-const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; 
+const CLOUDINARY_CLOUD_NAME = 'dwlsakic6';
+const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 // Inicialización de datos
@@ -620,10 +621,7 @@ function removerImagenExistente(index) {
 
 function onFileRejected(rejectedEntries) {
   console.log('Archivos rechazados:', rejectedEntries);
-  $q.notify({
-    type: 'negative',
-    message: `Algunos archivos fueron rechazados. Asegúrate que sean imágenes válidas (jpg, png, gif, webp) y menores de 5MB.`
-  });
+  showNotification('error', `Algunos archivos fueron rechazados. Asegúrate que sean imágenes válidas (jpg, png, gif, webp) y menores de 5MB.`)
 }
 
 async function subirArchivoACloudinary(file) {
@@ -657,10 +655,7 @@ async function cargarProductos() {
   } catch (error) {
     console.error("Error al cargar productos:", error);
     listaProductos.value = [];
-    $q.notify({
-        type: 'negative',
-        message: 'Error al cargar la lista de productos.'
-    });
+    showNotification('error', 'Error al cargar la lista de productos.')
   } finally {
     cargandoTabla.value = false;
   }
@@ -796,10 +791,7 @@ async function manejarCambioCategoria(idCategoriaSeleccionada) {
     console.error("Error al cargar datos dependientes de categoría:", error);
     opcionesSubcategoriasFiltradas.value = [];
     camposDetallesDinamicos.value = [];
-    $q.notify({
-        type: 'negative',
-        message: 'Error al cargar especificaciones de categoría o subcategorías.'
-    });
+    showNotification('error', 'Error al cargar especificaciones de categoría o subcategorías.')
   } finally {
     cargandoSubcategorias.value = false;
     cargandoEspecificaciones.value = false;
@@ -930,16 +922,10 @@ async function onSubmitProducto() {
 
     dialogoProducto.value = false;
     await cargarProductos();
-    $q.notify({
-        type: 'positive',
-        message: `Producto ${modoEdicion.value ? 'actualizado' : 'creado'} exitosamente.`
-    });
+    showNotification('success', `Producto ${modoEdicion.value ? 'actualizado' : 'creado'} exitosamente.`)
   } catch (error) {
     console.error("Error al guardar producto:", error);
-    $q.notify({
-        type: 'negative',
-        message: `Error al ${modoEdicion.value ? 'actualizar' : 'crear'} el producto. Detalles: ${error.message || 'Error desconocido'}`
-    });
+    showNotification('error', `Error al ${modoEdicion.value ? 'actualizar' : 'crear'} el producto.`, error.message || 'Error desconocido')
   } finally {
     guardandoProducto.value = false;
   }
@@ -970,16 +956,10 @@ async function cambiarEstadoProducto(producto) {
   try {
     await api.put(`/productos/estado/${producto._id}`);
     await cargarProductos();
-    $q.notify({
-      type: 'positive',
-      message: `Estado de "${producto.nombre}" cambiado exitosamente.`
-    });
+    showNotification('success', `Estado de "${producto.nombre}" cambiado exitosamente.`)
   } catch (error) {
     console.error(`Error al cambiar estado del producto:`, error);
-    $q.notify({
-      type: 'negative',
-      message: `Error al cambiar el estado del producto: ${error.message || 'Error desconocido'}.`
-    });
+    showNotification('error', `Error al cambiar el estado del producto: ${error.message || 'Error desconocido'}.`)
   }
 }
 
@@ -1028,10 +1008,7 @@ async function cargarMarcas() {
   } catch (error) {
     console.error("Error al cargar marcas:", error);
     listaMarcas.value = [];
-    $q.notify({
-      type: 'negative',
-      message: 'Error al cargar la lista de marcas.'
-    });
+    showNotification('error', 'Error al cargar la lista de marcas.')
   } finally {
     cargandoTablaMarcas.value = false;
   }
@@ -1062,10 +1039,7 @@ function resetearFormularioMarca() {
 // Manejar rechazo de archivo de logo
 function onLogoRejected(rejectedEntries) {
   console.log('Archivos rechazados:', rejectedEntries);
-  $q.notify({
-    type: 'negative',
-    message: `El archivo fue rechazado. Asegúrate que sea una imagen válida (jpg, png, gif, webp, svg) y menor de 2MB.`
-  });
+  showNotification('error', `El archivo fue rechazado. Asegúrate que sea una imagen válida (jpg, png, gif, webp, svg) y menor de 2MB.`)
 }
 
 // Guardar marca
@@ -1098,16 +1072,10 @@ async function onSubmitMarca() {
     
     dialogoMarca.value = false;
     await cargarMarcas();
-    $q.notify({
-      type: 'positive',
-      message: `Marca ${modoEdicionMarca.value ? 'actualizada' : 'creada'} exitosamente.`
-    });
+    showNotification('success', `Marca ${modoEdicionMarca.value ? 'actualizada' : 'creada'} exitosamente.`)
   } catch (error) {
     console.error("Error al guardar marca:", error);
-    $q.notify({
-      type: 'negative',
-      message: `Error al ${modoEdicionMarca.value ? 'actualizar' : 'crear'} la marca. Detalles: ${error.message || 'Error desconocido'}`
-    });
+    showNotification('error', `Error al ${modoEdicionMarca.value ? 'actualizar' : 'crear'} la marca.`, error.message || 'Error desconocido')
   } finally {
     guardandoMarca.value = false;
   }
@@ -1131,16 +1099,10 @@ async function cambiarEstadoMarca(marca) {
   try {
     await api.put(`/marcas/estado/${marca._id}`);
     await cargarMarcas();
-    $q.notify({
-      type: 'positive',
-      message: `Estado de "${marca.nombre}" cambiado exitosamente.`
-    });
+    showNotification('success', `Estado de "${marca.nombre}" cambiado exitosamente.`)
   } catch (error) {
     console.error(`Error al cambiar estado de la marca:`, error);
-    $q.notify({
-      type: 'negative',
-      message: `Error al cambiar el estado de la marca: ${error.message || 'Error desconocido'}.`
-    });
+    showNotification('error', `Error al cambiar el estado de la marca: ${error.message || 'Error desconocido'}.`)
   }
 }
 

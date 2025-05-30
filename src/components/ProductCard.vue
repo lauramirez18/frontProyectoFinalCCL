@@ -108,6 +108,15 @@
         class="full-width"
         @click="addToCart"
       />
+      <q-btn
+        round
+        dense
+        flat
+        :icon="isFavorite ? 'favorite' : 'favorite_border'"
+        :color="isFavorite ? 'red' : 'grey'"
+        class="favorite-btn"
+        @click="toggleFavorite"
+      />
     </q-card-actions>
   </q-card>
 </template>
@@ -115,6 +124,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../store/store.js'
+import { showNotification } from '../utils/notifications'
+import api from '../plugins/axios'
 
 const props = defineProps({
   product: {
@@ -152,6 +164,59 @@ const addToCart = () => {
   // Aquí debes implementar la lógica para agregar el producto al carrito
   console.log('Agregar al carrito')
 }
+
+const authStore = useAuthStore()
+
+const toggleFavorite = async (event) => {
+  event.preventDefault() // Prevent navigation
+  event.stopPropagation() // Stop event propagation
+  
+  if (!authStore.token) {
+    showNotification('warning', 'Debes iniciar sesión para agregar productos a favoritos.')
+    return
+  }
+  
+  try {
+    // Check if user object and ID exist
+    if (!authStore.user || !authStore.user.id) {
+      showNotification('error', 'Error de sesión. Intenta iniciar sesión nuevamente.')
+      return
+    }
+    
+    const userId = authStore.user.id
+    const productId = props.product._id
+    
+    if (isFavorite.value) {
+      // Remove from favorites
+      await api.delete(`/usuarios/users/${userId}/favorites/${productId}`)
+      authStore.removeFromFavorites(productId)
+      showNotification('success', 'Producto eliminado de favoritos')
+    } else {
+      // Add to favorites
+      await api.post(`/usuarios/users/${userId}/favorites/${productId}`)
+      
+      const favoriteItem = {
+        id: props.product._id,
+        name: props.product.nombre,
+        price: props.product.precio,
+        image: props.product.imagenes && props.product.imagenes.length > 0 
+          ? props.product.imagenes[0] 
+          : '/placeholder.png',
+        seller: props.product.marca || 'Vendedor oficial'
+      }
+      
+      authStore.addToFavorites(favoriteItem)
+      showNotification('success', 'Producto agregado a favoritos')
+    }
+  } catch (error) {
+    console.error('Error al gestionar favoritos:', error)
+    showNotification('error', 'Error al gestionar favoritos', error.response?.data?.error || error.message)
+  }
+}
+
+const isFavorite = computed(() => {
+  return authStore.isFavorite(props.product._id)
+})
 </script>
 
 <style scoped>

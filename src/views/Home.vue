@@ -15,15 +15,16 @@
   
     <!-- Información -->
     <InfoColumns class="q-mt-xl" />
-
+    <BrandsList />
 
   </q-page>
 </template>
 <script setup>
 import CategorySlider from '../components/CategorySlider.vue'
- import BrandsBar from '../components/BrandsBar.vue'
+import BrandsBar from '../components/BrandsBar.vue'
 import RecommendedProducts from '../components/RecommendedProducts.vue'
 import BannerSlider from '../components/BannerSlider.vue';
 import BestSellers from '../components/BestSellers.vue'
-import InfoColumns from '../components/InfoColumns.vue' 
+import InfoColumns from '../components/InfoColumns.vue'
+
 </script>

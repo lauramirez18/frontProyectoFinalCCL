@@ -171,7 +171,9 @@
 import { ref } from 'vue';
 import { getData, postData } from '../services/apiClient.js';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../store/store.js';
 const router = useRouter();
+const authStore = useAuthStore();
 // Signup form state
 const firstName = ref('');
 const lastName = ref('');
@@ -233,22 +235,22 @@ const handleSignup = async () => {
   };
 
   try {
-    
     await postData('usuarios/registro', signupData);
     console.log('Usuario registrado con éxito');
-
 
     const loginResponse = await postData('usuarios/login', {
       email: signupData.email,
       password: signupData.password
     });
 
- 
+    // Store token and user data
     localStorage.setItem('token', loginResponse.token);
+    
+    // Store in Pinia
+    authStore.setToken(loginResponse.token);
+    authStore.setUser(loginResponse.user);
 
-   
     router.push('/');
-
   } catch (error) {
     console.error('Error en el proceso de registro o login:', error);
     alert('Ocurrió un error. Intenta de nuevo.');

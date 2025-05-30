@@ -71,9 +71,9 @@
             no-caps
          
             icon-right="arrow_drop_down"
-            class="text-weight-medium user-btn "
+            class="text-weight-medium user-btn"
             style="font-size: 16px;"
-            :label="authStore.user ? `Hola, ${authStore.user}` : 'Hola, Iniciar sesión'"
+            :label="authStore.user ? `Hola, ${typeof authStore.user === 'object' ? authStore.user.name : authStore.user}` : 'Hola, Iniciar sesión'"
             @mouseenter="showMenuOnHover"
             @mouseleave="hideMenuDelayed"
           >

@@ -8,7 +8,12 @@
         :key="index"
         class="col-4 col-sm-2 col-md-2 col-lg-2"
       >
-        <q-card flat bordered class="q-pa-sm flex flex-center brand-card">
+        <q-card 
+          flat 
+          bordered 
+          class="q-pa-sm flex flex-center brand-card"
+          @click="navigateToBrandProducts(brand._id)"
+        >
           <q-img
             :src="brand.logo"
             :alt="brand.name"
@@ -24,7 +29,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getData } from '../services/apiclient'
+import { useRouter } from 'vue-router' // Import useRouter
 
+const router = useRouter() // Initialize router
 const brands = ref([])
 
 const getBrands = async () => {
@@ -35,6 +42,14 @@ const getBrands = async () => {
     console.error('Error al obtener las marcas:', error)
     brands.value = []
   }
+}
+
+// Add the navigation function
+const navigateToBrandProducts = (brandId) => {
+  router.push({
+    path: '/productos', // Use the new generic products path
+    query: { brand: brandId }
+  })
 }
 
 onMounted(() => {

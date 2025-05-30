@@ -130,18 +130,10 @@ const fetchExchangeRate = async () => {
 
 // Mostrar alerta de agradecimiento con el botón "Ver factura"
 const mostrarFactura = () => {
-  Swal.fire({
-    title: "¡Gracias por tu compra!",
-    text: "Haz clic en el botón para ver tu factura.",
-    icon: "success",
-    showCancelButton: true,
-    confirmButtonText: "Ver factura",
-    cancelButtonText: "Cerrar",
-  }).then((result) => {
-    if (result.isConfirmed) {
-      mostrarFacturaModal();
-    }
-  });
+  import('../utils/notifications').then(({ showNotification }) => {
+    showNotification('success', '¡Gracias por tu compra!', 'Haz clic en el botón para ver tu factura.')
+    mostrarFacturaModal()
+  })
 };
 
 // Mostrar el modal con la información de la factura
@@ -186,11 +178,9 @@ const renderPayPalButtons = () => {
           });
         },
         onError: (err) => {
-          Swal.fire({
-            title: "Algo salió mal",
-            icon: "error",
-            draggable: true,
-          });
+          import('../utils/notifications').then(({ showNotification }) => {
+            showNotification('error', 'Algo salió mal', 'Error en el proceso de pago')
+          })
         },
       })
       .render("#paypal-button-container");
