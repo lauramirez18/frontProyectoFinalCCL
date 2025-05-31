@@ -88,7 +88,7 @@
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../store/store.js'; 
 import { useRouter } from 'vue-router';
-
+import Swal from 'sweetalert2';
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -152,12 +152,30 @@ const decreaseQuantity = (index) => {
   if (authStore.cartItems[index].quantity > 1) {
     authStore.cartItems[index].quantity--;
   } else {
-    // Mostrar confirmación antes de eliminar
-    if (confirm('¿Deseas eliminar este producto del carrito?')) {
-      authStore.cartItems.splice(index, 1);
-    }
+    Swal.fire({
+      title: '¿Deseas eliminar este producto del carrito?',
+      text: "Si continúas, este producto será removido de tu cesta.",
+      icon: 'warning', // Un ícono de advertencia es apropiado aquí
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6', // Color azul por defecto de SweetAlert (puedes personalizarlo)
+      cancelButtonColor: '#d33',   // Color rojo por defecto para cancelar
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'No, mantener'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Si el usuario confirma, elimina el producto del carrito
+        authStore.cartItems.splice(index, 1);
+        Swal.fire(
+          '¡Eliminado!',
+          'El producto ha sido eliminado de tu carrito.',
+          'success' // Ícono de éxito para confirmar la eliminación
+        );
+      }
+      
+    });
   }
 };
+
 
 // Métodos para los botones
 const proceedToCheckout = () => {
