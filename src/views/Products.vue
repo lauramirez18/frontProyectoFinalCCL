@@ -16,6 +16,16 @@
           Resultados para: "{{ searchQuery }}"
         </h4>
         <h4 v-else class="text-h4 text-weight-bold">Todos los productos</h4>
+        
+        <!-- Mostrar marca filtrada -->
+        <div v-if="currentBrand" class="text-subtitle1 q-mt-sm">
+          <q-chip color="primary" removable @remove="clearBrandFilter">
+            <q-avatar>
+              <q-img :src="currentBrand.logo" :alt="currentBrand.nombre" style="height: 24px; width: 24px;" />
+            </q-avatar>
+            {{ currentBrand.nombre }}
+          </q-chip>
+        </div>
       </div>
       <div class="col-auto">
         <span class="text-grey-7">{{ pagination.total }} productos</span>
@@ -25,9 +35,35 @@
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-md-3">
         <q-card class="q-pa-md sticky-card" flat bordered>
+          <!-- Sección de Marcas -->
+          <div v-if="brands.length > 0" class="q-mb-lg">
+            <div class="text-h6 q-mb-md">Marcas</div>
+            <q-scroll-area style="height: 200px;">
+              <q-list dense>
+                <q-item 
+                  v-for="brand in brands" 
+                  :key="brand._id"
+                  clickable
+                  :active="currentBrand?._id === brand._id"
+                  @click="toggleBrandFilter(brand)"
+                  active-class="text-primary"
+                >
+                  <q-item-section avatar>
+                    <q-avatar size="24px">
+                      <q-img :src="brand.logo" :alt="brand.nombre" />
+                    </q-avatar>
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ brand.nombre }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-scroll-area>
+          </div>
+
+          <!-- Filtros alfabéticos -->
           <div v-if="showAlphabeticFilters" class="q-mb-lg">
             <div class="text-h6 q-mb-md">Filtrar por letra</div>
-
             <template v-for="(field, fieldName) in alphabeticFields" :key="fieldName">
               <div v-if="field.letters.length > 0" class="q-mb-sm">
                 <div class="text-subtitle2 q-mb-xs">{{ field.label }}</div>
@@ -47,7 +83,6 @@
                 </div>
               </div>
             </template>
-
             <q-btn
               v-if="activeAlphaFilter.field"
               flat
@@ -59,9 +94,9 @@
             />
           </div>
 
+          <!-- Filtros por especificación -->
           <div v-if="category" class="q-mb-md">
             <div class="text-h6 q-mb-md">Filtros por especificación</div>
-
             <template v-for="(filterGroup, key) in availableFilters" :key="key">
               <q-expansion-item
                 :label="getFilterLabel(key)"
@@ -82,6 +117,7 @@
             </template>
           </div>
 
+          <!-- Rango de precios -->
           <q-expansion-item
             label="Rango de precios"
             class="q-mt-md"
@@ -106,6 +142,7 @@
             </div>
           </q-expansion-item>
 
+          <!-- Botón para limpiar filtros -->
           <q-btn
             color="primary"
             label="Limpiar todos los filtros"
@@ -117,6 +154,7 @@
         </q-card>
       </div>
 
+      <!-- Listado de productos -->
       <div class="col-12 col-md-9">
         <div class="row items-center q-mb-md">
           <div class="col-md-4 col-12 q-pr-md">
@@ -153,11 +191,13 @@
           </div>
         </div>
 
+        <!-- Estado de carga -->
         <div v-if="loading" class="row justify-center q-py-xl">
           <q-spinner color="primary" size="3em" />
           <div class="text-subtitle1 q-mt-md">Cargando productos...</div>
         </div>
 
+        <!-- Sin resultados -->
         <div v-else-if="products.length === 0" class="row justify-center q-py-xl">
           <q-icon name="search_off" size="3em" color="grey-7" />
           <div class="text-subtitle1 q-mt-md col-12 text-center">
@@ -171,6 +211,7 @@
           />
         </div>
 
+        <!-- Vista de cuadrícula -->
         <div v-else-if="gridView" class="row q-col-gutter-lg">
           <div
             v-for="product in products"
@@ -182,6 +223,7 @@
           </div>
         </div>
 
+        <!-- Vista de lista -->
         <div v-else class="column q-gutter-md">
           <product-card-list
             v-for="product in products"
@@ -191,6 +233,7 @@
           />
         </div>
 
+        <!-- Paginación inferior -->
         <div class="row justify-center q-mt-lg" v-if="pagination.totalPages > 1 && products.length > 0">
           <q-pagination
             v-model="currentPage"
@@ -220,7 +263,7 @@ const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
 
-// Data
+// Datos reactivos
 const products = ref([])
 const loading = ref(false)
 const category = ref(null)
@@ -235,6 +278,8 @@ const maxPrice = ref(1000000)
 const availableFilters = ref({}) 
 const activeFilters = ref({})   
 const activeAlphaFilter = ref({ field: null, letter: null })
+const currentBrand = ref(null)
+const brands = ref([])
 
 const pagination = ref({
   total: 0,
@@ -258,15 +303,10 @@ const sortOptions = [
   { label: 'Z-A', value: 'za' }
 ]
 
-
-const filterLabels = {
-  
-}
-
-
+// Computed properties
 const showAlphabeticFilters = computed(() => {
   return alphabeticFields.value.marca.letters.length > 0 ||
-           alphabeticFields.value.modelo.letters.length > 0
+         alphabeticFields.value.modelo.letters.length > 0
 })
 
 const hasActiveFilters = computed(() => {
@@ -275,6 +315,7 @@ const hasActiveFilters = computed(() => {
   }
 
   if (activeAlphaFilter.value.field) return true
+  if (currentBrand.value) return true
 
   if (priceRange.value.min !== minPrice.value ||
       priceRange.value.max !== maxPrice.value) return true
@@ -282,30 +323,32 @@ const hasActiveFilters = computed(() => {
   return false
 })
 
-
+// Métodos
 const formatPrice = (price) => {
   return new Intl.NumberFormat('es-CO').format(Math.round(price))
 }
 
 const getFilterLabel = (key) => {
-
-  return filterLabels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+  const labels = {
+    color: 'Color',
+    ram: 'Memoria RAM',
+    almacenamiento: 'Almacenamiento',
+    pantalla: 'Tamaño de pantalla',
+    sistemaOperativo: 'Sistema operativo'
+  }
+  return labels[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())
 }
 
 const showError = (message, caption) => {
-  if (typeof $q.notify !== 'function') {
-    console.error('Error:', message, caption)
-    alert(`Error: ${message}\n${caption || ''}`)
-    return
-  }
-
   $q.notify({
     type: 'negative',
     message: message,
-    caption: caption
+    caption: caption || '',
+    position: 'top'
   })
 }
 
+// Obtener productos
 const fetchProducts = async () => {
   loading.value = true
 
@@ -316,25 +359,25 @@ const fetchProducts = async () => {
       sort: sortOption.value
     }
 
+    // Aplicar filtros
     if (route.params.categoryId) params.category = route.params.categoryId
     if (subcategory.value) params.subcategory = subcategory.value._id
     if (searchQuery.value) params.search = searchQuery.value
+    if (currentBrand.value) params.brand = currentBrand.value._id
 
     if (priceRange.value.min > minPrice.value) params.minPrice = priceRange.value.min
     if (priceRange.value.max < maxPrice.value) params.maxPrice = priceRange.value.max
 
-
+    // Filtros por especificación
     for (const key in activeFilters.value) {
       if (activeFilters.value[key] && activeFilters.value[key].length > 0) {
-       
-        params[key] = activeFilters.value[key].map(opt => opt.value);
+        params[key] = activeFilters.value[key].map(opt => opt.value)
       }
     }
 
+    // Filtro alfabético
     if (activeAlphaFilter.value.field && activeAlphaFilter.value.letter) {
-      
-      params[`especificaciones.${activeAlphaFilter.value.field}`] = activeAlphaFilter.value.letter;
-  
+      params[`especificaciones.${activeAlphaFilter.value.field}`] = activeAlphaFilter.value.letter
     }
 
     const response = await api.get('/productos', { params })
@@ -355,26 +398,31 @@ const fetchProducts = async () => {
   }
 }
 
+// Obtener datos de categoría y marcas
 const fetchCategoryData = async () => {
   if (route.params.categoryId) {
     try {
+      // Cargar categoría
       const catResponse = await api.get(`/categorias/${route.params.categoryId}`)
       if (!catResponse.data) {
         throw new Error('Categoría no encontrada')
       }
-
       category.value = catResponse.data
 
+      // Cargar marcas
       try {
-        const alphaResponse = await api.get(`/productos/filtros-alfabeticos/${route.params.categoryId}`)
-        if (alphaResponse.data && alphaResponse.data.filtrosAlfabeticos) {
-          alphabeticFields.value.marca.letters = alphaResponse.data.filtrosAlfabeticos.marca || []
-          alphabeticFields.value.modelo.letters = alphaResponse.data.filtrosAlfabeticos.modelo || []
+        const brandsResponse = await api.get('/marcas')
+        brands.value = brandsResponse.data
+        
+        // Establecer marca actual si hay filtro en la URL
+        if (route.query.brand) {
+          currentBrand.value = brands.value.find(b => b._id === route.query.brand)
         }
-      } catch (alphaError) {
-        console.warn('No se pudieron cargar los filtros alfabéticos:', alphaError)
+      } catch (brandsError) {
+        console.warn('Error al cargar marcas:', brandsError)
       }
 
+      // Cargar subcategoría si existe
       if (route.params.subcategoryId) {
         try {
           const subcatResponse = await api.get(`/subcategorias/${route.params.subcategoryId}`)
@@ -385,8 +433,10 @@ const fetchCategoryData = async () => {
         }
       }
 
-      await fetchAvailableFilters() 
+      // Cargar filtros disponibles
+      await fetchAvailableFilters()
 
+      // Cargar rango de precios
       try {
         const pricesResponse = await api.get(`/productos/rango-precios/${route.params.categoryId}`)
         minPrice.value = pricesResponse.data.min || 0
@@ -399,8 +449,16 @@ const fetchCategoryData = async () => {
         priceRange.value = { min: 0, max: 1000000 }
       }
 
-      
-     
+      // Cargar filtros alfabéticos
+      try {
+        const alphaResponse = await api.get(`/productos/filtros-alfabeticos/${route.params.categoryId}`)
+        if (alphaResponse.data && alphaResponse.data.filtrosAlfabeticos) {
+          alphabeticFields.value.marca.letters = alphaResponse.data.filtrosAlfabeticos.marca || []
+          alphabeticFields.value.modelo.letters = alphaResponse.data.filtrosAlfabeticos.modelo || []
+        }
+      } catch (alphaError) {
+        console.warn('No se pudieron cargar los filtros alfabéticos:', alphaError)
+      }
 
     } catch (error) {
       console.error('Error al cargar datos de categoría:', error)
@@ -415,6 +473,7 @@ const fetchCategoryData = async () => {
   }
 }
 
+// Obtener filtros disponibles
 const fetchAvailableFilters = async () => {
   if (!route.params.categoryId) return
 
@@ -422,7 +481,7 @@ const fetchAvailableFilters = async () => {
     const filtersResponse = await api.get(`/productos/filtros-disponibles/${route.params.categoryId}`)
     availableFilters.value = filtersResponse.data.filters || {}
 
-   
+    // Inicializar filtros activos
     for (const key in availableFilters.value) {
       if (!activeFilters.value[key]) {
         activeFilters.value[key] = []
@@ -434,6 +493,7 @@ const fetchAvailableFilters = async () => {
   }
 }
 
+// Manejo de filtros
 const applyFilters = () => {
   currentPage.value = 1
   fetchProducts()
@@ -466,28 +526,71 @@ const clearAlphaFilter = () => {
   fetchProducts()
 }
 
+// Manejo de filtro por marca
+const toggleBrandFilter = (brand) => {
+  if (currentBrand.value?._id === brand._id) {
+    clearBrandFilter()
+  } else {
+    setBrandFilter(brand)
+  }
+}
+
+const setBrandFilter = (brand) => {
+  currentBrand.value = brand
+  currentPage.value = 1
+  
+  // Actualizar la URL sin recargar la página
+  const query = { ...route.query, brand: brand._id }
+  router.push({ query })
+  
+  fetchProducts()
+}
+
+const clearBrandFilter = () => {
+  currentBrand.value = null
+  currentPage.value = 1
+  
+  // Eliminar el parámetro de marca de la URL
+  const query = { ...route.query }
+  delete query.brand
+  router.push({ query })
+  
+  fetchProducts()
+}
+
+// Limpiar todos los filtros
 const resetAllFilters = () => {
- 
+  // Limpiar filtros de especificación
   for (const key in activeFilters.value) {
     activeFilters.value[key] = []
   }
 
+  // Limpiar filtro alfabético
   clearAlphaFilter()
 
+  // Limpiar filtro de marca
+  clearBrandFilter()
+
+  // Resetear rango de precios
   priceRange.value = { min: minPrice.value, max: maxPrice.value }
 
+  // Resetear ordenamiento
   sortOption.value = 'newest'
 
+  // Volver a la primera página
   currentPage.value = 1
+  
+  // Recargar productos
   fetchProducts()
 }
 
+// Inicialización
 const initializeFromRoute = async () => {
   await fetchCategoryData()
   fetchProducts()
 }
 
-
+// Watchers
 watch(() => route.params, () => {
   currentPage.value = 1
   initializeFromRoute()
@@ -499,12 +602,29 @@ watch(() => route.query, (newQuery) => {
     currentPage.value = 1
     fetchProducts()
   }
+  
+  // Si hay un cambio en el parámetro brand pero no coincide con la marca actual
+  if (newQuery.brand && (!currentBrand.value || currentBrand.value._id !== newQuery.brand)) {
+    const brand = brands.value.find(b => b._id === newQuery.brand)
+    if (brand) {
+      currentBrand.value = brand
+      currentPage.value = 1
+      fetchProducts()
+    }
+  }
+  
+  // Si se eliminó el parámetro brand pero tenemos una marca seleccionada
+  if (!newQuery.brand && currentBrand.value) {
+    currentBrand.value = null
+    currentPage.value = 1
+    fetchProducts()
+  }
 }, { immediate: true })
 
-
+// Montaje inicial
 onMounted(() => {
-  
-  for (const key in filterLabels) {
+  // Inicializar filtros activos
+  for (const key in availableFilters.value) {
     if (!activeFilters.value[key]) {
       activeFilters.value[key] = []
     }
@@ -540,6 +660,24 @@ onMounted(() => {
 .q-option-group {
   :deep(.q-option-inner) {
     padding: 4px 8px;
+  }
+}
+
+.q-scroll-area {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.q-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  min-height: 40px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.active-item {
+    background-color: rgba(25, 118, 210, 0.08);
   }
 }
 

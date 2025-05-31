@@ -179,8 +179,11 @@ const handleLogin = async () => {
     if (response.token) {
       const authData = { token: response.token };
       localStorage.setItem('auth', JSON.stringify(authData));
-       authStore.setUser(response.user);
-      console.log(response.user);
+      
+      // Store the complete user object
+      authStore.setToken(response.token);
+      authStore.setUser(response.user);
+      
       router.push('/dashboard');
     } else {
       throw new Error('No se recibió token de autenticación');

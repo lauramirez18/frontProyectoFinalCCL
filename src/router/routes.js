@@ -6,10 +6,11 @@ import Car from '../views/Car.vue';
 import Details from '../views/Details.vue';
 import Admin from '../views/admin.vue';
 import Register from '../views/Register.vue';
-import Products from '../views/Products.vue'; // Asumo que este es para /products/:categoryId
-import Category from '../views/Category.vue'; // Asumo que este es para /category/:id
+import Products from '../views/Products.vue'; // Assuming this is your productos.vue
+import Category from '../views/Category.vue';
 import Payments from '../views/Payments.vue';
-import SearchResultsPage from '../components/search.vue'; // Componente que mostrará los resultados de búsqueda
+import SearchResultsPage from '../components/search.vue';
+import Favorites from '../views/Favorites.vue';
 
 const routes = [
   {
@@ -37,8 +38,15 @@ const routes = [
         component: Home,
         meta: { requiresAuth: true }
       },
+      // NEW ROUTE FOR ALL PRODUCTS AND BRAND FILTERING
       {
-        path: '/products/:categoryId', // Ruta para productos por categoría
+        path: '/productos', // This path will now handle /productos and /productos?brand=...
+        name: 'AllProducts', // A new name for this generic products view
+        component: Products, // Pointing to your Products.vue component
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '/products/:categoryId', // Keep your existing category-specific route
         name: 'CategoryProducts',
         component: Products,
         meta: { requiresAuth: true }
@@ -50,7 +58,7 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'category/:id', // Ruta para una categoría específica (puede ser redundante con CategoryProducts dependiendo de tu lógica)
+        path: 'category/:id',
         name: 'category',
         component: Category,
         meta: { requiresAuth: true }
@@ -68,17 +76,20 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        // ¡Esta es la ruta clave para los resultados de búsqueda!
         path: 'search-results',
         name: 'SearchResults',
         component: SearchResultsPage,
-        // Decide si esta página requiere autenticación o es pública
-        meta: { requiresAuth: true } // Puedes cambiar a 'false' si quieres que sea pública
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'favorites',
+        name: 'Favorites',
+        component: Favorites,
+        meta: { requiresAuth: true }
       }
     ]
   },
   {
-    // Ruta catch-all para cualquier URL no definida, redirige al inicio
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }

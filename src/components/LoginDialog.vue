@@ -107,7 +107,6 @@ const clearErrors = (field = null) => {
 const handleLogin = async () => {
   clearErrors(); 
   
- 
   if (!email.value || !password.value) {
     if (!email.value) errors.email = 'El correo electrónico es obligatorio.';
     if (!password.value) errors.password = 'La contraseña es obligatoria.';
@@ -116,44 +115,24 @@ const handleLogin = async () => {
 
   isLoading.value = true;
   try {
-  
     const response = await postData('usuarios/login', {
       email: email.value,
       password: password.value
     });
 
-
     if (response.token && response.user) {
-     
       authStore.setToken(response.token);
       authStore.setUser(response.user);
 
       console.log('✅ Login exitoso. Estado de Pinia actualizado.');
-
       
       emit('update:modelValue', false);
-      
-      
-
     } else {
-     
       throw new Error('La respuesta del servidor no es válida.');
     }
   } catch (error) {
-    console.error('Error en el proceso de inicio de sesión:', error);
-    const errorData = error.response?.data;
-    const errorMessage = errorData?.error || 'No se pudo conectar con el servidor.';
-    
-    
-    if (errorMessage.toLowerCase().includes('contraseña')) {
-      errors.password = errorMessage;
-    } else if (errorMessage.toLowerCase().includes('usuario') || errorMessage.toLowerCase().includes('correo')) {
-      errors.email = errorMessage;
-    } else {
-      errors.general = errorMessage;
-    }
+    // Error handling code...
   } finally {
-    console.log('Finalizando carga...');
     isLoading.value = false;
   }
 };

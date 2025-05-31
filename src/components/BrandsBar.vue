@@ -8,11 +8,7 @@
         :key="index"
         class="col-6 col-sm-3 col-md-2 col-lg-2 q-ma-sm"
       >
-        <q-card
-          flat
-          bordered
-          class="q-pa-sm flex flex-center brand-card"
-        >
+        <q-card flat bordered class="q-pa-sm flex flex-center brand-card">
           <q-img
             :src="brand.logo"
             :alt="brand.name"
@@ -28,10 +24,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getData } from '../services/apiclient';
+import { ref, onMounted } from 'vue'
+import { getData } from '../services/apiclient'
 
-const brands = ref([]);
+const brands = ref([])
 
 const getBrands = async () => {
   try {
@@ -41,7 +37,7 @@ const getBrands = async () => {
     console.error('Error al obtener las marcas:', error);
     brands.value = [];
   }
-};
+}
 
 onMounted(() => {
   getBrands();
