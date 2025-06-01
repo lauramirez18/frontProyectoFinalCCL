@@ -42,7 +42,7 @@
 
         <div class="product-info">
           <h1 class="product-title">{{ producto.nombre }}</h1>
-          <p class="product-brand">Marca: {{ producto.marca }}</p>
+          <p class="text-caption text-grey-7">{{ typeof producto.marca === 'object' ? producto.marca.nombre : (producto.marca || 'Sin marca') }}</p>
           <p class="product-description">{{ producto.descripcion }}</p>
 
           <div class="product-pricing">
@@ -69,22 +69,37 @@
               </div>
             </div>
             <div class="stock-info">Disponibles: {{ producto.stock }} unidades</div>
-            <q-btn
-              :color="isFavorite ? 'red' : 'grey-7'"
-              :icon="isFavorite ? 'favorite' : 'favorite_border'"
-              :label="isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'"
-              outline
-              class="q-mr-sm"
-              @click="toggleFavorite"
-            />
-            <button class="add-to-cart-btn" @click="addToCart">Agregar al Carrito</button>
+            
+            <div class="product-actions flex items-center gap-4 mt-6">
+              <q-btn 
+                @click="addToCart" 
+                class="cart-btn flex-grow-1"
+                color="primary"
+                icon="shopping_cart"
+                label="Agregar al carrito"
+                :loading="loading"
+                :disable="loading"
+              >
+                <q-tooltip>
+                  Agregar al carrito
+                </q-tooltip>
+              </q-btn>
+              
+              <FavoriteButton
+                :product="producto"
+                class="favorite-btn-details"
+                :flat="false"
+                :round="false"
+                @update:favorite="handleFavoriteUpdate"
+              />
+            </div>
           </div>
           <div class="product-rating">
-            <div class="rating-stars">
-              <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= Math.round(averageRating) }">★</span>
-            </div>
-            <span class="rating-value">{{ averageRating.toFixed(1) }}</span>
-            <span class="rating-count">({{ reviews.length }} reseñas)</span>
+            <RatingStars
+              :rating="averageRating"
+              :review-count="reviews.length"
+              size="1.4em"
+            />
           </div>
         </div>
       </div>
@@ -164,9 +179,12 @@
             </div>
             <div class="review-content">
               <div class="review-header">
-                <div class="review-stars">
-                  <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= review.calificacion }">★</span>
-                </div>
+                <RatingStars
+                  :rating="review.calificacion"
+                  :review-count="0"
+                  size="1em"
+                  :show-count="false"
+                />
                 <div class="review-date">{{ formatDate(review.createdAt || review.fecha) }}</div>
                 <q-btn
                   v-if="authStore.user && review.usuario?._id === authStore.user._id"
@@ -257,6 +275,9 @@ import { useAuthStore } from '../store/store.js'
 import api from '../plugins/axios'
 import { showNotification } from '../utils/notifications'
 import { useThousandsFormat } from '../composables/useThousandFormat' // Importar el composable
+import FavoriteButton from '../components/FavoriteButton.vue'
+import { storeToRefs } from 'pinia'
+import RatingStars from '../components/RatingStars.vue'
 
 const route = useRoute() 
 const router = useRouter() 
@@ -278,6 +299,7 @@ const producto = ref({
 
 const showCartSidebar = ref(false)
 const authStore = useAuthStore()
+const { favorites } = storeToRefs(authStore)
 
 const loading = ref(true)
 const error = ref(false)
@@ -340,26 +362,51 @@ const fetchProduct = async () => {
   try {
     loading.value = true;
     error.value = false;
-    const { id } = route.params; // Use route.params
+    const productId = route.params.id;
 
-    const productResponse = await api.get(`/productos/${id}`);
+    if (!productId || productId === 'favorites' || productId === 'undefined') {
+      throw new Error('ID de producto inválido');
+    }
+
+    const productResponse = await api.get(`/productos/${productId}`);
+    if (!productResponse.data) {
+      throw new Error('Producto no encontrado');
+    }
+
     producto.value = productResponse.data;
 
     if (!producto.value.imagenes || producto.value.imagenes.length === 0) {
       producto.value.imagenes = [placeholderImage];
     }
 
-   
-    const reviewsResponse = await api.get(`/resenas/producto/${id}`);
-    reviews.value = reviewsResponse.data; 
+    // Fetch reviews only if we have a valid product
+    try {
+      const reviewsResponse = await api.get(`/resenas/producto/${productId}`);
+      reviews.value = reviewsResponse.data;
+    } catch (reviewError) {
+      console.error('Error al cargar reseñas:', reviewError);
+      reviews.value = [];
+    }
 
   } catch (err) {
     console.error('Error al cargar el producto:', err);
     error.value = true;
+    producto.value = {
+      _id: '',
+      nombre: '',
+      descripcion: '',
+      precio: 0,
+      marca: '',
+      imagenes: [placeholderImage],
+      especificaciones: {},
+      stock: 0,
+      state: '1',
+      promedioCalificacion: 0
+    };
+    
     $q.notify({
       type: 'negative',
-      message: 'No se pudo cargar los detalles del producto.',
-      caption: err.response?.data?.msg || err.message,
+      message: err.message || 'No se pudo cargar los detalles del producto.',
       position: 'top'
     });
   } finally {
@@ -581,51 +628,32 @@ const calculateSubtotal = () => {
   }, 0)
 }
 
+const handleFavoriteUpdate = (isFavorite) => {
+  // Opcional: puedes usar este evento para mostrar una notificación o actualizar algo en la UI
+  showNotification(
+    'success',
+    isFavorite ? 'Producto agregado a favoritos' : 'Producto eliminado de favoritos'
+  );
+};
+
 const isFavorite = computed(() => {
-  return authStore.isFavorite(producto.value._id)
-})
+  if (!producto.value) return false;
+  return favorites.value.includes(producto.value._id);
+});
 
 const toggleFavorite = async () => {
-  if (!authStore.token) {
-    showNotification('warning', 'Debes iniciar sesión para agregar productos a favoritos.')
-    return
-  }
+  if (!producto.value) return;
   
   try {
-    // Check if user object and ID exist
-    if (!authStore.user || !authStore.user.id) {
-      showNotification('error', 'Error de sesión. Intenta iniciar sesión nuevamente.')
-      return
-    }
-    
-    const userId = authStore.user.id
-    const productId = producto.value._id
-    
     if (isFavorite.value) {
-      // Remove from favorites
-      await api.delete(`/usuarios/users/${userId}/favorites/${productId}`)
-      authStore.removeFromFavorites(productId)
-      showNotification('success', 'Producto eliminado de favoritos')
+      await authStore.removeFromFavorites(producto.value._id);
     } else {
-      // Add to favorites
-      await api.post(`/usuarios/users/${userId}/favorites/${productId}`)
-      
-      const favoriteItem = {
-        id: producto.value._id,
-        name: producto.value.nombre,
-        price: producto.value.precio,
-        image: mainImage.value,
-        seller: producto.value.marca || 'Vendedor oficial'
-      }
-      
-      authStore.addToFavorites(favoriteItem)
-      showNotification('success', 'Producto agregado a favoritos')
+      await authStore.addToFavorites(producto.value._id);
     }
-  } catch (error) {
-    console.error('Error al gestionar favoritos:', error)
-    showNotification('error', 'Error al gestionar favoritos', error.response?.data?.error || error.message)
+  } catch (err) {
+    console.error('Error al modificar favoritos:', err);
   }
-}
+};
 </script>
 
 <style scoped>
@@ -736,5 +764,36 @@ const toggleFavorite = async () => {
   font-size: 1rem;
   line-height: 1.5;
   color: #333;
+}
+
+.cart-btn {
+  background: linear-gradient(135deg, #068FFF, #0052a3);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 12px 24px;
+}
+
+.cart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 143, 255, 0.3);
+}
+
+.cart-btn:active {
+  transform: translateY(0);
+}
+
+.favorite-btn-details {
+  min-width: 48px;
+  height: 48px;
+}
+
+.product-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
 }
 </style>

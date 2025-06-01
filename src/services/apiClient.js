@@ -38,3 +38,18 @@ export async function putData(url, data){
         throw error;
     }
 }
+
+/**
+ * Realiza una petición DELETE a la API.
+ * @param {string} url - La ruta del endpoint.
+ * @returns {Promise<any>} - La data de la respuesta.
+ */
+export async function deleteData(url) {
+    try {
+        const response = await apiClient.delete(url);
+        return response.data;
+    } catch (error) {
+        console.log('Error en la petición DELETE:', error.response ? error.response.data : error.message);
+        throw error;
+    }
+}

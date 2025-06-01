@@ -1,44 +1,30 @@
 import { Notify } from 'quasar'
 
-export const showNotification = (type, message, caption = '') => {
-  const notifyConfig = {
-    message,
-    caption,
+export const showNotification = (type, message, details = '') => {
+  Notify.create({
+    type: type, // 'positive', 'negative', 'warning', 'info'
+    message: message,
+    caption: details,
     position: 'top-right',
     timeout: 3000,
-    actions: [{ icon: 'close', color: 'white' }]
-  }
+    actions: [
+      { icon: 'close', color: 'white', handler: () => { /* dismiss */ } }
+    ]
+  })
+}
 
-  switch (type) {
-    case 'success':
-      Notify.create({
-        ...notifyConfig,
-        type: 'positive',
-        icon: 'check_circle'
-      })
-      break
-    case 'error':
-      Notify.create({
-        ...notifyConfig,
-        type: 'negative',
-        icon: 'error'
-      })
-      break
-    case 'warning':
-      Notify.create({
-        ...notifyConfig,
-        type: 'warning',
-        icon: 'warning'
-      })
-      break
-    case 'info':
-      Notify.create({
-        ...notifyConfig,
-        type: 'info',
-        icon: 'info'
-      })
-      break
-    default:
-      Notify.create(notifyConfig)
-  }
+export const showError = (message, details = '') => {
+  showNotification('negative', message, details)
+}
+
+export const showSuccess = (message) => {
+  showNotification('positive', message)
+}
+
+export const showWarning = (message) => {
+  showNotification('warning', message)
+}
+
+export const showInfo = (message) => {
+  showNotification('info', message)
 }
