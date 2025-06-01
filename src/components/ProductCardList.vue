@@ -24,17 +24,11 @@
         
         <!-- Rating -->
         <div class="row items-center q-mt-xs">
-          <q-rating
-            v-model="product.rating"
+          <RatingStars
+            :rating="product.promedioCalificacion"
+            :review-count="product.totalResenas"
             size="1em"
-            color="yellow"
-            icon="star_border"
-            icon-selected="star"
-            readonly
           />
-          <span class="text-caption text-grey-7 q-ml-xs">
-            ({{ product.reviewsCount || 0 }})
-          </span>
         </div>
         
         <!-- Especificaciones -->
@@ -88,6 +82,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import RatingStars from './RatingStars.vue'
 
 const props = defineProps({
   product: {

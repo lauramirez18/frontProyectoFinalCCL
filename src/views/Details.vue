@@ -95,11 +95,11 @@
             </div>
           </div>
           <div class="product-rating">
-            <div class="rating-stars">
-              <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= Math.round(averageRating) }">★</span>
-            </div>
-            <span class="rating-value">{{ averageRating.toFixed(1) }}</span>
-            <span class="rating-count">({{ reviews.length }} reseñas)</span>
+            <RatingStars
+              :rating="averageRating"
+              :review-count="reviews.length"
+              size="1.4em"
+            />
           </div>
         </div>
       </div>
@@ -179,9 +179,12 @@
             </div>
             <div class="review-content">
               <div class="review-header">
-                <div class="review-stars">
-                  <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= review.calificacion }">★</span>
-                </div>
+                <RatingStars
+                  :rating="review.calificacion"
+                  :review-count="0"
+                  size="1em"
+                  :show-count="false"
+                />
                 <div class="review-date">{{ formatDate(review.createdAt || review.fecha) }}</div>
                 <q-btn
                   v-if="authStore.user && review.usuario?._id === authStore.user._id"
@@ -274,6 +277,7 @@ import { showNotification } from '../utils/notifications'
 import { useThousandsFormat } from '../composables/useThousandFormat' // Importar el composable
 import FavoriteButton from '../components/FavoriteButton.vue'
 import { storeToRefs } from 'pinia'
+import RatingStars from '../components/RatingStars.vue'
 
 const route = useRoute() 
 const router = useRouter() 

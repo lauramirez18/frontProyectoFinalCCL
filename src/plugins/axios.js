@@ -1,13 +1,13 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/store';
 
-// Función para asegurar que las URLs se formateen correctamente
+
 const normalizeUrl = (url) => {
-  // Si la URL ya empieza con /, la dejamos como está
+  
   if (url.startsWith('/')) {
     return url;
   }
-  // Si no, agregamos /
+
   return `/${url}`;
 };
 

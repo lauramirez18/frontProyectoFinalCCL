@@ -303,7 +303,7 @@ const pagination = ref({
 
 const alphabeticFields = ref({
   marca: { label: 'Marca', letters: [] },
-  modelo: { label: 'Modelo', letters: [] }
+
 })
 
 const sortOptions = [

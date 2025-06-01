@@ -56,18 +56,11 @@
       
       <!-- Rating -->
       <div class="row items-center q-mt-xs">
-        <q-rating
-  :model-value="typeof product.rating === 'number' ? product.rating : 0"
-  size="1em"
-  color="yellow"
-  icon="star_border"
-  icon-selected="star"
-  readonly
-/>
-
-        <span class="text-caption text-grey-7 q-ml-xs">
-          ({{ product.reviewsCount || 0 }})
-        </span>
+        <RatingStars
+          :rating="product.promedioCalificacion"
+          :review-count="product.totalResenas"
+          size="1em"
+        />
       </div>
       
       <!-- Precios -->
@@ -138,6 +131,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/store.js'
 import { showNotification } from '../utils/notifications'
 import FavoriteButton from './FavoriteButton.vue'
+import RatingStars from './RatingStars.vue'
+
 
 const props = defineProps({
   product: {

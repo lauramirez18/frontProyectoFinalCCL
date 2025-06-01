@@ -29,6 +29,13 @@
             <div class="text-subtitle2 text-grey-8">{{ product.categoria }}</div>
             <div class="text-h6 ellipsis-2-lines">{{ product.nombre }}</div>
             <div class="row items-center q-mt-sm">
+              <RatingStars
+                :rating="product.promedioCalificacion"
+                :review-count="product.totalResenas"
+                size="1em"
+              />
+            </div>
+            <div class="row items-center q-mt-sm">
               <div class="text-h6 text-primary">${{ formatPrice(product.precio) }}</div>
               <div v-if="product.enOferta" class="text-caption text-grey q-ml-sm text-line-through">
                 ${{ formatPrice(product.precioOriginal) }}
@@ -64,6 +71,7 @@ import { ref, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getData } from '../services/apiClient.js';
 import FavoriteButton from './FavoriteButton.vue';
+import RatingStars from './RatingStars.vue';
 
 const route = useRoute();
 const router = useRouter();

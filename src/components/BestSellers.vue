@@ -61,21 +61,27 @@
             <!-- Información del producto -->
             <div class="product-info">
               <h3 class="product-name">{{ product.nombre || 'Producto sin nombre' }}</h3>
-              <q-badge rounded color="primary" class="text-weight-bold">
-            <p class="text-caption text-grey-7">{{ typeof product.marca === 'object' ? product.marca.nombre : (product.marca || 'Sin marca') }}></p>
+              <q-badge rounded color="primary" class="brand-badge-label text-weight-bold">
+                {{ typeof product.marca === 'object' ? product.marca.nombre : (product.marca || 'Sin marca') }}
               </q-badge>
-              <div class="rating-container">
-                <q-rating
-                  :model-value="product.rating || 0"
-                  :max="5"
-                  size="1em"
-                  color="amber"
-                  readonly
-                />
-                <span class="rating-text">
-                  {{ product.rating ? product.rating.toFixed(1) : '0.0' }}
-                  ({{ product.reviewsCount || 0 }})
-                </span>
+              
+              <div class="rating-wrapper">
+                <div class="rating-stars">
+                  <q-rating
+                    v-model="product.promedioCalificacion"
+                    :max="5"
+                    size="1.2em"
+                    color="amber"
+                    icon="star"
+                    icon-selected="star"
+                    icon-half="star_half"
+                    readonly
+                  />
+                </div>
+                <div class="rating-info">
+                  <span class="rating-value">{{ (product.promedioCalificacion || 0).toFixed(1) }}</span>
+                  <span class="rating-count">({{ product.totalResenas || 0 }} reseñas)</span>
+                </div>
               </div>
 
               <div class="price-container" v-if="product.precio">
@@ -311,16 +317,58 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.rating-container {
+.rating-wrapper {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin: 12px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.rating-text {
-  color: #666;
+.rating-stars {
+  display: flex;
+  align-items: center;
+  
+  .q-rating {
+    .q-icon {
+      font-size: 1.4em;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+      transition: transform 0.2s ease;
+      
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+.rating-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f1c40f;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.rating-count {
   font-size: 0.9rem;
+  color: #666;
+}
+
+.brand-badge-label {
+  padding: 6px 12px;
+  margin: 8px 0;
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
 }
 
 .price-container {
