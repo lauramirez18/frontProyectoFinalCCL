@@ -26,9 +26,7 @@
           <div class="card-content">
             <!-- Badge de marca -->
             <div class="brand-badge">
-              <q-badge rounded color="primary" class="text-weight-bold">
-                {{ product.marca }}
-              </q-badge>
+            
             </div>
 
             <!-- Imagen del producto -->
@@ -63,16 +61,21 @@
             <!-- Información del producto -->
             <div class="product-info">
               <h3 class="product-name">{{ product.nombre || 'Producto sin nombre' }}</h3>
-              
+              <q-badge rounded color="primary" class="text-weight-bold">
+            <p class="text-caption text-grey-7">{{ typeof product.marca === 'object' ? product.marca.nombre : (product.marca || 'Sin marca') }}></p>
+              </q-badge>
               <div class="rating-container">
                 <q-rating
-                  v-model="ratingValue"
+                  :model-value="product.rating || 0"
                   :max="5"
                   size="1em"
                   color="amber"
                   readonly
                 />
-                <span class="rating-text">{{ ratingValue }}.0</span>
+                <span class="rating-text">
+                  {{ product.rating ? product.rating.toFixed(1) : '0.0' }}
+                  ({{ product.reviewsCount || 0 }})
+                </span>
               </div>
 
               <div class="price-container" v-if="product.precio">
@@ -94,7 +97,6 @@ import { useThousandsFormat } from '../composables/useThousandFormat'
 
 const { formatThousands } = useThousandsFormat()
 const bestSellers = ref([])
-const ratingValue = ref(5)
 const currentImages = reactive({})
 const loading = ref(true)
 let imageInterval = null
@@ -126,10 +128,9 @@ const fetchBestSellers = async () => {
   loading.value = true
   try {
     const res = await getData('/productos', { 
-      sort: 'popular', 
+      sort: 'stock_asc',
       limit: 8 
     })
-    
     
     if (res) {
       let productos = []
@@ -143,9 +144,13 @@ const fetchBestSellers = async () => {
         productos = []
       }
       
+      productos.sort((a, b) => {
+        const stockA = a.stock || 0
+        const stockB = b.stock || 0
+        return stockA - stockB
+      })
    
       bestSellers.value = productos.map(product => {
-        
         return {
           ...product,
           _id: product._id || `temp-${Math.random()}`,

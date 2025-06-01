@@ -136,14 +136,13 @@ const checkAuthStatus = async () => {
 
   if (authData) {
     try {
-      const { token } = JSON.parse(authData);
+      const { token, user } = JSON.parse(authData);
 
-      if (token) {
-        // Verificar si el token es válido
-        const response = await getData('/auth/verify-token');
-        if (response.valid) {
-          router.push('/dashboard');
-        }
+      if (token && user) {
+        // Configurar el estado de la aplicación
+        authStore.setToken(token);
+        authStore.setUser(user);
+        router.push('/');
       }
     } catch (error) {
       console.error('Error al verificar el estado de autenticación:', error);
@@ -171,7 +170,7 @@ const handleLogin = async () => {
 
   isLoading.value = true;
   try {
-    const response = await postData('usuarios/login', {
+    const response = await postData('login', {
       email: email.value,
       password: password.value
     });
@@ -182,10 +181,10 @@ const handleLogin = async () => {
         user: response.user
       };
       localStorage.setItem('auth', JSON.stringify(authData));
-      
-      // Guardar el nombre del usuario
+
+      // Guardar el token y datos del usuario
       authStore.setToken(response.token);
-      authStore.setUser(response.user?.nombre || response.user?.name || email.value.split('@')[0]);
+      authStore.setUser(response.user);
       
       router.push('/');
     } else {

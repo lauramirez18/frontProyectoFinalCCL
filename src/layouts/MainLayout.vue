@@ -60,12 +60,29 @@
             </q-menu>
           </q-btn>
 
-          <q-btn flat round icon="favorite_border" class="q-mr-xs" @click="goTo('/wishlist')" />
-         <router-link to="/car">
-          <q-btn flat round icon="shopping_cart" class="text-white">
-            <q-badge floating color="secondary" text-color="white">{{ authStore.cartItems.length }}</q-badge>
+          <q-btn 
+            flat 
+            round 
+            :icon="authStore.favorites.length > 0 ? 'favorite' : 'favorite_border'" 
+            :class="{'text-red': authStore.favorites.length > 0}"
+            @click="$router.push('/favorites')"
+          >
+            <q-badge 
+              v-if="authStore.favorites.length > 0" 
+              floating 
+              color="red" 
+              text-color="white"
+            >
+              {{ authStore.favorites.length }}
+            </q-badge>
+            <q-tooltip>Mis Favoritos</q-tooltip>
           </q-btn>
-         </router-link>
+
+          <router-link to="/car">
+            <q-btn flat round icon="shopping_cart" class="text-white">
+              <q-badge floating color="secondary" text-color="white">{{ authStore.cartItems.length }}</q-badge>
+            </q-btn>
+          </router-link>
           
         </q-section>
 
