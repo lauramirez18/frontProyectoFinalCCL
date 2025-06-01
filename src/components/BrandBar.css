@@ -1,0 +1,143 @@
+/* Estilos para el contenedor principal */
+.banner-brand {
+  background: linear-gradient(45deg, #000000, #1a1a1a);
+  color: white;
+  padding: 3rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efecto de fondo con degradado */
+.banner-brand::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Estilos para el título */
+.banner-brand h6 {
+  font-size: 2.8em;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  position: relative;
+  display: inline-block;
+}
+
+/* Línea decorativa debajo del título */
+.banner-brand h6::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+}
+
+/* Contenedor de marcas */
+.q-gutter-sm {
+  margin-top: 2.5rem;
+  padding: 0 1rem;
+}
+
+/* Tarjetas de marca */
+.brand-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  padding: 1.2rem !important;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-card:hover {
+  transform: scale(1.05) translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Imágenes de marca */
+.q-img {
+  transition: all 0.5s ease-in-out;
+  filter: brightness(0.9);
+}
+
+.brand-card:hover .q-img {
+  filter: brightness(1.2);
+  transform: scale(1.1);
+}
+
+.image-loading {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Animación de entrada para las tarjetas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.brand-card {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .banner-brand h6 {
+    font-size: 2.4em;
+  }
+  
+  .brand-card {
+    min-height: 100px;
+  }
+}
+
+@media (max-width: 768px) {
+  .banner-brand h6 {
+    font-size: 2em;
+    margin-bottom: 1.5rem;
+  }
+  
+  .banner-brand {
+    padding: 2rem 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .banner-brand h6 {
+    font-size: 1.6em;
+    letter-spacing: 1px;
+  }
+  
+  .brand-card {
+    min-height: 80px;
+    padding: 0.8rem !important;
+  }
+  
+  .q-gutter-sm {
+    margin-top: 1.5rem;
+  }
+} 
