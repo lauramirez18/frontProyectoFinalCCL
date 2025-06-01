@@ -34,7 +34,7 @@
 
         <q-section class="row items-center q-gutter-sm no-wrap flex action-icons">
           <q-btn flat no-caps icon-right="arrow_drop_down" class="text-weight-medium user-btn" style="font-size: 16px;"
-            :label="authStore.user ? `Hola, ${authStore.user || 'Usuario'}` : 'Hola, Iniciar sesión'">
+            :label="authStore.userName ? `Hola, ${authStore.userName}` : 'Iniciar sesión'">
             <q-menu v-model="showMenu" transition-show="jump-down" transition-hide="jump-up" anchor="bottom middle"
               self="top middle" class="q-pa-none bg-transparent" :offset="[0, 8]" @mouseleave="hideMenuDelayed">
               <div class="menu-flecha bg-primary text-white shadow-10 q-pa-sm rounded-borders"

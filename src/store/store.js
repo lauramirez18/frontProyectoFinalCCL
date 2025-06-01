@@ -3,9 +3,10 @@ import { ref } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref('')
-  const user = ref()
+  const user = ref(null)
+  const userName = ref('')
   const cartItems = ref([])
-  const favorites = ref([]) // Add favorites array
+  const favorites = ref([])
 
   function setToken(newToken) {
     if (newToken) {
@@ -21,15 +22,24 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setUser(newUser) {
     if (newUser) {
-      user.value = newUser
+      // Si newUser es un string, asumimos que es el nombre
+      if (typeof newUser === 'string') {
+        userName.value = newUser
+        user.value = { nombre: newUser }
+      } 
+      // Si es un objeto, extraemos el nombre
+      else if (typeof newUser === 'object') {
+        user.value = newUser
+        userName.value = newUser.nombre || newUser.name || newUser.email?.split('@')[0] || 'Usuario'
+      }
     } else {
       console.log('No está llegando el usuario')
+      userName.value = ''
+      user.value = null
     }
   }
-  
 
   function addToCart(item) {
-    // Verificación mejorada del item
     if (!item || !item.id) {
       console.warn('Item inválido:', item)
       return
@@ -39,7 +49,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (existingItem) {
       existingItem.quantity++
     } else {
-      // Aseguramos que todos los campos necesarios estén presentes
       cartItems.value.push({ 
         id: item.id,
         name: item.name || 'Producto',
@@ -50,15 +59,19 @@ export const useAuthStore = defineStore('auth', () => {
       })
     }
   }
-  
 
   function getUser() {
     return user.value
   }
 
+  function getUserName() {
+    return userName.value
+  }
+
   function logout() {
     token.value = ''
     user.value = null
+    userName.value = ''
   }
 
   function addToFavorites(product) {
@@ -66,8 +79,6 @@ export const useAuthStore = defineStore('auth', () => {
       console.warn('Item inválido:', product)
       return
     }
-
-    
     
     const existingItem = favorites.value.find(i => i.id === product.id)
     if (!existingItem) {
@@ -95,6 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token,
     user,
+    userName,
     cartItems,
     favorites,
     addToFavorites,
@@ -105,6 +117,7 @@ export const useAuthStore = defineStore('auth', () => {
     getToken,
     setUser,
     getUser,
+    getUserName,
     logout
   }
 }, {

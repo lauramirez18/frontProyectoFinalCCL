@@ -2,8 +2,8 @@
   <q-card class="product-card q-hoverable" flat bordered>
     <!-- Badges y etiquetas -->
     <div class="absolute-top-right q-pa-xs">
-      <q-badge v-if="product.oferta" color="red" class="q-mr-xs">
-        {{ product.descuento }}% OFF
+      <q-badge v-if="product.enOferta" color="red" class="q-mr-xs">
+        {{ product.porcentajeDescuento }}% OFF
       </q-badge>
       <q-badge v-if="product.envioGratis" color="green">
         Envío gratis
@@ -76,7 +76,17 @@
           ${{ formatPrice(product.precioAnterior) }}
         </div>
         <div class="text-h6 text-primary">
-         
+          <div v-if="product.enOferta" class="row items-center">
+            <div class="text-h6 text-negative">
+              {{ formatPrice(product.precioOferta) }}
+            </div>
+            <div class="text-caption text-grey q-ml-sm text-line-through">
+              {{ formatPrice(product.precio) }}
+            </div>
+          </div>
+          <div v-else class="text-h6">
+            {{ formatPrice(product.precio) }}
+          </div>
         </div>
         <div v-if="product.cuotas" class="text-caption text-green">
           {{ product.cuotas }}x ${{ formatPrice(product.precio / product.cuotas) }} sin interés

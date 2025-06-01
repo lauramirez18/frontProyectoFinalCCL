@@ -1,5 +1,5 @@
 <template>
-  <!-- Añadir pestaña para gestión de marcas -->
+  <!-- Añadir pestaña para gestión de ofertas -->
   <q-tabs
     v-model="activeTab"
     class="text-primary q-mb-md"
@@ -8,6 +8,7 @@
   >
     <q-tab name="productos" label="Productos" icon="inventory_2" />
     <q-tab name="marcas" label="Marcas" icon="branding_watermark" />
+    <q-tab name="ofertas" label="Ofertas" icon="local_offer" />
   </q-tabs>
 
   <!-- Contenido de pestañas -->
@@ -168,6 +169,94 @@
               @click="confirmarCambioEstadoMarca(props.row)"
             >
               <q-tooltip>{{ props.row.state === '1' ? 'Desactivar' : 'Activar' }}</q-tooltip>
+            </q-btn>
+          </q-td>
+        </template>
+      </q-table>
+    </q-tab-panel>
+    
+    <!-- Panel de ofertas -->
+    <q-tab-panel name="ofertas">
+      <div class="q-mb-md row justify-between items-center">
+        <h5 class="q-my-none">Gestión de Ofertas</h5>
+        <div>
+          <q-btn label="Crear Oferta" color="primary" @click="abrirModalNuevaOferta" icon="add" class="q-mr-sm" />
+          <q-btn label="Generar Ofertas Automáticas" color="secondary" @click="abrirModalOfertasAutomaticas" icon="auto_awesome" />
+        </div>
+      </div>
+      
+      <!-- Tabla de productos en oferta -->
+      <q-table
+        title="Productos en Oferta"
+        :rows="listaProductosEnOferta"
+        :columns="columnasOfertas"
+        row-key="_id"
+        :loading="cargandoTablaOfertas"
+        :filter="filtroTablaOfertas"
+      >
+        <template v-slot:top-right>
+          <q-input borderless dense debounce="300" v-model="filtroTablaOfertas" placeholder="Buscar">
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </template>
+        
+        <!-- Columna de imagen -->
+        <template v-slot:body-cell-imagenes="props">
+          <q-td :props="props">
+            <q-img
+              v-if="props.row.imagenes && props.row.imagenes.length > 0"
+              :src="props.row.imagenes[0]"
+              spinner-color="primary"
+              style="height: 50px; width: 50px"
+              fit="cover"
+            />
+            <q-icon v-else name="image_not_supported" size="50px" color="grey-5" />
+          </q-td>
+        </template>
+        
+        <!-- Columna de precio original -->
+        <template v-slot:body-cell-precio="props">
+          <q-td :props="props">
+            <div class="text-line-through text-grey">
+              ${{ Number(props.row.precio).toFixed(2) }}
+            </div>
+          </q-td>
+        </template>
+        
+        <!-- Columna de precio oferta -->
+        <template v-slot:body-cell-precioOferta="props">
+          <q-td :props="props">
+            <div class="text-weight-bold text-negative">
+              ${{ Number(props.row.precioOferta).toFixed(2) }}
+            </div>
+          </q-td>
+        </template>
+        
+        <!-- Columna de fechas -->
+        <template v-slot:body-cell-fechas="props">
+          <q-td :props="props">
+            <div v-if="props.row.fechaInicioOferta || props.row.fechaFinOferta">
+              <div v-if="props.row.fechaInicioOferta">
+                Desde: {{ formatDate(props.row.fechaInicioOferta) }}
+              </div>
+              <div v-if="props.row.fechaFinOferta">
+                Hasta: {{ formatDate(props.row.fechaFinOferta) }}
+              </div>
+            </div>
+            <div v-else class="text-grey">Sin fechas definidas</div>
+          </q-td>
+        </template>
+        
+        <!-- Columna de acciones -->
+        <template v-slot:body-cell-acciones="props">
+          <q-td :props="props">
+            <q-btn flat round dense icon="edit" @click="editarOferta(props.row)" class="q-mr-sm">
+              <q-tooltip>Editar Oferta</q-tooltip>
+            </q-btn>
+            <q-btn flat round dense icon="delete" color="negative" @click="confirmarEliminarOferta(props.row)">
+              <q-tooltip>Eliminar Oferta</q-tooltip>
             </q-btn>
           </q-td>
         </template>
@@ -525,10 +614,252 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- Modal para crear/editar oferta -->
+  <q-dialog v-model="dialogoOferta" persistent @hide="resetearFormularioOferta">
+    <q-card style="min-width: 500px; max-width: 80vw;">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">{{ modoEdicionOferta ? 'Editar Oferta' : 'Crear Nueva Oferta' }}</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-card-section class="scroll" style="max-height: 70vh;">
+        <q-form ref="formOfertaRef" @submit.prevent="onSubmitOferta" class="q-gutter-md">
+          <!-- Selector de producto -->
+          <q-select
+            v-if="!modoEdicionOferta"
+            filled
+            v-model="formOferta.producto"
+            :options="productosDisponiblesParaOferta"
+            option-value="_id"
+            option-label="nombre"
+            label="Seleccionar Producto *"
+            emit-value
+            map-options
+            use-input
+            hide-selected
+            fill-input
+            input-debounce="300"
+            @filter="filtrarProductos"
+            lazy-rules
+            :rules="[val => !!val || 'Debe seleccionar un producto']"
+          >
+            <template v-slot:option="scope">
+              <q-item v-bind="scope.itemProps">
+                <q-item-section avatar>
+                  <q-img
+                    v-if="scope.opt.imagenes && scope.opt.imagenes.length > 0"
+                    :src="scope.opt.imagenes[0]"
+                    style="width: 40px; height: 40px"
+                    fit="cover"
+                  />
+                  <q-icon v-else name="image_not_supported" size="40px" color="grey-5" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ scope.opt.nombre }}</q-item-label>
+                  <q-item-label caption>
+                    ${{ Number(scope.opt.precio).toFixed(2) }} | 
+                    {{ scope.opt.marca?.nombre || 'Sin marca' }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+          
+          <!-- Información del producto seleccionado (en modo edición) -->
+          <div v-if="modoEdicionOferta && productoSeleccionado" class="q-mb-md">
+            <div class="row items-center">
+              <q-img
+                v-if="productoSeleccionado.imagenes && productoSeleccionado.imagenes.length > 0"
+                :src="productoSeleccionado.imagenes[0]"
+                style="width: 60px; height: 60px"
+                fit="cover"
+                class="q-mr-md"
+              />
+              <div>
+                <div class="text-h6">{{ productoSeleccionado.nombre }}</div>
+                <div class="text-subtitle2">
+                  Precio original: ${{ Number(productoSeleccionado.precio).toFixed(2) }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Porcentaje de descuento -->
+          <q-input
+            filled
+            v-model.number="formOferta.porcentajeDescuento"
+            type="number"
+            label="Porcentaje de Descuento *"
+            min="1"
+            max="99"
+            lazy-rules
+            :rules="[
+              val => val !== null && val !== undefined || 'El porcentaje es requerido',
+              val => val > 0 && val < 100 || 'El porcentaje debe estar entre 1 y 99'
+            ]"
+          >
+            <template v-slot:append>
+              <q-icon name="percent" />
+            </template>
+          </q-input>
+          
+          <!-- Fechas de la oferta -->
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-sm-6">
+              <q-input
+                filled
+                v-model="formOferta.fechaInicioOferta"
+                label="Fecha de Inicio"
+                mask="date"
+                :rules="['date']"
+              >
+                <template v-slot:append>
+                  <q-icon name="event" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date v-model="formOferta.fechaInicioOferta" mask="YYYY-MM-DD">
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
+            <div class="col-12 col-sm-6">
+              <q-input
+                filled
+                v-model="formOferta.fechaFinOferta"
+                label="Fecha de Fin"
+                mask="date"
+                :rules="['date']"
+              >
+                <template v-slot:append>
+                  <q-icon name="event" class="cursor-pointer">
+                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                      <q-date v-model="formOferta.fechaFinOferta" mask="YYYY-MM-DD">
+                        <div class="row items-center justify-end">
+                          <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                        </div>
+                      </q-date>
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
+            </div>
+          </div>
+          
+          <!-- Vista previa del precio con descuento -->
+          <div v-if="precioConDescuento > 0" class="q-pa-md bg-grey-2 rounded-borders">
+            <div class="text-subtitle1">Vista previa:</div>
+            <div class="row items-center q-mt-sm">
+              <div class="text-h6 text-negative">
+                ${{ precioConDescuento.toFixed(2) }}
+              </div>
+              <div class="text-caption text-grey q-ml-sm text-line-through">
+                ${{ precioOriginal.toFixed(2) }}
+              </div>
+              <q-badge color="negative" class="q-ml-md">
+                {{ formOferta.porcentajeDescuento }}% OFF
+              </q-badge>
+            </div>
+          </div>
+        </q-form>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn label="Cancelar" color="negative" v-close-popup />
+        <q-btn 
+          label="Guardar" 
+          color="primary" 
+          :loading="guardandoOferta" 
+          @click="onSubmitOferta" 
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+  
+  <!-- Modal para generar ofertas automáticas -->
+  <q-dialog v-model="dialogoOfertasAutomaticas" persistent>
+    <q-card style="min-width: 400px; max-width: 80vw;">
+      <q-card-section class="row items-center q-pb-none">
+        <div class="text-h6">Generar Ofertas Automáticas</div>
+        <q-space />
+        <q-btn icon="close" flat round dense v-close-popup />
+      </q-card-section>
+
+      <q-card-section class="q-pt-md">
+        <q-form ref="formOfertasAutomaticasRef" @submit.prevent="generarOfertasAutomaticas" class="q-gutter-md">
+          <p class="text-body1">
+            Esta función generará ofertas automáticamente para productos con alto stock o que llevan mucho tiempo en inventario.
+          </p>
+          
+          <q-input
+            filled
+            v-model.number="formOfertasAutomaticas.stockMinimo"
+            type="number"
+            label="Stock mínimo para considerar"
+            min="1"
+            lazy-rules
+            :rules="[val => val > 0 || 'Debe ser mayor a 0']"
+          />
+          
+          <q-input
+            filled
+            v-model.number="formOfertasAutomaticas.diasEnInventario"
+            type="number"
+            label="Días en inventario para considerar"
+            min="1"
+            lazy-rules
+            :rules="[val => val > 0 || 'Debe ser mayor a 0']"
+          />
+          
+          <q-input
+            filled
+            v-model.number="formOfertasAutomaticas.porcentajeDescuento"
+            type="number"
+            label="Porcentaje de descuento a aplicar"
+            min="1"
+            max="99"
+            lazy-rules
+            :rules="[
+              val => val > 0 && val < 100 || 'El porcentaje debe estar entre 1 y 99'
+            ]"
+          >
+            <template v-slot:append>
+              <q-icon name="percent" />
+            </template>
+          </q-input>
+          
+          <q-input
+            filled
+            v-model.number="formOfertasAutomaticas.duracionOfertaDias"
+            type="number"
+            label="Duración de la oferta (días)"
+            min="1"
+            lazy-rules
+            :rules="[val => val > 0 || 'Debe ser mayor a 0']"
+          />
+        </q-form>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn label="Cancelar" color="negative" v-close-popup />
+        <q-btn 
+          label="Generar" 
+          color="primary" 
+          :loading="generandoOfertasAutomaticas" 
+          @click="generarOfertasAutomaticas" 
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import api from '../plugins/axios.js';
 import { useQuasar } from 'quasar';
 import { showNotification } from '../utils/notifications';
@@ -887,24 +1218,11 @@ async function onSubmitProducto() {
 
     const campoArchivos = modoEdicion.value ? 'nuevasImagenes' : 'imagenes';
     if (formProducto.value.archivosImagenes?.length > 0) {
-      // Si estamos editando y hay imágenes existentes que NO se eliminaron,
-      // también necesitamos enviarlas para que el backend las mantenga.
-      // Pero esto ya se maneja internamente en el backend si el campo 'imagenes'
-      // no es reemplazado completamente por 'nuevasImagenes'.
-      // La forma más robusta sería enviar también las 'imagenes' existentes si no se quiere que se borren.
-      // Para 'PUT', podrías enviar un array JSON de URLs de las imágenes que DEBEN permanecer.
-      
-      // Aquí, asumo que 'nuevasImagenes' se añadirán a las existentes si es PUT.
-      // Si 'imagenes' es lo que el backend usa para reemplazar todo, entonces deberías subir nuevas
-      // y enviar también las URLs existentes que se mantuvieron en formProducto.value.imagenes.
-      
-      // Para simplificar, si las imágenes se suben una por una a cloudinary y luego envías las URLs,
-      // la lógica sería ligeramente diferente. Asumo que tu backend espera files directamente.
+
       formProducto.value.archivosImagenes.forEach(file => {
         formData.append(campoArchivos, file);
       });
     }
-
     // Si estás en modo edición y no hay nuevas imágenes, pero se eliminaron algunas existentes,
     // o quieres asegurarte de que el backend sepa cuáles imágenes persistir:
     if (modoEdicion.value) {
@@ -1110,6 +1428,220 @@ async function cambiarEstadoMarca(marca) {
 onMounted(() => {
   cargarProductos();
   cargarMarcas();
+});
+
+// Variables para gestión de ofertas
+const listaProductosEnOferta = ref([]);
+const cargandoTablaOfertas = ref(false);
+const filtroTablaOfertas = ref('');
+const dialogoOferta = ref(false);
+const modoEdicionOferta = ref(false);
+const formOfertaRef = ref(null);
+const guardandoOferta = ref(false);
+const productosDisponiblesParaOferta = ref([]);
+const productosFiltrados = ref([]);
+const productoOfertaSeleccionado = ref(null);
+const dialogoOfertasAutomaticas = ref(false);
+const formOfertasAutomaticasRef = ref(null);
+const generandoOfertasAutomaticas = ref(false);
+
+// Formulario de oferta
+const formOfertaInicial = () => ({
+  producto: null,
+  porcentajeDescuento: 10,
+  fechaInicioOferta: '',
+  fechaFinOferta: ''
+});
+
+const formOferta = ref(formOfertaInicial());
+
+// Formulario de ofertas automáticas
+const formOfertasAutomaticas = ref({
+  stockMinimo: 20,
+  diasEnInventario: 30,
+  porcentajeDescuento: 15,
+  duracionOfertaDias: 7
+});
+
+// Columnas para la tabla de ofertas
+const columnasOfertas = [
+  { name: 'imagenes', label: 'Imagen', field: 'imagenes', align: 'center', sortable: false },
+  { name: 'nombre', label: 'Producto', field: 'nombre', align: 'left', sortable: true },
+  { name: 'porcentajeDescuento', label: 'Descuento', field: 'porcentajeDescuento', align: 'center', sortable: true, format: val => `${val}%` },
+  { name: 'precio', label: 'Precio Original', field: 'precio', align: 'right', sortable: true },
+  { name: 'precioOferta', label: 'Precio Oferta', field: 'precioOferta', align: 'right', sortable: true },
+  { name: 'fechas', label: 'Vigencia', field: 'fechaFinOferta', align: 'left', sortable: true },
+  { name: 'acciones', label: 'Acciones', field: 'acciones', align: 'center', sortable: false }
+];
+
+// Computed properties para la vista previa
+const precioOriginal = computed(() => {
+  if (modoEdicionOferta.value && productoOfertaSeleccionado.value) {
+    return productoOfertaSeleccionado.value.precio || 0;
+  } else if (!modoEdicionOferta.value && formOferta.value.producto) {
+    const producto = productosDisponiblesParaOferta.value.find(p => p._id === formOferta.value.producto);
+    return producto ? producto.precio : 0;
+  }
+  return 0;
+});
+
+const precioConDescuento = computed(() => {
+  if (formOferta.value.porcentajeDescuento > 0) {
+    return precioOriginal.value * (1 - formOferta.value.porcentajeDescuento / 100);
+  }
+  return 0;
+});
+
+// Cargar productos en oferta
+async function cargarProductosEnOferta() {
+  cargandoTablaOfertas.value = true;
+  try {
+    const response = await api.get('/productos/ofertas', { params: { limit: 100 } });
+    listaProductosEnOferta.value = response.data.productos || [];
+  } catch (error) {
+    console.error("Error al cargar productos en oferta:", error);
+    listaProductosEnOferta.value = [];
+    showNotification('error', 'Error al cargar la lista de productos en oferta.');
+  } finally {
+    cargandoTablaOfertas.value = false;
+  }
+}
+
+// Cargar productos disponibles para ofertas
+async function cargarProductosDisponibles() {
+  try {
+    const response = await api.get('/productos', { 
+      params: { limit: 100, state: '1' } 
+    });
+    productosDisponiblesParaOferta.value = response.data.productos || [];
+  } catch (error) {
+    console.error("Error al cargar productos disponibles para ofertas:", error);
+    productosDisponiblesParaOferta.value = [];
+    showNotification('error', 'Error al cargar productos disponibles para ofertas.');
+  }
+}
+
+// Funciones para gestión de ofertas
+function abrirModalNuevaOferta() {
+  modoEdicionOferta.value = false;
+  formOferta.value = formOfertaInicial();
+  productoOfertaSeleccionado.value = null;
+  dialogoOferta.value = true;
+}
+
+function abrirModalOfertasAutomaticas() {
+  dialogoOfertasAutomaticas.value = true;
+}
+
+function resetearFormularioOferta() {
+  formOferta.value = formOfertaInicial();
+  productoOfertaSeleccionado.value = null;
+}
+
+function abrirModalEditarOferta(oferta) {
+  modoEdicionOferta.value = true;
+  formOferta.value = {
+    producto: oferta.producto._id,
+    porcentajeDescuento: oferta.porcentajeDescuento,
+    fechaInicioOferta: oferta.fechaInicioOferta,
+    fechaFinOferta: oferta.fechaFinOferta
+  };
+  productoOfertaSeleccionado.value = oferta.producto;
+  dialogoOferta.value = true;
+}
+
+function confirmarEliminarOferta(oferta) {
+  $q.dialog({
+    title: 'Confirmar Eliminación',
+    message: `¿Está seguro de que desea eliminar la oferta para "${oferta.producto.nombre}"?`,
+    cancel: true,
+    persistent: true
+  }).onOk(async () => {
+    try {
+      await api.delete(`/productos/ofertas/${oferta._id}`);
+      await cargarProductosEnOferta();
+      showNotification('success', 'Oferta eliminada exitosamente.');
+    } catch (error) {
+      console.error("Error al eliminar oferta:", error);
+      showNotification('error', 'Error al eliminar la oferta.');
+    }
+  });
+}
+
+async function onSubmitOferta() {
+  guardandoOferta.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('producto', formOferta.value.producto);
+    formData.append('porcentajeDescuento', formOferta.value.porcentajeDescuento);
+    formData.append('fechaInicioOferta', formOferta.value.fechaInicioOferta);
+    formData.append('fechaFinOferta', formOferta.value.fechaFinOferta);
+
+    const endpoint = modoEdicionOferta.value
+      ? `/productos/ofertas/${formOferta.value.producto}`
+      : '/productos/ofertas';
+    const method = modoEdicionOferta.value ? 'put' : 'post';
+
+    await api[method](endpoint, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    dialogoOferta.value = false;
+    await cargarProductosEnOferta();
+    showNotification('success', `Oferta ${modoEdicionOferta.value ? 'actualizada' : 'creada'} exitosamente.`);
+  } catch (error) {
+    console.error("Error al guardar oferta:", error);
+    showNotification('error', `Error al ${modoEdicionOferta.value ? 'actualizar' : 'crear'} la oferta.`);
+  } finally {
+    guardandoOferta.value = false;
+  }
+}
+
+async function generarOfertasAutomaticas() {
+  generandoOfertasAutomaticas.value = true;
+  try {
+    const response = await api.post('/productos/generar', formOfertasAutomaticas.value);
+    await cargarProductosEnOferta();
+    showNotification('success', 'Ofertas generadas exitosamente.');
+  } catch (error) {
+    console.error("Error al generar ofertas automáticas:", error);
+    showNotification('error', 'Error al generar ofertas automáticas.');
+  } finally {
+    generandoOfertasAutomaticas.value = false;
+  }
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+}
+
+function filtrarProductos(val, update, abort) {
+  if (val === '') {
+    update(() => {
+      productosFiltrados.value = productosDisponiblesParaOferta.value;
+    });
+    return;
+  }
+
+  update(() => {
+    const needle = val.toLowerCase();
+    productosFiltrados.value = productosDisponiblesParaOferta.value.filter(v => {
+      return v.nombre.toLowerCase().indexOf(needle) > -1;
+    });
+  });
+}
+
+// Cargar productos disponibles al montar el componente
+onMounted(() => {
+  cargarProductos();
+  cargarMarcas();
+  cargarProductosEnOferta();
+  cargarProductosDisponibles();
 });
 </script>
 
