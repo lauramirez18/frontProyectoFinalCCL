@@ -47,7 +47,27 @@
 
           <div class="product-pricing">
             <div class="price-label">PRECIO</div>
-            <p class="product-price">$ {{ formatPrice(producto.precio) }}</p>
+            <div class="product-price q-mt-md">
+              <div v-if="producto.enOferta" class="row items-center">
+                <div class="text-h4 text-negative">
+                  ${{ formatThousands(producto.precioOferta) }}
+                </div>
+                <div class="text-h6 text-grey q-ml-md text-line-through">
+                  ${{ formatThousands(producto.precio) }}
+                </div>
+                <q-badge color="negative" class="q-ml-md oferta-badge">
+                  {{ producto.porcentajeDescuento }}% OFF
+                </q-badge>
+              </div>
+              <div v-else class="text-h4">
+                ${{ formatThousands(producto.precio) }}
+              </div>
+              
+              <!-- Si hay fechas de oferta, mostrarlas -->
+              <div v-if="producto.enOferta && producto.fechaFinOferta" class="text-caption text-grey q-mt-xs">
+                Oferta válida hasta el {{ formatDate(producto.fechaFinOferta) }}
+              </div>
+            </div>
             <div class="stock-info">Disponibles: {{ producto.stock }} unidades</div>
             <q-btn
               :color="isFavorite ? 'red' : 'grey-7'"
@@ -236,10 +256,12 @@ import { useQuasar } from 'quasar'
 import { useAuthStore } from '../store/store.js'
 import api from '../plugins/axios'
 import { showNotification } from '../utils/notifications'
+import { useThousandsFormat } from '../composables/useThousandFormat' // Importar el composable
 
 const route = useRoute() 
 const router = useRouter() 
 const $q = useQuasar() 
+const { formatThousands } = useThousandsFormat() // Extraer la función formatThousands
 
 const producto = ref({
   _id: '',
@@ -461,10 +483,12 @@ const addToCart = () => {
   }
 
 
+  const price = producto.value.enOferta ? producto.value.precioOferta : producto.value.precio
+  
   const cartItem = {
     id: producto.value._id,
     name: producto.value.nombre,
-    price: producto.value.precio,
+    price: price,
     image: mainImage.value,
     quantity: 1,
     seller: producto.value.marca || 'Vendedor oficial'

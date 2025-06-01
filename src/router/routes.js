@@ -38,15 +38,15 @@ const routes = [
         component: Home,
         meta: { requiresAuth: true }
       },
-      // NEW ROUTE FOR ALL PRODUCTS AND BRAND FILTERING
+    
       {
-        path: '/productos', // This path will now handle /productos and /productos?brand=...
-        name: 'AllProducts', // A new name for this generic products view
-        component: Products, // Pointing to your Products.vue component
+        path: '/productos', 
+        name: 'AllProducts', 
+        component: Products, 
         meta: { requiresAuth: true }
       },
       {
-        path: '/products/:categoryId', // Keep your existing category-specific route
+        path: '/products/:categoryId', 
         name: 'CategoryProducts',
         component: Products,
         meta: { requiresAuth: true }

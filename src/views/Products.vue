@@ -142,6 +142,18 @@
             </div>
           </q-expansion-item>
 
+          <!-- Filtro de ofertas -->
+          <div class="q-mt-md">
+            <q-item tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="showOnlyOffers" color="primary" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Ver solo ofertas</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
+
           <!-- Botón para limpiar filtros -->
           <q-btn
             color="primary"
@@ -280,6 +292,7 @@ const activeFilters = ref({})
 const activeAlphaFilter = ref({ field: null, letter: null })
 const currentBrand = ref(null)
 const brands = ref([])
+const showOnlyOffers = ref(false)
 
 const pagination = ref({
   total: 0,
@@ -378,6 +391,12 @@ const fetchProducts = async () => {
     // Filtro alfabético
     if (activeAlphaFilter.value.field && activeAlphaFilter.value.letter) {
       params[`especificaciones.${activeAlphaFilter.value.field}`] = activeAlphaFilter.value.letter
+    }
+
+    // Filtro de ofertas
+    if (showOnlyOffers.value || route.query.ofertas === 'true') {
+      params.ofertas = true
+      showOnlyOffers.value = true
     }
 
     const response = await api.get('/productos', { params })
@@ -621,8 +640,18 @@ watch(() => route.query, (newQuery) => {
   }
 }, { immediate: true })
 
+watch(showOnlyOffers, () => {
+  currentPage.value = 1
+  fetchProducts()
+})
+
 // Montaje inicial
-onMounted(() => {
+onMounted(async () => {
+  // Verificar si hay un parámetro de ofertas en la URL
+  if (route.query.ofertas === 'true') {
+    showOnlyOffers.value = true
+  }
+  
   // Inicializar filtros activos
   for (const key in availableFilters.value) {
     if (!activeFilters.value[key]) {
