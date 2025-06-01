@@ -189,7 +189,7 @@
     <!-- Barra lateral del carrito mejorada -->
     <div class="cart-sidebar" :class="{ 'visible': showCartSidebar, 'fade-out': isHiding }">
       <div class="sidebar-header">
-        <h3>🛒 Carrito</h3>
+        <h3> Carrito</h3>
         <button class="close-sidebar" @click="hideCartSidebar">&times;</button>
       </div>
       

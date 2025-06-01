@@ -177,14 +177,17 @@ const handleLogin = async () => {
     });
 
     if (response.token) {
-      const authData = { token: response.token };
+      const authData = { 
+        token: response.token,
+        user: response.user
+      };
       localStorage.setItem('auth', JSON.stringify(authData));
       
-      // Store the complete user object
+      // Guardar el nombre del usuario
       authStore.setToken(response.token);
-      authStore.setUser(response.user);
+      authStore.setUser(response.user?.nombre || response.user?.name || email.value.split('@')[0]);
       
-      router.push('/dashboard');
+      router.push('/');
     } else {
       throw new Error('No se recibió token de autenticación');
     }
