@@ -87,6 +87,7 @@ const pagination = ref({
 });
 
 const formatPrice = (price) => {
+  if (price === undefined || price === null) return '0';
   return price.toLocaleString('es-CO', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
