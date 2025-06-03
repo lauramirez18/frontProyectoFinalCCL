@@ -11,6 +11,7 @@ import Category from '../views/Category.vue';
 import Payments from '../views/Payments.vue';
 import SearchResultsPage from '../components/search.vue';
 import Favorites from '../views/Favorites.vue';
+import Account from '../views/Account.vue';
 
 const routes = [
   {
@@ -36,6 +37,12 @@ const routes = [
         path: '',
         name: 'Home',
         component: Home,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '/account',
+        name: 'Account',
+        component: Account,
         meta: { requiresAuth: true }
       },
     

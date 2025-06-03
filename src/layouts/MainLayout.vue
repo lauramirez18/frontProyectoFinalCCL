@@ -1,58 +1,113 @@
 <template>
   <q-layout view="hHh Lpr fff">
-    <q-header elevated class="text-white header q-py-sm">
+    <q-header elevated class="header-main">
+      <!-- Barra principal -->
+      <q-toolbar class="header-toolbar">
+        <!-- Sección izquierda: Menú y Logo -->
+        <div class="header-left">
+          <q-btn
+            flat
+            dense
+            round
+            icon="menu"
+            class="menu-toggle-btn"
+            @click="toggleSideMenu"
+          >
+            <q-tooltip>Menú de categorías</q-tooltip>
+          </q-btn>
+          <router-link to="/" class="logo-link">
+            <q-avatar square size="50px" class="logo">
+              <img src="/logo2.png" alt="Logo CCL" />
+            </q-avatar>
+          </router-link>
+        </div>
 
-      <q-toolbar class="row items-center justify-between q-col-gutter-sm">
-        <q-btn flat dense round icon="menu" class="menu-toggle-btn q-mr-sm" @click="toggleSideMenu" />
-        <router-link to="/" class="flex flex-center">
-          <q-avatar square size="70px" class="cursor-pointer logo">
-            <img src="/logo2.png" alt="Logo" />
-          </q-avatar>
-        </router-link>
-
-        <div class="col-grow q-mx-md search-bar-wrapper">
-          <div v-if="$q.screen.gt.sm" class="search-container">
-            <q-input dense outlined color="primary" bg-color="white" placeholder="Buscar en tu tienda" v-model="search"
-              class="search-input" @keyup.enter="performSearch">
+        <!-- Sección central: Barra de búsqueda -->
+        <div class="header-center" v-if="$q.screen.gt.sm">
+          <div class="search-wrapper">
+            <q-input
+              v-model="search"
+              dense
+              outlined
+              placeholder="¿Qué estás buscando?"
+              class="search-input"
+              bg-color="white"
+              @keyup.enter="performSearch"
+            >
+              <template v-slot:prepend>
+                <q-icon name="search" color="grey-7" />
+              </template>
               <template v-slot:append>
-                <q-btn flat dense icon="search" color="secondary" class="search-btn" @click="performSearch" />
+                <q-btn
+                  flat
+                  dense
+                  icon="arrow_forward"
+                  color="primary"
+                  class="search-btn"
+                  @click="performSearch"
+                >
+                  <q-tooltip>Buscar</q-tooltip>
+                </q-btn>
               </template>
             </q-input>
-          </div>
-          <q-toolbar v-else class="q-px-md q-py-sm bg-primary">
-            <q-input dense outlined color="primary" bg-color="white" placeholder="Buscar en tu tienda" v-model="search"
-              class="full-width search-input-mobile">
-              <template v-slot:append>
-                <q-btn flat dense icon="search" color="secondary" class="search-btn" @click="performSearch" />
-              </template>
-            </q-input>
-          </q-toolbar>
-          <div v-else class="q-ml-auto q-mr-sm">
-            <q-btn flat round icon="search" @click="toggleSearchInput" color="white" />
           </div>
         </div>
 
-        <q-section class="row items-center q-gutter-sm no-wrap flex action-icons">
-          <q-btn flat no-caps icon-right="arrow_drop_down" class="text-weight-medium user-btn" style="font-size: 16px;"
-            :label="authStore.userName ? `Hola, ${authStore.userName}` : 'Iniciar sesión'">
-            <q-menu v-model="showMenu" transition-show="jump-down" transition-hide="jump-up" anchor="bottom middle"
-              self="top middle" class="q-pa-none bg-transparent" :offset="[0, 8]" @mouseleave="hideMenuDelayed">
-              <div class="menu-flecha bg-primary text-white shadow-10 q-pa-sm rounded-borders"
-                style="min-width: 180px; font-size: 16px;" @mouseenter="keepMenuOpen" @mouseleave="hideMenuDelayed">
-                <q-list separator class="text-secondary text-weight-medium">
+        <!-- Sección derecha: Acciones de usuario -->
+        <div class="header-right">
+          <!-- Botón de usuario con avatar -->
+          <q-btn flat no-caps class="user-btn">
+            <q-avatar
+              v-if="authStore.userName"
+              size="32px"
+              color="primary"
+              text-color="white"
+              class="q-mr-sm"
+            >
+              {{ getUserInitials }}
+            </q-avatar>
+            <div class="user-info">
+              <span class="user-greeting" v-if="authStore.userName">Hola,</span>
+              <span class="user-name">{{ authStore.userName || 'Iniciar sesión' }}</span>
+            </div>
+            <q-icon name="arrow_drop_down" class="q-ml-xs" />
+
+            <!-- Menú desplegable de usuario -->
+            <q-menu
+              v-model="showMenu"
+              transition-show="jump-down"
+              transition-hide="jump-up"
+              class="user-menu"
+              :offset="[0, 10]"
+              @mouseleave="hideMenuDelayed"
+            >
+              <div class="menu-content">
+                <q-list separator>
                   <q-item clickable v-if="!authStore.user" @click="openLogin">
-                    <q-item-section>Inicia sesión</q-item-section>
+                    <q-item-section avatar>
+                      <q-icon name="login" color="white" />
+                    </q-item-section>
+                    <q-item-section>Iniciar sesión</q-item-section>
                   </q-item>
 
                   <q-item clickable v-if="!authStore.user" @click="goTo('/register')">
+                    <q-item-section avatar>
+                      <q-icon name="person_add" color="white" />
+                    </q-item-section>
                     <q-item-section>Regístrate</q-item-section>
                   </q-item>
 
                   <q-item clickable v-if="authStore.user" @click="goTo('/account')">
+                    <q-item-section avatar>
+                      <q-icon name="manage_accounts" color="white" />
+                    </q-item-section>
                     <q-item-section>Mi cuenta</q-item-section>
                   </q-item>
 
                   <q-item clickable v-if="authStore.user" @click="logout">
+                    <q-item-section avatar>
+                      <q-icon name="logout" color="white" />
+                    </q-item-section>
                     <q-item-section>Cerrar sesión</q-item-section>
                   </q-item>
                 </q-list>
@@ -60,99 +115,123 @@
             </q-menu>
           </q-btn>
 
-          <q-btn 
-            flat 
-            round 
-            :icon="authStore.favorites.length > 0 ? 'favorite' : 'favorite_border'" 
-            :class="{'text-red': authStore.favorites.length > 0}"
+          <!-- Botón de favoritos -->
+          <q-btn
+            flat
+            round
+            :icon="authStore.favorites.length > 0 ? 'favorite' : 'favorite_border'"
+            class="action-btn favorite-btn"
+            :class="{'has-items': authStore.favorites.length > 0}"
             @click="$router.push('/favorites')"
           >
-            <q-badge 
-              v-if="authStore.favorites.length > 0" 
-              floating 
-              color="red" 
+            <q-badge
+              v-if="authStore.favorites.length > 0"
+              floating
+              color="red"
               text-color="white"
+              
             >
               {{ authStore.favorites.length }}
             </q-badge>
             <q-tooltip>Mis Favoritos</q-tooltip>
           </q-btn>
 
-          <router-link to="/car">
-            <q-btn flat round icon="shopping_cart" class="text-white">
-              <q-badge floating color="secondary" text-color="white">{{ authStore.cartItems.length }}</q-badge>
+          <!-- Botón de carrito -->
+          <router-link to="/car" class="cart-link">
+            <q-btn flat round icon="shopping_cart" class="action-btn cart-btn" color="white">
+              <q-badge
+                v-if="authStore.cartItems.length > 0"
+                floating
+                
+                color="secondary"
+                text-color="white"
+              >
+                {{ authStore.cartItems.length }}
+              </q-badge>
+              <q-tooltip>Carrito de compras</q-tooltip>
             </q-btn>
           </router-link>
-          
-        </q-section>
-
+        </div>
       </q-toolbar>
-      <q-toolbar v-if="showMobileSearchInput && $q.screen.lt.md" class="q-px-md q-py-sm bg-primary">
-        <q-input dense outlined color="primary" bg-color="white" placeholder="Buscar en tu tienda" v-model="search"
-          class="full-width search-input-mobile">
-          <template v-slot:append>
-            <q-btn flat dense icon="search" color="secondary" class="search-btn" @click="performSearch" />
-          </template>
-        </q-input>
+
+      <!-- Barra de búsqueda móvil -->
+      <q-toolbar v-if="$q.screen.lt.md" class="mobile-search-toolbar">
+        <div class="mobile-search-wrapper">
+          <q-input
+            v-model="search"
+            dense
+            outlined
+            placeholder="¿Qué estás buscando?"
+            class="mobile-search-input"
+            bg-color="white"
+            @keyup.enter="performSearch"
+          >
+            <template v-slot:prepend>
+              <q-icon name="search" color="grey-7" />
+            </template>
+            <template v-slot:append>
+              <q-btn
+                flat
+                dense
+                icon="arrow_forward"
+                color="primary"
+                class="search-btn"
+                @click="performSearch"
+              />
+            </template>
+          </q-input>
+        </div>
       </q-toolbar>
     </q-header>
 
     <q-drawer v-model="sideMenuOpen" side="left" overlay behavior="mobile" :width="320" class="bg-white">
-      <div class="bg-primary text-white q-pa-md">
-        <div class="row items-center">
+      <!-- Encabezado del menú -->
+      <div class="drawer-header">
+        <div class="row items-center justify-between">
           <div class="col">
-            <div class="text-h6">Categorías</div>
+            <div class="text-h6">Explorar Categorías</div>
           </div>
-          <q-btn flat round dense icon="close" color="white" @click="closeSideMenu" />
+          <q-btn flat round dense icon="close" color="white" class="close-btn" @click="closeSideMenu" />
         </div>
       </div>
 
-      <q-list class="full-height">
-        <div v-for="category in categories" :key="category.value" class="category-item">
-          <q-item clickable @click="toggleCategory(category)" class="category-main-item"
-            :class="{ 'active-category': expandedCategory === category.value }">
-            <q-item-section avatar>
-              <q-icon :name="category.icon || 'category'" color="primary" />
-            </q-item-section>
+      <!-- Lista de categorías -->
+      <q-scroll-area style="height: calc(100vh - 120px);">
+        <q-list padding>
+          <!-- Todas las categorías -->
+          <div class="category-item">
+            <q-item clickable @click="selectCategory({label: 'Todas las categorías', value: 'all'})" class="category-main-item">
+              <q-item-section>
+                <q-item-label>Todos los productos</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
 
-            <q-item-section>
-              <q-item-label class="text-weight-medium">{{ category.label }}</q-item-label>
-            </q-item-section>
+          <!-- Ofertas -->
+          <div class="category-item">
+            <q-item clickable @click="goTo('/ofertas')" class="category-main-item special-offer">
+              <q-item-section>
+                <q-item-label>Ofertas</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
 
-            <q-item-section side v-if="category.subcategories?.length">
-              <q-icon :name="expandedCategory === category.value ? 'expand_less' : 'expand_more'" color="grey-6" />
-            </q-item-section>
-          </q-item>
+          <q-separator class="q-my-md" />
 
-          <q-slide-transition>
-            <div v-show="expandedCategory === category.value" v-if="category.subcategories?.length">
-              <q-list class="subcategories-list bg-grey-1">
-                <q-item v-for="subcategory in category.subcategories" :key="subcategory.value" clickable
-                  @click="selectSubcategory(category, subcategory)" class="subcategory-item">
-                  <q-item-section avatar>
-                    <q-icon name="subdirectory_arrow_right" color="grey-6" size="sm" />
-                  </q-item-section>
-
-                  <q-item-section>
-                    <q-item-label class="text-grey-8">{{ subcategory.label }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </div>
-          </q-slide-transition>
-
-          <q-separator v-if="category.value !== 'all'" />
-        </div>
-
-        <q-item clickable @click="goToAllCategories" class="q-mt-md bg-grey-2">
-          <q-item-section avatar>
-            <q-icon name="apps" color="primary" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label class="text-weight-medium text-primary">Ver todas las categorías</q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
+          <!-- Categorías dinámicas -->
+          <div v-for="category in categories" :key="category.value" class="category-item">
+            <q-item 
+              clickable
+              class="category-main-item"
+              @click="selectCategory(category)"
+            >
+              <q-item-section>
+                <q-item-label>{{ category.label }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </div>
+        </q-list>
+      </q-scroll-area>
     </q-drawer>
 
     <q-page-container>
@@ -243,48 +322,57 @@
 
   </q-layout>
 
-  <LoginDialog v-model="showLoginDialog" />
+ <auth-dialog v-model="showAuth" />
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../store/store.js';
 import { useRouter } from 'vue-router';
-import LoginDialog from '../components/LoginDialog.vue';
+import AuthDialog from '../components/AuthDialog.vue';
 import { getData } from '../services/apiClient.js';
 
 
 const authStore = useAuthStore();
 const router = useRouter();
 const search = ref('');
-const showLoginDialog = ref(false);
+
 const showMenu = ref(false);
+const showAuth = ref(false);
 const selectedCategory = ref('Todas las categorías');
 const sideMenuOpen = ref(false);
 const expandedCategory = ref(null);
-const showMobileSearchInput = ref(false); // Nuevo estado para la barra de búsqueda móvil
+const showMobileSearchInput = ref(false);
 
 let hideTimer = null;
 
 const categories = ref([]);
+const loading = ref(false);
+
+
 
 onMounted(async () => {
+  loading.value = true;
   try {
+    console.log('Iniciando carga de categorías...');
     const response = await getData('categorias');
-    categories.value = [
-      {
-        label: 'Todas las categorías',
-        value: 'all',
-        icon: 'apps'
-      },
-      ...response.map(c => ({
-        label: c.name,
-        value: c.codigo,
-        subcategories: c.subcategories || []
-      }))
-    ];
+    console.log('Respuesta del servidor categorías:', response);
+    
+    if (Array.isArray(response)) {
+      categories.value = response.map(c => ({
+        label: c.nombre || c.name,
+        value: c._id
+      }));
+      console.log('Categorías cargadas:', categories.value);
+    } else {
+      console.error('La respuesta no es un array:', response);
+      categories.value = [];
+    }
   } catch (error) {
     console.error('Error al cargar categorías:', error);
+    categories.value = [];
+  } finally {
+    loading.value = false;
   }
 });
 
@@ -294,27 +382,31 @@ function toggleSideMenu() {
 
 function closeSideMenu() {
   sideMenuOpen.value = false;
-  expandedCategory.value = null;
-}
-
-function toggleCategory(category) {
-  if (category.subcategories?.length) {
-    expandedCategory.value = expandedCategory.value === category.value ? null : category.value;
-  } else {
-    selectCategory(category);
-  }
 }
 
 function selectCategory(category) {
+  console.log('Categoría seleccionada:', category);
   selectedCategory.value = category.label;
-  router.push({
-    path: '/search-results',
-    query: { category: category.value }
-  });
+
+  // Si es "Todas las categorías", no enviamos parámetro de categoría
+  if (category.value === 'all') {
+    router.push({
+      path: '/productos'
+    });
+  } else {
+    router.push({
+      path: '/search-results',
+      query: { 
+        category: category.value,
+        categoryName: category.label
+      }
+    });
+  }
   closeSideMenu();
 }
 
 function selectSubcategory(category, subcategory) {
+  console.log('Subcategoría seleccionada:', { category, subcategory });
   router.push({
     path: '/search-results',
     query: {
@@ -333,10 +425,11 @@ function goTo(route) {
 function logout() {
   authStore.logout();
   showMenu.value = false;
+  router.replace('/home');
 }
 
 function openLogin() {
-  showLoginDialog.value = true;
+  showAuth.value = true;
   showMenu.value = false;
 }
 
@@ -372,108 +465,324 @@ function toggleSearchInput() {
 function openSocialLink(url) {
   window.open(url, '_blank');
 }
+
+const getUserInitials = computed(() => {
+  if (authStore.userName) {
+    return authStore.userName
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return '';
+});
 </script>
 
 <style>
 /* HEADER STYLES */
-.q-header {
-  background: linear-gradient(to top, black 90%, #068FFF 100%);
+.header-main {
+  background: linear-gradient(180deg,
+    rgba(6, 143, 255, 0.70) 0%,
+    rgba(0, 0, 0, 1) 35%
+  );
+  position: relative;
   color: white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right,
+      transparent 0%,
+      rgba(6, 143, 255, 0.3) 50%,
+      transparent 100%
+    );
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(
+        to bottom,
+        rgba(6, 143, 255, 0.05) 0%,
+        transparent 100%
+      );
+    pointer-events: none;
+  }
+}
+
+.header-toolbar {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+  position: relative;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Mejoras visuales para elementos del header */
+.menu-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(6, 143, 255, 0.2);
+    border-color: rgba(6, 143, 255, 0.3);
+    transform: rotate(90deg);
+    box-shadow: 0 0 15px rgba(6, 143, 255, 0.2);
+  }
+}
+
+.logo-link {
+  text-decoration: none;
 }
 
 .logo {
-  transition: transform 0.3s ease;
-}
-
-.logo:hover {
-  transform: scale(1.05);
-}
-
-.menu-toggle-btn,
-.user-btn,
-.action-icons .q-btn {
-  transition: all 0.2s ease;
-  border-radius: 4px;
-}
-
-.menu-toggle-btn:hover,
-.user-btn:hover,
-.action-icons .q-btn:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.search-container {
-  display: flex;
-  align-items: stretch;
-  border-radius: 4px;
+  transition: all 0.3s ease;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  
+
+  &:hover {
+    transform: scale(1.05);
+    border-color: rgba(6, 143, 255, 0.5);
+    box-shadow: 0 4px 20px rgba(6, 143, 255, 0.3);
+  }
+}
+
+/* Sección central */
+.header-center {
+  flex: 1;
   max-width: 600px;
+  margin: 0 2rem;
+}
+
+.search-wrapper {
   width: 100%;
 }
 
-.search-input .q-field__control {
-  border-radius: 0;
-  height: 44px;
-  
-  /* Slightly taller for better feel */
-}
+.search-input {
+  .q-field__control {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    height: 40px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    backdrop-filter: blur(4px);
+  }
 
-.search-input .q-field__native {
-  padding-left: 12px;
+  .q-field__control:hover {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 15px rgba(6, 143, 255, 0.1);
+  }
+
+  &.q-field--focused .q-field__control {
+    background: white;
+    border-color: #068FFF;
+    box-shadow: 0 0 0 4px rgba(6, 143, 255, 0.15);
+  }
+
+  .q-field__prepend {
+    padding-left: 12px;
+  }
+
+  .q-icon {
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+  }
 }
 
 .search-btn {
-  border-radius: 0 4px 4px 0;
-  width: 50px;
-  /* Wider search button */
-  height: 44px;
-  background-color: #068FFF;
-  /* Primary color for search button */
-  color: white;
+  margin-right: 4px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: #068FFF;
+    color: white !important;
+    transform: translateX(2px);
+  }
 }
 
-.search-btn:hover {
-  background-color: #056ee0;
-  /* Darker on hover */
+/* Sección derecha */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-/* Dropdown menu for user */
-.menu-flecha {
-  position: relative;
-  /* Adjust background for a cleaner look */
-  background: #2b2b2b !important;
+.user-btn {
+  padding: 4px 12px;
   border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(6, 143, 255, 0.2);
+    border-color: rgba(6, 143, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(6, 143, 255, 0.2);
+  }
+
+  .q-avatar {
+    background: linear-gradient(135deg, #068FFF 0%, #0056b3 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+  }
+
+  .user-greeting {
+    font-size: 0.7rem;
+    opacity: 0.8;
+  }
+
+  .user-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
 }
 
-.menu-flecha .q-list {
-  background: transparent;
+.action-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(6, 143, 255, 0.2);
+    border-color: rgba(6, 143, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(6, 143, 255, 0.2);
+  }
+
+  &.has-items {
+    color: #ff4081;
+    background: rgba(255, 64, 129, 0.1);
+    border-color: rgba(255, 64, 129, 0.2);
+
+    &:hover {
+      background: rgba(255, 64, 129, 0.2);
+      border-color: rgba(255, 64, 129, 0.3);
+    }
+  }
 }
 
-.menu-flecha .q-item {
-  color: white;
-  /* Make items white */
-  transition: background-color 0.2s ease;
+.cart-link {
+  text-decoration: none;
 }
 
-.menu-flecha .q-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+/* Menú de usuario */
+.user-menu {
+  margin-top: 5px;
 }
 
-/* Lateral menu styles (kept mostly same as they are good) */
-.category-item {
-  border-bottom: 1px solid #e0e0e0;
+.menu-content {
+  background: #2b2b2b;
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 200px;
+
+  .q-item {
+    border-radius: 6px;
+    color: white;
+    min-height: 40px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .q-icon {
+      font-size: 1.6rem;
+    }
+  }
 }
 
-
-
-
-.q-drawer {
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+/* Barra de búsqueda móvil */
+.mobile-search-toolbar {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.mobile-search-wrapper {
+  width: 100%;
+}
+
+.mobile-search-input {
+  width: 100%;
+
+  .q-field__control {
+    background: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .header-center {
+    max-width: 400px;
+    margin: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-toolbar {
+    height: 60px;
+    padding: 0.5rem;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-btn {
+    padding: 4px 8px;
+
+    .user-name {
+      font-size: 0.85rem;
+    }
+  }
+
+  .action-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
 
 /* FOOTER STYLES */
 .footer-dark {
@@ -570,7 +879,6 @@ function openSocialLink(url) {
   text-decoration: underline !important;
 }
 
-
 /* RESPONSIVENESS */
 @media (max-width: 1024px) {
   .search-bar-wrapper {
@@ -603,6 +911,7 @@ function openSocialLink(url) {
     order: 2;
     /* Keep action icons next to logo/menu */
     width: auto;
+   
   }
 
   .user-btn {
@@ -663,6 +972,194 @@ function openSocialLink(url) {
   .user-btn {
     padding: 0 5px;
     min-width: unset;
+  }
+}
+
+/* Estilos para el botón de usuario */
+.user-btn {
+  padding: 4px 12px;
+  border-radius: 8px;
+  min-width: 150px;
+  transition: all 0.3s ease;
+}
+
+.user-btn .q-avatar {
+  background: linear-gradient(135deg, #068FFF 0%, #056ee0 100%);
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.user-btn .text-caption {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  line-height: 1;
+}
+
+.user-btn .text-subtitle2 {
+  line-height: 1.2;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Estilos del menú de categorías */
+.q-drawer {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.category-item {
+  margin-bottom: 4px;
+}
+
+.category-main-item {
+  border-radius: 8px;
+  margin: 4px 8px;
+  padding: 8px 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(6, 143, 255, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover {
+    transform: translateX(4px);
+    
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &.active-category {
+    background: rgba(6, 143, 255, 0.15);
+  }
+
+  &.special-offer {
+    &:hover::before {
+      background: rgba(255, 64, 129, 0.1);
+    }
+
+    &.active-category {
+      background: rgba(255, 64, 129, 0.15);
+    }
+  }
+
+  .q-item__label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #2c3e50;
+  }
+}
+
+.subcategories-list {
+  margin-left: 24px;
+  border-left: 2px solid rgba(6, 143, 255, 0.2);
+  background: transparent !important;
+}
+
+.subcategory-item {
+  border-radius: 6px;
+  margin: 2px 8px;
+  padding: 8px 16px;
+  min-height: 40px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: rgba(6, 143, 255, 0.08);
+    transform: translateX(4px);
+  }
+
+  .q-item__label {
+    font-size: 0.95rem;
+    color: #445668;
+  }
+}
+
+/* Encabezado del menú de categorías */
+.drawer-header {
+  background: linear-gradient(135deg, #068FFF 0%, #0056b3 100%);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    animation: shine 3s infinite linear;
+  }
+
+  .text-h6 {
+    color: white;
+    font-weight: 600;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .close-btn {
+    opacity: 0.9;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      opacity: 1;
+      transform: rotate(90deg);
+    }
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Estilos adicionales para el drawer */
+.drawer-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 12px;
+}
+
+.search-input {
+  .q-field__control {
+    background: white;
+    border-radius: 8px;
+    height: 40px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      border-color: rgba(6, 143, 255, 0.3);
+      box-shadow: 0 2px 8px rgba(6, 143, 255, 0.1);
+    }
+  }
+
+  &.q-field--focused .q-field__control {
+    border-color: #068FFF;
+    box-shadow: 0 0 0 3px rgba(6, 143, 255, 0.15);
   }
 }
 </style>

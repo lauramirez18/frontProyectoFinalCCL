@@ -1,20 +1,20 @@
 <template>
-  <div class="bg-black full-width banner-brand">
-    <h6>Las mejores marcas de la Industria</h6>
+  <div class="banner-brand">
+    <h6>Nuestras Marcas Premium</h6>
 
-    <div class="q-gutter-sm row items-center justify-center">
+    <div class="brand-grid">
       <div
         v-for="(brand, index) in brands"
         :key="index"
-        class="col-6 col-sm-3 col-md-2 col-lg-2 q-ma-sm"
+        class="brand-item"
+        :style="{ animationDelay: `${index * 0.1}s` }"
         @click="goToBrandProducts(brand)"
       >
-        <q-card flat bordered class="q-pa-sm flex flex-center brand-card">
+        <div class="brand-card">
           <q-img
             :src="brand.logo"
             :alt="brand.name"
-            style="height: 60px; max-width: 80px;"
-            fit="contain"
+            class="brand-logo"
             :class="{ 'image-loading': !brand.loaded }"
             @load="brand.loaded = true"
           >
@@ -22,7 +22,8 @@
               <q-spinner-dots color="primary" />
             </template>
           </q-img>
-        </q-card>
+          <div class="brand-name">{{ brand.nombre }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -59,5 +60,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-@import './BrandBar.css';
+@import '../styles/BrandBar.css';
 </style>

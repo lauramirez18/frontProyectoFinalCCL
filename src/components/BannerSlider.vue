@@ -44,19 +44,24 @@ const slide = ref(0)
 
 const banners = ref([
   {
-    imageUrl: 'https://images.pexels.com/photos/14714826/pexels-photo-14714826.jpeg?auto=compress&cs=tinysrgb&w=600',
-    title: 'Tecnología de Alto Rendimiento',
-    description: 'Descubre nuestros nuevos dispositivos con potencia profesional',
+    imageUrl: 'https://images.pexels.com/photos/1714208/pexels-photo-1714208.jpeg',
+    title: 'Tecnología de Última Generación',
+    description: 'Descubre nuestra nueva colección de laptops y dispositivos con hasta 40% de descuento',
   },
   {
-    imageUrl: 'https://images.pexels.com/photos/7199194/pexels-photo-7199194.jpeg?auto=compress&cs=tinysrgb&w=600',
-    title: 'Equipos Gamer',
-    description: 'Experimenta juegos sin límites con nuestras nuevas laptops',
+    imageUrl: 'https://images.pexels.com/photos/3165335/pexels-photo-3165335.jpeg',
+    title: 'Zona Gaming Premium',
+    description: 'Equípate con lo mejor en periféricos gaming, monitores y componentes de alta gama',
   },
   {
-    imageUrl: 'https://images.pexels.com/photos/13844013/pexels-photo-13844013.jpeg?auto=compress&cs=tinysrgb&w=800&lazy=load',
-    title: 'Ofertas Exclusivas',
-    description: 'Aprovecha descuentos únicos por tiempo limitado',
+    imageUrl: 'https://images.pexels.com/photos/1038628/pexels-photo-1038628.jpeg',
+    title: 'Smart Home & Gadgets',
+    description: 'Convierte tu hogar en un espacio inteligente con nuestra selección de dispositivos',
+  },
+  {
+    imageUrl: 'https://images.pexels.com/photos/4792729/pexels-photo-4792729.jpeg',
+    title: 'Ofertas Especiales',
+    description: 'Aprovecha nuestras promociones exclusivas en productos seleccionados',
   },
 ])
 </script>
@@ -64,13 +69,22 @@ const banners = ref([
 <style scoped>
 .banner-wrapper {
   width: 100%;
-  margin: 0 auto;
   overflow: hidden;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  margin: 0;
+  position: relative;
 }
 
 .custom-carousel {
-  height: 480px;
+  height: 400px;
+  margin: 0;
+}
+
+.q-carousel {
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .carousel-slide {
@@ -80,15 +94,13 @@ const banners = ref([
   position: relative;
 }
 
-/* Fondo oscuro con blur */
- .carousel-slide::before {
+.carousel-slide::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.2) 100%);
   z-index: 1;
-} 
+}
 
 .caption {
   position: absolute;
@@ -98,48 +110,67 @@ const banners = ref([
   height: 100%;
   display: flex;
   align-items: center;
-  padding-left: 4rem;
+  padding-left: 3rem;
   z-index: 2;
 }
 
 .caption-content {
   color: white;
-  max-width: 520px;
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  max-width: 500px;
+  font-family: 'Poppins', 'Segoe UI', 'Roboto', sans-serif;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
 }
 
 .caption-title {
-  font-size: 2.8rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-  margin-bottom: 0.5rem;
-  animation: fadeInUp 0.8s ease-in-out;
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.8rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  animation: fadeInLeft 0.8s ease-in-out;
 }
 
 .caption-description {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
+  line-height: 1.4;
   opacity: 0.95;
-  animation: fadeInUp 1s ease-in-out;
+  margin-bottom: 1.2rem;
+  animation: fadeInLeft 1s ease-in-out;
   animation-delay: 0.2s;
 }
 
 .q-btn {
   animation: fadeInUp 1.2s ease-in-out;
   animation-delay: 0.4s;
+  font-size: 1.1rem;
+  padding: 12px 24px;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.q-btn:hover {
+  transform: translateY(-2px);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .custom-carousel {
-    height: 320px;
+    height: 300px;
   }
 
   .caption {
-    padding-left: 2rem;
+    padding-left: 1.5rem;
+  }
+
+  .caption-content {
+    padding: 1rem;
   }
 
   .caption-title {
-    font-size: 1.8rem;
+    font-size: 2rem;
   }
 
   .caption-description {
@@ -149,23 +180,45 @@ const banners = ref([
 
 @media (max-width: 480px) {
   .custom-carousel {
-    height: 240px;
+    height: 200px;
   }
 
   .caption {
     padding-left: 1rem;
   }
 
+  .caption-content {
+    padding: 0.8rem;
+  }
+
   .caption-title {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
   }
 
   .caption-description {
+    font-size: 0.9rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .q-btn {
+    padding: 8px 16px;
     font-size: 0.9rem;
   }
 }
 
 /* Animación */
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
