@@ -7,6 +7,7 @@ import App from './App.vue'
 import './style.css'
 import 'quasar/src/css/index.sass'
 import 'material-icons/iconfont/material-icons.css'
+import './css/variables.css'
 
 
 const pinia = createPinia()

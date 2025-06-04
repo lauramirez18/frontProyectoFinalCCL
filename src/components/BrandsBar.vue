@@ -1,20 +1,20 @@
 <template>
   <div class="banner-brand">
-    <h6>Nuestras Marcas Premium</h6>
+    <h6>Las mejores marcas de la Industria</h6>
 
-    <div class="brand-grid">
+    <div class="q-gutter-sm row items-center justify-center q-px-md">
       <div
         v-for="(brand, index) in brands"
         :key="index"
-        class="brand-item"
-        :style="{ animationDelay: `${index * 0.1}s` }"
+        class="col-4 col-sm-3 col-md-2 col-lg-2 q-pa-sm"
         @click="goToBrandProducts(brand)"
       >
-        <div class="brand-card">
+        <q-card flat class="brand-card">
           <q-img
             :src="brand.logo"
             :alt="brand.name"
-            class="brand-logo"
+            style="height: 35px; width: 100%;"
+            fit="contain"
             :class="{ 'image-loading': !brand.loaded }"
             @load="brand.loaded = true"
           >
@@ -23,7 +23,7 @@
             </template>
           </q-img>
           <div class="brand-name">{{ brand.nombre }}</div>
-        </div>
+        </q-card>
       </div>
     </div>
   </div>
