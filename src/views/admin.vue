@@ -1,861 +1,869 @@
 <template>
-  <!-- Añadir pestaña para gestión de ofertas -->
-  <q-tabs
-    v-model="activeTab"
-    class="text-primary q-mb-md"
-    indicator-color="primary"
-    align="left"
-  >
-    <q-tab name="productos" label="Productos" icon="inventory_2" />
-    <q-tab name="marcas" label="Marcas" icon="branding_watermark" />
-    <q-tab name="ofertas" label="Ofertas" icon="local_offer" />
-  </q-tabs>
+  <div class="admin-container">
+    <!-- Añadir pestaña para gestión de ofertas -->
+    <q-tabs
+      v-model="activeTab"
+      class="text-primary q-mb-md"
+      indicator-color="primary"
+      align="left"
+    >
+      <q-tab name="productos" label="Productos" icon="inventory_2" />
+      <q-tab name="marcas" label="Marcas" icon="branding_watermark" />
+      <q-tab name="categorias" label="Categorías" icon="category" />
+      <q-tab name="ofertas" label="Ofertas" icon="local_offer" />
+    </q-tabs>
 
-  <!-- Contenido de pestañas -->
-  <q-tab-panels v-model="activeTab" animated>
-    <!-- Panel de productos -->
-    <q-tab-panel name="productos">
-      <div class="q-mb-md row justify-between items-center">
-        <h5 class="q-my-none">Gestión de Productos</h5>
-        <q-btn label="Nuevo Producto" color="primary" @click="abrirModalNuevoProducto" icon="add" />
-      </div>
-      
-      <!-- Tabla de productos (mantener el código existente) -->
-      <q-table
-        title="Productos"
-        :rows="listaProductos"
-        :columns="columnasProductos"
-        row-key="_id"
-        :loading="cargandoTabla"
-        :filter="filtroTabla"
-      >
-        <template v-slot:top-right>
-          <q-input borderless dense debounce="300" v-model="filtroTabla" placeholder="Buscar">
-            <template v-slot:append>
-              <q-icon name="search" />
-            </template>
-          </q-input>
-        </template>
-
-        <template v-slot:body-cell-imagenes="props">
-          <q-td :props="props">
-            <q-img
-              :src="props.row.imagenes && props.row.imagenes.length > 0 ? props.row.imagenes[0] : 'https://via.placeholder.com/50?text=NoImg'"
-              style="height: 50px; width: 50px; border-radius: 4px;"
-              fit="cover"
-            >
-              <q-badge
-                v-if="props.row.imagenes && props.row.imagenes.length > 1"
-                color="primary"
-                floating
-                transparent
-                style="padding: 1px 3px; font-size: 0.7em;"
-              >
-                +{{ props.row.imagenes.length - 1 }}
-              </q-badge>
-              <template v-slot:error>
-                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8" style="font-size: 0.7rem;">
-                  <q-icon name="image_not_supported" size="xs" class="q-mr-xs" /> Error
-                </div>
-              </template>
-            </q-img>
-          </q-td>
-        </template>
-
-        <template v-slot:body-cell-category="props">
-          <q-td :props="props">
-            {{ props.row.category?.name || 'N/A' }}
-          </q-td>
-        </template>
-
-        <template v-slot:body-cell-subcategory="props">
-          <q-td :props="props">
-            {{ props.row.subcategory?.name || 'N/A' }}
-          </q-td>
-        </template>
-
-        <template v-slot:body-cell-state="props">
-          <q-td :props="props">
-            <q-badge :color="props.row.state === '1' ? 'positive' : 'negative'">
-              {{ props.row.state === '1' ? 'Activo' : 'Inactivo' }}
-            </q-badge>
-          </q-td>
-        </template>
-
-        <template v-slot:body-cell-acciones="props">
-          <q-td :props="props">
-            <q-btn flat round dense icon="visibility" @click="verDetallesProducto(props.row)" class="q-mr-sm">
-              <q-tooltip>Ver Detalles</q-tooltip>
-            </q-btn>
-            <q-btn flat round dense icon="edit" @click="abrirModalEditarProducto(props.row)" class="q-mr-sm">
-              <q-tooltip>Editar</q-tooltip>
-            </q-btn>
-            <q-btn
-              flat
-              round
-              dense
-              :icon="props.row.state === '1' ? 'toggle_on' : 'toggle_off'"
-              :color="props.row.state === '1' ? 'green' : 'grey'"
-              @click="confirmarCambioEstado(props.row)"
-            >
-              <q-tooltip>{{ props.row.state === '1' ? 'Desactivar' : 'Activar' }}</q-tooltip>
-            </q-btn>
-          </q-td>
-        </template>
-      </q-table>
-    </q-tab-panel>
-    
-    <!-- Panel de marcas -->
-    <q-tab-panel name="marcas">
-      <div class="q-mb-md row justify-between items-center">
-        <h5 class="q-my-none">Gestión de Marcas</h5>
-        <q-btn label="Nueva Marca" color="primary" @click="abrirModalNuevaMarca" icon="add" />
-      </div>
-      
-      <q-table
-        title="Marcas"
-        :rows="listaMarcas"
-        :columns="columnasMarcas"
-        row-key="_id"
-        :loading="cargandoTablaMarcas"
-        :filter="filtroTablaMarcas"
-      >
-        <template v-slot:top-right>
-          <q-input borderless dense debounce="300" v-model="filtroTablaMarcas" placeholder="Buscar">
-            <template v-slot:append>
-              <q-icon name="search" />
-            </template>
-          </q-input>
-        </template>
-        
-        <!-- Celda para el logo -->
-        <template v-slot:body-cell-logo="props">
-          <q-td :props="props">
-            <q-img
-              :src="props.row.logo || 'https://via.placeholder.com/50?text=NoLogo'"
-              style="height: 40px; width: 80px; border-radius: 4px;"
-              fit="contain"
-            >
-              <template v-slot:error>
-                <div class="absolute-full flex flex-center bg-grey-3 text-grey-8" style="font-size: 0.7rem;">
-                  <q-icon name="image_not_supported" size="xs" class="q-mr-xs" /> Sin logo
-                </div>
-              </template>
-            </q-img>
-          </q-td>
-        </template>
-        
-        <!-- Celda para el estado -->
-        <template v-slot:body-cell-state="props">
-          <q-td :props="props">
-            <q-badge :color="props.row.state === '1' ? 'positive' : 'negative'">
-              {{ props.row.state === '1' ? 'Activo' : 'Inactivo' }}
-            </q-badge>
-          </q-td>
-        </template>
-        
-        <!-- Celda para acciones -->
-        <template v-slot:body-cell-acciones="props">
-          <q-td :props="props">
-            <q-btn flat round dense icon="edit" @click="abrirModalEditarMarca(props.row)" class="q-mr-sm">
-              <q-tooltip>Editar</q-tooltip>
-            </q-btn>
-            <q-btn
-              flat
-              round
-              dense
-              :icon="props.row.state === '1' ? 'toggle_on' : 'toggle_off'"
-              :color="props.row.state === '1' ? 'green' : 'grey'"
-              @click="confirmarCambioEstadoMarca(props.row)"
-            >
-              <q-tooltip>{{ props.row.state === '1' ? 'Desactivar' : 'Activar' }}</q-tooltip>
-            </q-btn>
-          </q-td>
-        </template>
-      </q-table>
-    </q-tab-panel>
-    
-    <!-- Panel de ofertas -->
-    <q-tab-panel name="ofertas">
-      <div class="q-mb-md row justify-between items-center">
-        <h5 class="q-my-none">Gestión de Ofertas</h5>
-        <div>
-          <q-btn label="Crear Oferta" color="primary" @click="abrirModalNuevaOferta" icon="add" class="q-mr-sm" />
-          <q-btn label="Generar Ofertas Automáticas" color="secondary" @click="abrirModalOfertasAutomaticas" icon="auto_awesome" />
+    <!-- Contenido de pestañas -->
+    <q-tab-panels v-model="activeTab" animated>
+      <!-- Panel de productos -->
+      <q-tab-panel name="productos">
+        <div class="q-mb-md row justify-between items-center">
+          <h5 class="q-my-none">Gestión de Productos</h5>
+          <q-btn label="Nuevo Producto" color="primary" @click="abrirModalNuevoProducto" icon="add" />
         </div>
-      </div>
+        
+        <!-- Tabla de productos (mantener el código existente) -->
+        <q-table
+          title="Productos"
+          :rows="listaProductos"
+          :columns="columnasProductos"
+          row-key="_id"
+          :loading="cargandoTabla"
+          :filter="filtroTabla"
+        >
+          <template v-slot:top-right>
+            <q-input borderless dense debounce="300" v-model="filtroTabla" placeholder="Buscar">
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </template>
+
+          <template v-slot:body-cell-imagenes="props">
+            <q-td :props="props">
+              <q-img
+                :src="props.row.imagenes && props.row.imagenes.length > 0 ? props.row.imagenes[0] : 'https://via.placeholder.com/50?text=NoImg'"
+                style="height: 50px; width: 50px; border-radius: 4px;"
+                fit="cover"
+              >
+                <q-badge
+                  v-if="props.row.imagenes && props.row.imagenes.length > 1"
+                  color="primary"
+                  floating
+                  transparent
+                  style="padding: 1px 3px; font-size: 0.7em;"
+                >
+                  +{{ props.row.imagenes.length - 1 }}
+                </q-badge>
+                <template v-slot:error>
+                  <div class="absolute-full flex flex-center bg-grey-3 text-grey-8" style="font-size: 0.7rem;">
+                    <q-icon name="image_not_supported" size="xs" class="q-mr-xs" /> Error
+                  </div>
+                </template>
+              </q-img>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-category="props">
+            <q-td :props="props">
+              {{ props.row.category?.name || 'N/A' }}
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-subcategory="props">
+            <q-td :props="props">
+              {{ props.row.subcategory?.name || 'N/A' }}
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-state="props">
+            <q-td :props="props">
+              <q-badge :color="props.row.state === '1' ? 'positive' : 'negative'">
+                {{ props.row.state === '1' ? 'Activo' : 'Inactivo' }}
+              </q-badge>
+            </q-td>
+          </template>
+
+          <template v-slot:body-cell-acciones="props">
+            <q-td :props="props">
+              <q-btn flat round dense icon="visibility" @click="verDetallesProducto(props.row)" class="q-mr-sm">
+                <q-tooltip>Ver Detalles</q-tooltip>
+              </q-btn>
+              <q-btn flat round dense icon="edit" @click="abrirModalEditarProducto(props.row)" class="q-mr-sm">
+                <q-tooltip>Editar</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                :icon="props.row.state === '1' ? 'toggle_on' : 'toggle_off'"
+                :color="props.row.state === '1' ? 'green' : 'grey'"
+                @click="confirmarCambioEstado(props.row)"
+              >
+                <q-tooltip>{{ props.row.state === '1' ? 'Desactivar' : 'Activar' }}</q-tooltip>
+              </q-btn>
+            </q-td>
+          </template>
+        </q-table>
+      </q-tab-panel>
       
-      <!-- Tabla de productos en oferta -->
-      <q-table
-        title="Productos en Oferta"
-        :rows="listaProductosEnOferta"
-        :columns="columnasOfertas"
-        row-key="_id"
-        :loading="cargandoTablaOfertas"
-        :filter="filtroTablaOfertas"
-      >
-        <template v-slot:top-right>
-          <q-input borderless dense debounce="300" v-model="filtroTablaOfertas" placeholder="Buscar">
-            <template v-slot:append>
-              <q-icon name="search" />
-            </template>
-          </q-input>
-        </template>
+      <!-- Panel de marcas -->
+      <q-tab-panel name="marcas">
+        <div class="q-mb-md row justify-between items-center">
+          <h5 class="q-my-none">Gestión de Marcas</h5>
+          <q-btn label="Nueva Marca" color="primary" @click="abrirModalNuevaMarca" icon="add" />
+        </div>
         
-        <!-- Columna de imagen -->
-        <template v-slot:body-cell-imagenes="props">
-          <q-td :props="props">
-            <q-img
-              v-if="props.row.imagenes && props.row.imagenes.length > 0"
-              :src="props.row.imagenes[0]"
-              spinner-color="primary"
-              style="height: 50px; width: 50px"
-              fit="cover"
-            />
-            <q-icon v-else name="image_not_supported" size="50px" color="grey-5" />
-          </q-td>
-        </template>
-        
-        <!-- Columna de precio original -->
-        <template v-slot:body-cell-precio="props">
-          <q-td :props="props">
-            <div class="text-line-through text-grey">
-              ${{ Number(props.row.precio).toFixed(2) }}
-            </div>
-          </q-td>
-        </template>
-        
-        <!-- Columna de precio oferta -->
-        <template v-slot:body-cell-precioOferta="props">
-          <q-td :props="props">
-            <div class="text-weight-bold text-negative">
-              ${{ Number(props.row.precioOferta).toFixed(2) }}
-            </div>
-          </q-td>
-        </template>
-        
-        <!-- Columna de fechas -->
-        <template v-slot:body-cell-fechas="props">
-          <q-td :props="props">
-            <div v-if="props.row.fechaInicioOferta || props.row.fechaFinOferta">
-              <div v-if="props.row.fechaInicioOferta">
-                Desde: {{ formatDate(props.row.fechaInicioOferta) }}
-              </div>
-              <div v-if="props.row.fechaFinOferta">
-                Hasta: {{ formatDate(props.row.fechaFinOferta) }}
-              </div>
-            </div>
-            <div v-else class="text-grey">Sin fechas definidas</div>
-          </q-td>
-        </template>
-        
-        <!-- Columna de acciones -->
-        <template v-slot:body-cell-acciones="props">
-          <q-td :props="props">
-            <q-btn flat round dense icon="edit" @click="editarOferta(props.row)" class="q-mr-sm">
-              <q-tooltip>Editar Oferta</q-tooltip>
-            </q-btn>
-            <q-btn flat round dense icon="delete" color="negative" @click="confirmarEliminarOferta(props.row)">
-              <q-tooltip>Eliminar Oferta</q-tooltip>
-            </q-btn>
-          </q-td>
-        </template>
-      </q-table>
-    </q-tab-panel>
-  </q-tab-panels>
-
-  <!-- Modal para crear/editar marca -->
-  <q-dialog v-model="dialogoMarca" persistent @hide="resetearFormularioMarca">
-    <q-card style="min-width: 500px; max-width: 80vw;">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ modoEdicionMarca ? 'Editar Marca' : 'Crear Nueva Marca' }}</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
-      </q-card-section>
-
-      <q-card-section class="scroll" style="max-height: 70vh;">
-        <q-form ref="formMarcaRef" @submit.prevent="onSubmitMarca" class="q-gutter-md">
-          <q-input
-            filled
-            v-model="formMarca.nombre"
-            label="Nombre de la Marca *"
-            lazy-rules
-            :rules="[val => !!val || 'El nombre es requerido']"
-          />
+        <q-table
+          title="Marcas"
+          :rows="listaMarcas"
+          :columns="columnasMarcas"
+          row-key="_id"
+          :loading="cargandoTablaMarcas"
+          :filter="filtroTablaMarcas"
+        >
+          <template v-slot:top-right>
+            <q-input borderless dense debounce="300" v-model="filtroTablaMarcas" placeholder="Buscar">
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </template>
           
-          <!-- Subida de logo -->
-          <div class="q-mb-md">
-            <div class="text-subtitle2 q-mb-xs">Logo de la Marca:</div>
+          <!-- Celda para el logo -->
+          <template v-slot:body-cell-logo="props">
+            <q-td :props="props">
+              <q-img
+                :src="props.row.logo || 'https://via.placeholder.com/50?text=NoLogo'"
+                style="height: 40px; width: 80px; border-radius: 4px;"
+                fit="contain"
+              >
+                <template v-slot:error>
+                  <div class="absolute-full flex flex-center bg-grey-3 text-grey-8" style="font-size: 0.7rem;">
+                    <q-icon name="image_not_supported" size="xs" class="q-mr-xs" /> Sin logo
+                  </div>
+                </template>
+              </q-img>
+            </q-td>
+          </template>
+          
+          <!-- Celda para el estado -->
+          <template v-slot:body-cell-state="props">
+            <q-td :props="props">
+              <q-badge :color="props.row.state === '1' ? 'positive' : 'negative'">
+                {{ props.row.state === '1' ? 'Activo' : 'Inactivo' }}
+              </q-badge>
+            </q-td>
+          </template>
+          
+          <!-- Celda para acciones -->
+          <template v-slot:body-cell-acciones="props">
+            <q-td :props="props">
+              <q-btn flat round dense icon="edit" @click="abrirModalEditarMarca(props.row)" class="q-mr-sm">
+                <q-tooltip>Editar</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                :icon="props.row.state === '1' ? 'toggle_on' : 'toggle_off'"
+                :color="props.row.state === '1' ? 'green' : 'grey'"
+                @click="confirmarCambioEstadoMarca(props.row)"
+              >
+                <q-tooltip>{{ props.row.state === '1' ? 'Desactivar' : 'Activar' }}</q-tooltip>
+              </q-btn>
+            </q-td>
+          </template>
+        </q-table>
+      </q-tab-panel>
+      
+      <!-- Panel de categorías -->
+      <q-tab-panel name="categorias">
+        <CategoryManager />
+      </q-tab-panel>
+      
+      <!-- Panel de ofertas -->
+      <q-tab-panel name="ofertas">
+        <div class="q-mb-md row justify-between items-center">
+          <h5 class="q-my-none">Gestión de Ofertas</h5>
+          <div>
+            <q-btn label="Crear Oferta" color="primary" @click="abrirModalNuevaOferta" icon="add" class="q-mr-sm" />
+            <q-btn label="Generar Ofertas Automáticas" color="secondary" @click="abrirModalOfertasAutomaticas" icon="auto_awesome" />
+          </div>
+        </div>
+        
+        <!-- Tabla de productos en oferta -->
+        <q-table
+          title="Productos en Oferta"
+          :rows="listaProductosEnOferta"
+          :columns="columnasOfertas"
+          row-key="_id"
+          :loading="cargandoTablaOfertas"
+          :filter="filtroTablaOfertas"
+        >
+          <template v-slot:top-right>
+            <q-input borderless dense debounce="300" v-model="filtroTablaOfertas" placeholder="Buscar">
+              <template v-slot:append>
+                <q-icon name="search" />
+              </template>
+            </q-input>
+          </template>
+          
+          <!-- Columna de imagen -->
+          <template v-slot:body-cell-imagenes="props">
+            <q-td :props="props">
+              <q-img
+                v-if="props.row.imagenes && props.row.imagenes.length > 0"
+                :src="props.row.imagenes[0]"
+                spinner-color="primary"
+                style="height: 50px; width: 50px"
+                fit="cover"
+              />
+              <q-icon v-else name="image_not_supported" size="50px" color="grey-5" />
+            </q-td>
+          </template>
+          
+          <!-- Columna de precio original -->
+          <template v-slot:body-cell-precio="props">
+            <q-td :props="props">
+              <div class="text-line-through text-grey">
+                ${{ Number(props.row.precio).toFixed(2) }}
+              </div>
+            </q-td>
+          </template>
+          
+          <!-- Columna de precio oferta -->
+          <template v-slot:body-cell-precioOferta="props">
+            <q-td :props="props">
+              <div class="text-weight-bold text-negative">
+                ${{ Number(props.row.precioOferta).toFixed(2) }}
+              </div>
+            </q-td>
+          </template>
+          
+          <!-- Columna de fechas -->
+          <template v-slot:body-cell-fechas="props">
+            <q-td :props="props">
+              <div v-if="props.row.fechaInicioOferta || props.row.fechaFinOferta">
+                <div v-if="props.row.fechaInicioOferta">
+                  Desde: {{ formatDate(props.row.fechaInicioOferta) }}
+                </div>
+                <div v-if="props.row.fechaFinOferta">
+                  Hasta: {{ formatDate(props.row.fechaFinOferta) }}
+                </div>
+              </div>
+              <div v-else class="text-grey">Sin fechas definidas</div>
+            </q-td>
+          </template>
+          
+          <!-- Columna de acciones -->
+          <template v-slot:body-cell-acciones="props">
+            <q-td :props="props">
+              <q-btn flat round dense icon="edit" @click="editarOferta(props.row)" class="q-mr-sm">
+                <q-tooltip>Editar Oferta</q-tooltip>
+              </q-btn>
+              <q-btn flat round dense icon="delete" color="negative" @click="confirmarEliminarOferta(props.row)">
+                <q-tooltip>Eliminar Oferta</q-tooltip>
+              </q-btn>
+            </q-td>
+          </template>
+        </q-table>
+      </q-tab-panel>
+    </q-tab-panels>
+
+    <!-- Modal para crear/editar marca -->
+    <q-dialog v-model="dialogoMarca" persistent @hide="resetearFormularioMarca">
+      <q-card style="min-width: 500px; max-width: 80vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ modoEdicionMarca ? 'Editar Marca' : 'Crear Nueva Marca' }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="scroll" style="max-height: 70vh;">
+          <q-form ref="formMarcaRef" @submit.prevent="onSubmitMarca" class="q-gutter-md">
+            <q-input
+              filled
+              v-model="formMarca.nombre"
+              label="Nombre de la Marca *"
+              lazy-rules
+              :rules="[val => !!val || 'El nombre es requerido']"
+            />
             
-            <div v-if="formMarca.logo" class="q-mb-md">
-              <div class="text-caption q-mb-xs">Logo actual:</div>
+            <!-- Subida de logo -->
+            <div class="q-mb-md">
+              <div class="text-subtitle2 q-mb-xs">Logo de la Marca:</div>
+              
+              <div v-if="formMarca.logo" class="q-mb-md">
+                <div class="text-caption q-mb-xs">Logo actual:</div>
+                <div class="row q-gutter-sm">
+                  <div class="col-auto" style="position: relative;">
+                    <q-img :src="formMarca.logo" style="height: 100px; max-width: 200px; border-radius: 4px;" fit="contain" />
+                    <q-btn
+                      size="xs" round dense color="negative" icon="close"
+                      class="absolute-top-right q-ma-xs" style="z-index: 1;"
+                      @click="formMarca.logo = ''"
+                    >
+                      <q-tooltip>Eliminar logo</q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
+              </div>
+              
+              <q-file
+                v-model="logoFile"
+                label="Seleccionar logo"
+                filled
+                accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
+                max-file-size="2097152"
+                @rejected="onLogoRejected"
+              >
+                <template v-slot:prepend>
+                  <q-icon name="attach_file" />
+                </template>
+                <template v-slot:hint>
+                  Formatos: JPG, PNG, GIF, WEBP, SVG (máx. 2MB)
+                </template>
+              </q-file>
+            </div>
+          </q-form>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn label="Cancelar" color="negative" v-close-popup />
+          <q-btn 
+            label="Guardar" 
+            color="primary" 
+            :loading="guardandoMarca" 
+            @click="onSubmitMarca" 
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="dialogoProducto" persistent @hide="resetearFormulario">
+      <q-card style="min-width: 700px; max-width: 80vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ modoEdicion ? 'Editar Producto' : 'Crear Nuevo Producto' }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="scroll" style="max-height: 70vh;">
+          <q-form ref="formProductoRef" @submit.prevent="onSubmitProducto" class="q-gutter-md">
+            <q-input
+              filled
+              v-model="formProducto.nombre"
+              label="Nombre del Producto *"
+              lazy-rules
+              :rules="[val => !!val || 'El nombre es requerido']"
+            />
+            <q-input
+              filled
+              v-model="formProducto.descripcion"
+              label="Descripción *"
+              type="textarea"
+              lazy-rules
+              :rules="[val => !!val || 'La descripción es requerida']"
+            />
+            <q-select
+              filled
+              v-model="formProducto.marca"
+              :options="listaMarcas"
+              option-value="_id"
+              option-label="nombre"
+              label="Marca *"
+              emit-value
+              map-options
+              lazy-rules
+              :rules="[val => !!val || 'La marca es requerida']"
+            >
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section avatar v-if="scope.opt.logo">
+                    <q-img :src="scope.opt.logo" style="width: 30px; height: 20px" fit="contain" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.nombre }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-sm-6">
+                <q-input
+                  filled
+                  v-model.number="formProducto.precio"
+                  label="Precio *"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  lazy-rules
+                  :rules="[
+                    val => val !== null && val !== undefined && val >= 0 || 'El precio es requerido y debe ser >= 0'
+                  ]"
+                />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-input
+                  filled
+                  v-model.number="formProducto.stock"
+                  label="Stock *"
+                  type="number"
+                  min="0"
+                  lazy-rules
+                  :rules="[
+                    val => val !== null && val !== undefined && val >= 0 || 'El stock es requerido y debe ser >= 0'
+                  ]"
+                />
+              </div>
+            </div>
+
+            <div v-if="modoEdicion && formProducto.imagenes && formProducto.imagenes.length > 0" class="q-mb-md">
+              <div class="text-subtitle2 q-mb-xs">Imágenes Actuales:</div>
               <div class="row q-gutter-sm">
-                <div class="col-auto" style="position: relative;">
-                  <q-img :src="formMarca.logo" style="height: 100px; max-width: 200px; border-radius: 4px;" fit="contain" />
+                <div v-for="(imgUrl, index) in formProducto.imagenes" :key="`existente-${index}`" class="col-auto" style="position: relative;">
+                  <q-img :src="imgUrl" style="height: 100px; width: 100px; border-radius: 4px;" fit="cover" />
                   <q-btn
                     size="xs" round dense color="negative" icon="close"
                     class="absolute-top-right q-ma-xs" style="z-index: 1;"
-                    @click="formMarca.logo = ''"
+                    @click="removerImagenExistente(index)"
                   >
-                    <q-tooltip>Eliminar logo</q-tooltip>
+                    <q-tooltip>Eliminar esta imagen (se aplicará al guardar)</q-tooltip>
                   </q-btn>
                 </div>
               </div>
             </div>
-            
-            <q-file
-              v-model="logoFile"
-              label="Seleccionar logo"
+
+               <q-file
               filled
-              accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
-              max-file-size="2097152"
-              @rejected="onLogoRejected"
+              v-model="formProducto.archivosImagenes"
+              label="Añadir Nuevas Imágenes"
+              multiple
+              accept=".jpg, .jpeg, .png, .gif, .webp"
+              max-file-size="5242880" 
+              @rejected="onFileRejected"
+              counter
+              clearable
+              :display-value="formProducto.archivosImagenes ? `${formProducto.archivosImagenes.length} archivo(s) seleccionado(s)` : ''"
             >
               <template v-slot:prepend>
                 <q-icon name="attach_file" />
               </template>
-              <template v-slot:hint>
-                Formatos: JPG, PNG, GIF, WEBP, SVG (máx. 2MB)
+
+              <template v-slot:after>
+                <div v-if="formProducto.archivosImagenes && formProducto.archivosImagenes.length > 0" class="row q-gutter-sm q-mt-sm q-mb-sm">
+                  <div v-for="(file, index) in formProducto.archivosImagenes" :key="`nuevo-${index}`" class="col-auto" style="position: relative;">
+                    <q-img
+                      :src="getObjectURL(file)"
+                      style="height: 80px; width: 80px; border-radius: 4px;"
+                      fit="cover"
+                    />
+                    <q-btn
+                      size="xs" round dense color="negative" icon="close"
+                      class="absolute-top-right q-ma-xs" style="z-index: 1;"
+                      @click="removerArchivoImagenSeleccionado(index)"
+                    />
+                  </div>
+                </div>
               </template>
             </q-file>
-          </div>
-        </q-form>
-      </q-card-section>
 
-      <q-card-actions align="right">
-        <q-btn label="Cancelar" color="negative" v-close-popup />
-        <q-btn 
-          label="Guardar" 
-          color="primary" 
-          :loading="guardandoMarca" 
-          @click="onSubmitMarca" 
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+           <q-select
+              filled
+              v-model="formProducto.category"
+              :options="opcionesCategorias"
+              label="Categoría *"
+              emit-value
+              map-options
+              option-value="value"
+              option-label="label"
+              lazy-rules
+              :rules="[val => !!val || 'Debe seleccionar una categoría']"
+              @update:model-value="manejarCambioCategoria"
+            />
 
-  <q-dialog v-model="dialogoProducto" persistent @hide="resetearFormulario">
-    <q-card style="min-width: 700px; max-width: 80vw;">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ modoEdicion ? 'Editar Producto' : 'Crear Nuevo Producto' }}</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
-      </q-card-section>
+            <q-select
+              filled
+              v-model="formProducto.subcategory"
+              :options="opcionesSubcategoriasFiltradas"
+              label="Subcategoría *"
+              emit-value
+              map-options
+              option-value="value"
+              option-label="label"
+              :disable="!formProducto.category || cargandoSubcategorias"
+              :loading="cargandoSubcategorias"
+              lazy-rules
+              :rules="[val => !!val || 'Debe seleccionar una subcategoría']"
+            /> 
 
-      <q-card-section class="scroll" style="max-height: 70vh;">
-        <q-form ref="formProductoRef" @submit.prevent="onSubmitProducto" class="q-gutter-md">
-          <q-input
-            filled
-            v-model="formProducto.nombre"
-            label="Nombre del Producto *"
-            lazy-rules
-            :rules="[val => !!val || 'El nombre es requerido']"
-          />
-          <q-input
-            filled
-            v-model="formProducto.descripcion"
-            label="Descripción *"
-            type="textarea"
-            lazy-rules
-            :rules="[val => !!val || 'La descripción es requerida']"
-          />
-          <q-select
-            filled
-            v-model="formProducto.marca"
-            :options="listaMarcas"
-            option-value="_id"
-            option-label="nombre"
-            label="Marca *"
-            emit-value
-            map-options
-            lazy-rules
-            :rules="[val => !!val || 'La marca es requerida']"
-          >
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section avatar v-if="scope.opt.logo">
-                  <q-img :src="scope.opt.logo" style="width: 30px; height: 20px" fit="contain" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ scope.opt.nombre }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-sm-6">
-              <q-input
-                filled
-                v-model.number="formProducto.precio"
-                label="Precio *"
-                type="number"
-                min="0"
-                step="0.01"
-                lazy-rules
-                :rules="[
-                  val => val !== null && val !== undefined && val >= 0 || 'El precio es requerido y debe ser >= 0'
-                ]"
-              />
-            </div>
-            <div class="col-12 col-sm-6">
-              <q-input
-                filled
-                v-model.number="formProducto.stock"
-                label="Stock *"
-                type="number"
-                min="0"
-                lazy-rules
-                :rules="[
-                  val => val !== null && val !== undefined && val >= 0 || 'El stock es requerido y debe ser >= 0'
-                ]"
-              />
-            </div>
-          </div>
-
-          <div v-if="modoEdicion && formProducto.imagenes && formProducto.imagenes.length > 0" class="q-mb-md">
-            <div class="text-subtitle2 q-mb-xs">Imágenes Actuales:</div>
-            <div class="row q-gutter-sm">
-              <div v-for="(imgUrl, index) in formProducto.imagenes" :key="`existente-${index}`" class="col-auto" style="position: relative;">
-                <q-img :src="imgUrl" style="height: 100px; width: 100px; border-radius: 4px;" fit="cover" />
-                <q-btn
-                  size="xs" round dense color="negative" icon="close"
-                  class="absolute-top-right q-ma-xs" style="z-index: 1;"
-                  @click="removerImagenExistente(index)"
-                >
-                  <q-tooltip>Eliminar esta imagen (se aplicará al guardar)</q-tooltip>
-                </q-btn>
-              </div>
-            </div>
-          </div>
-
-             <q-file
-            filled
-            v-model="formProducto.archivosImagenes"
-            label="Añadir Nuevas Imágenes"
-            multiple
-            accept=".jpg, .jpeg, .png, .gif, .webp"
-            max-file-size="5242880" 
-            @rejected="onFileRejected"
-            counter
-            clearable
-            :display-value="formProducto.archivosImagenes ? `${formProducto.archivosImagenes.length} archivo(s) seleccionado(s)` : ''"
-          >
-            <template v-slot:prepend>
-              <q-icon name="attach_file" />
-            </template>
-
-            <template v-slot:after>
-              <div v-if="formProducto.archivosImagenes && formProducto.archivosImagenes.length > 0" class="row q-gutter-sm q-mt-sm q-mb-sm">
-                <div v-for="(file, index) in formProducto.archivosImagenes" :key="`nuevo-${index}`" class="col-auto" style="position: relative;">
-                  <q-img
-                    :src="getObjectURL(file)"
-                    style="height: 80px; width: 80px; border-radius: 4px;"
-                    fit="cover"
-                  />
-                  <q-btn
-                    size="xs" round dense color="negative" icon="close"
-                    class="absolute-top-right q-ma-xs" style="z-index: 1;"
-                    @click="removerArchivoImagenSeleccionado(index)"
-                  />
-                </div>
-              </div>
-            </template>
-          </q-file>
-
-         <q-select
-            filled
-            v-model="formProducto.category"
-            :options="opcionesCategorias"
-            label="Categoría *"
-            emit-value
-            map-options
-            option-value="value"
-            option-label="label"
-            lazy-rules
-            :rules="[val => !!val || 'Debe seleccionar una categoría']"
-            @update:model-value="manejarCambioCategoria"
-          />
-
-          <q-select
-            filled
-            v-model="formProducto.subcategory"
-            :options="opcionesSubcategoriasFiltradas"
-            label="Subcategoría *"
-            emit-value
-            map-options
-            option-value="value"
-            option-label="label"
-            :disable="!formProducto.category || cargandoSubcategorias"
-            :loading="cargandoSubcategorias"
-            lazy-rules
-            :rules="[val => !!val || 'Debe seleccionar una subcategoría']"
-          /> 
-
-          <div v-if="camposDetallesDinamicos.length > 0" class="q-mt-lg">
-            <div class="text-subtitle1 q-mb-sm">Especificaciones</div>
-            <div v-for="campo in camposDetallesDinamicos" :key="campo.key" class="q-mb-sm">
-              <q-input
-                v-if="campo.type === 'text' || campo.type === 'number'"
-                filled
-                v-model="formProducto.especificaciones[campo.key]"
-                :label="campo.label + (campo.required ? ' *' : '')"
-                :type="campo.type === 'number' ? 'number' : 'text'"
-                :rules="campo.rules"
-                :min="campo.min"
-                :max="campo.max"
-              />
-              <q-checkbox
-                v-else-if="campo.type === 'boolean'"
-                v-model="formProducto.especificaciones[campo.key]"
-                :label="campo.label + (campo.required ? ' *' : '')"
-                :rules="campo.rules"
-                checked-icon="check"
-                unchecked-icon="clear"
-              />
-              <q-select
-                v-else-if="campo.type === 'select' || campo.type === 'multiselect'"
-                filled
-                v-model="formProducto.especificaciones[campo.key]"
-                :label="campo.label + (campo.required ? ' *' : '')"
-                :options="campo.options"
-                :multiple="campo.type === 'multiselect'"
-                :rules="campo.rules"
-                emit-value
-                map-options
-                option-value="value"
-                option-label="label"
-              />
-              </div>
-          </div>
-          <div v-else-if="formProducto.category && !cargandoEspecificaciones && !camposDetallesDinamicos.length && !cargandoSubcategorias">
-            <q-banner dense inline-actions class="text-white bg-blue-grey-5 q-mt-md">
-              No hay especificaciones adicionales para esta categoría.
-            </q-banner>
-          </div>
-          <q-inner-loading :showing="cargandoEspecificaciones || cargandoSubcategorias">
-            <q-spinner-gears size="50px" color="primary" />
-          </q-inner-loading>
-
-          <q-card-actions align="right" class="q-pt-md">
-            <q-btn label="Cancelar" flat v-close-popup />
-            <q-btn :label="modoEdicion ? 'Actualizar' : 'Crear'" type="submit" color="primary" :loading="guardandoProducto" />
-          </q-card-actions>
-        </q-form>
-      </q-card-section>
-    </q-card>
-  </q-dialog>
-
-  <q-dialog v-model="dialogoVerDetalles">
-    <q-card style="min-width: 500px; max-width: 80vw;">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Detalles del Producto</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
-      </q-card-section>
-      <q-card-section v-if="productoSeleccionado" class="scroll" style="max-height: 70vh;">
-        <q-list bordered separator>
-          <q-item><q-item-section><q-item-label overline>Nombre</q-item-label><q-item-label>{{ productoSeleccionado.nombre }}</q-item-label></q-item-section></q-item>
-          <q-item><q-item-section><q-item-label overline>Descripción</q-item-label><q-item-label caption style="white-space: pre-wrap;">{{ productoSeleccionado.descripcion }}</q-item-label></q-item-section></q-item>
-          <q-item><q-item-section><q-item-label overline>Marca</q-item-label><q-item-label>{{ productoSeleccionado.marca }}</q-item-label></q-item-section></q-item>
-          <q-item><q-item-section><q-item-label overline>Precio</q-item-label><q-item-label>${{ productoSeleccionado.precio }}</q-item-label></q-item-section></q-item>
-          <q-item><q-item-section><q-item-label overline>Stock</q-item-label><q-item-label>{{ productoSeleccionado.stock }}</q-item-label></q-item-section></q-item>
-          <q-item><q-item-section><q-item-label overline>Categoría</q-item-label><q-item-label>{{ productoSeleccionado.category?.name }}</q-item-label></q-item-section></q-item>
-          <q-item><q-item-section><q-item-label overline>Subcategoría</q-item-label><q-item-label>{{ productoSeleccionado.subcategory?.name }}</q-item-label></q-item-section></q-item>
-          
-          <q-item>
-            <q-item-section>
-              <q-item-label overline>Imágenes</q-item-label>
-              <div v-if="productoSeleccionado.imagenes && productoSeleccionado.imagenes.length > 0" class="q-mt-sm">
-                <q-carousel
-                  v-if="productoSeleccionado.imagenes.length > 1"
-                  v-model="slideImagenDetalle"
-                  animated
-                  arrows
-                  navigation
-                  infinite
-                  control-color="primary"
-                  height="250px"
-                  class="bg-grey-2 rounded-borders"
-                >
-                  <q-carousel-slide
-                    v-for="(img, index) in productoSeleccionado.imagenes"
-                    :key="`detalle-${index}`"
-                    :name="index"
-                    :img-src="img"
-                    style="background-size: contain; background-repeat: no-repeat;"
-                  />
-                </q-carousel>
-                <q-img
-                  v-else
-                  :src="productoSeleccionado.imagenes[0]"
-                  style="max-height: 250px; border-radius: 4px;" fit="contain"
-                  class="bg-grey-2"
+            <div v-if="camposDetallesDinamicos.length > 0" class="q-mt-lg">
+              <div class="text-subtitle1 q-mb-sm">Especificaciones</div>
+              <div v-for="campo in camposDetallesDinamicos" :key="campo.key" class="q-mb-sm">
+                <q-input
+                  v-if="campo.type === 'text' || campo.type === 'number'"
+                  filled
+                  v-model="formProducto.especificaciones[campo.key]"
+                  :label="campo.label + (campo.required ? ' *' : '')"
+                  :type="campo.type === 'number' ? 'number' : 'text'"
+                  :rules="campo.rules"
+                  :min="campo.min"
+                  :max="campo.max"
                 />
-              </div>
-              <q-item-label v-else caption class="q-mt-sm">No hay imágenes disponibles.</q-item-label>
-            </q-item-section>
-          </q-item>
-          
-          <q-item v-if="productoSeleccionado.especificaciones && Object.keys(productoSeleccionado.especificaciones).length > 0">
-            <q-item-section>
-              <q-item-label overline>Especificaciones</q-item-label>
-              <q-list dense>
-                <q-item v-for="(valor, clave) in productoSeleccionado.especificaciones" :key="clave">
-                  <q-item-section side style="min-width: 120px; font-weight: 500;">{{ capitalizarYEspaciar(clave) }}:</q-item-section>
-                  <q-item-section>{{ Array.isArray(valor) ? valor.join(', ') : valor }}</q-item-section>
-                </q-item>
-              </q-list>
-            </q-item-section>
-          </q-item>
-          </q-list>
-      </q-card-section>
-      <q-card-actions align="right" class="q-pt-md">
-        <q-btn label="Cerrar" color="primary" v-close-popup />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+                <q-checkbox
+                  v-else-if="campo.type === 'boolean'"
+                  v-model="formProducto.especificaciones[campo.key]"
+                  :label="campo.label + (campo.required ? ' *' : '')"
+                  :rules="campo.rules"
+                  checked-icon="check"
+                  unchecked-icon="clear"
+                />
+                <q-select
+                  v-else-if="campo.type === 'select' || campo.type === 'multiselect'"
+                  filled
+                  v-model="formProducto.especificaciones[campo.key]"
+                  :label="campo.label + (campo.required ? ' *' : '')"
+                  :options="campo.options"
+                  :multiple="campo.type === 'multiselect'"
+                  :rules="campo.rules"
+                  emit-value
+                  map-options
+                  option-value="value"
+                  option-label="label"
+                />
+                </div>
+            </div>
+            <div v-else-if="formProducto.category && !cargandoEspecificaciones && !camposDetallesDinamicos.length && !cargandoSubcategorias">
+              <q-banner dense inline-actions class="text-white bg-blue-grey-5 q-mt-md">
+                No hay especificaciones adicionales para esta categoría.
+              </q-banner>
+            </div>
+            <q-inner-loading :showing="cargandoEspecificaciones || cargandoSubcategorias">
+              <q-spinner-gears size="50px" color="primary" />
+            </q-inner-loading>
 
-  <!-- Modal para crear/editar oferta -->
-  <q-dialog v-model="dialogoOferta" persistent @hide="resetearFormularioOferta">
-    <q-card style="min-width: 500px; max-width: 80vw;">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">{{ modoEdicionOferta ? 'Editar Oferta' : 'Crear Nueva Oferta' }}</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
-      </q-card-section>
+            <q-card-actions align="right" class="q-pt-md">
+              <q-btn label="Cancelar" flat v-close-popup />
+              <q-btn :label="modoEdicion ? 'Actualizar' : 'Crear'" type="submit" color="primary" :loading="guardandoProducto" />
+            </q-card-actions>
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
 
-      <q-card-section class="scroll" style="max-height: 70vh;">
-        <q-form ref="formOfertaRef" @submit.prevent="onSubmitOferta" class="q-gutter-md">
-          <!-- Selector de producto -->
-          <q-select
-            v-if="!modoEdicionOferta"
-            filled
-            v-model="formOferta.producto"
-            :options="productosDisponiblesParaOferta"
-            option-value="_id"
-            option-label="nombre"
-            label="Seleccionar Producto *"
-            emit-value
-            map-options
-            use-input
-            hide-selected
-            fill-input
-            input-debounce="300"
-            @filter="filtrarProductos"
-            lazy-rules
-            :rules="[val => !!val || 'Debe seleccionar un producto']"
-          >
-            <template v-slot:option="scope">
-              <q-item v-bind="scope.itemProps">
-                <q-item-section avatar>
+    <q-dialog v-model="dialogoVerDetalles">
+      <q-card style="min-width: 500px; max-width: 80vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Detalles del Producto</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+        <q-card-section v-if="productoSeleccionado" class="scroll" style="max-height: 70vh;">
+          <q-list bordered separator>
+            <q-item><q-item-section><q-item-label overline>Nombre</q-item-label><q-item-label>{{ productoSeleccionado.nombre }}</q-item-label></q-item-section></q-item>
+            <q-item><q-item-section><q-item-label overline>Descripción</q-item-label><q-item-label caption style="white-space: pre-wrap;">{{ productoSeleccionado.descripcion }}</q-item-label></q-item-section></q-item>
+            <q-item><q-item-section><q-item-label overline>Marca</q-item-label><q-item-label>{{ productoSeleccionado.marca }}</q-item-label></q-item-section></q-item>
+            <q-item><q-item-section><q-item-label overline>Precio</q-item-label><q-item-label>${{ productoSeleccionado.precio }}</q-item-label></q-item-section></q-item>
+            <q-item><q-item-section><q-item-label overline>Stock</q-item-label><q-item-label>{{ productoSeleccionado.stock }}</q-item-label></q-item-section></q-item>
+            <q-item><q-item-section><q-item-label overline>Categoría</q-item-label><q-item-label>{{ productoSeleccionado.category?.name }}</q-item-label></q-item-section></q-item>
+            <q-item><q-item-section><q-item-label overline>Subcategoría</q-item-label><q-item-label>{{ productoSeleccionado.subcategory?.name }}</q-item-label></q-item-section></q-item>
+            
+            <q-item>
+              <q-item-section>
+                <q-item-label overline>Imágenes</q-item-label>
+                <div v-if="productoSeleccionado.imagenes && productoSeleccionado.imagenes.length > 0" class="q-mt-sm">
+                  <q-carousel
+                    v-if="productoSeleccionado.imagenes.length > 1"
+                    v-model="slideImagenDetalle"
+                    animated
+                    arrows
+                    navigation
+                    infinite
+                    control-color="primary"
+                    height="250px"
+                    class="bg-grey-2 rounded-borders"
+                  >
+                    <q-carousel-slide
+                      v-for="(img, index) in productoSeleccionado.imagenes"
+                      :key="`detalle-${index}`"
+                      :name="index"
+                      :img-src="img"
+                      style="background-size: contain; background-repeat: no-repeat;"
+                    />
+                  </q-carousel>
                   <q-img
-                    v-if="scope.opt.imagenes && scope.opt.imagenes.length > 0"
-                    :src="scope.opt.imagenes[0]"
-                    style="width: 40px; height: 40px"
-                    fit="cover"
+                    v-else
+                    :src="productoSeleccionado.imagenes[0]"
+                    style="max-height: 250px; border-radius: 4px;" fit="contain"
+                    class="bg-grey-2"
                   />
-                  <q-icon v-else name="image_not_supported" size="40px" color="grey-5" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label>{{ scope.opt.nombre }}</q-item-label>
-                  <q-item-label caption>
-                    ${{ Number(scope.opt.precio).toFixed(2) }} | 
-                    {{ scope.opt.marca?.nombre || 'Sin marca' }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-            </template>
-          </q-select>
-          
-          <!-- Información del producto seleccionado (en modo edición) -->
-          <div v-if="modoEdicionOferta && productoSeleccionado" class="q-mb-md">
-            <div class="row items-center">
-              <q-img
-                v-if="productoSeleccionado.imagenes && productoSeleccionado.imagenes.length > 0"
-                :src="productoSeleccionado.imagenes[0]"
-                style="width: 60px; height: 60px"
-                fit="cover"
-                class="q-mr-md"
-              />
-              <div>
-                <div class="text-h6">{{ productoSeleccionado.nombre }}</div>
-                <div class="text-subtitle2">
-                  Precio original: ${{ Number(productoSeleccionado.precio).toFixed(2) }}
+                </div>
+                <q-item-label v-else caption class="q-mt-sm">No hay imágenes disponibles.</q-item-label>
+              </q-item-section>
+            </q-item>
+            
+            <q-item v-if="productoSeleccionado.especificaciones && Object.keys(productoSeleccionado.especificaciones).length > 0">
+              <q-item-section>
+                <q-item-label overline>Especificaciones</q-item-label>
+                <q-list dense>
+                  <q-item v-for="(valor, clave) in productoSeleccionado.especificaciones" :key="clave">
+                    <q-item-section side style="min-width: 120px; font-weight: 500;">{{ capitalizarYEspaciar(clave) }}:</q-item-section>
+                    <q-item-section>{{ Array.isArray(valor) ? valor.join(', ') : valor }}</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-item-section>
+            </q-item>
+            </q-list>
+        </q-card-section>
+        <q-card-actions align="right" class="q-pt-md">
+          <q-btn label="Cerrar" color="primary" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- Modal para crear/editar oferta -->
+    <q-dialog v-model="dialogoOferta" persistent @hide="resetearFormularioOferta">
+      <q-card style="min-width: 500px; max-width: 80vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">{{ modoEdicionOferta ? 'Editar Oferta' : 'Crear Nueva Oferta' }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="scroll" style="max-height: 70vh;">
+          <q-form ref="formOfertaRef" @submit.prevent="onSubmitOferta" class="q-gutter-md">
+            <!-- Selector de producto -->
+            <q-select
+              v-if="!modoEdicionOferta"
+              filled
+              v-model="formOferta.producto"
+              :options="productosDisponiblesParaOferta"
+              option-value="_id"
+              option-label="nombre"
+              label="Seleccionar Producto *"
+              emit-value
+              map-options
+              use-input
+              hide-selected
+              fill-input
+              input-debounce="300"
+              @filter="filtrarProductos"
+              lazy-rules
+              :rules="[val => !!val || 'Debe seleccionar un producto']"
+            >
+              <template v-slot:option="scope">
+                <q-item v-bind="scope.itemProps">
+                  <q-item-section avatar>
+                    <q-img
+                      v-if="scope.opt.imagenes && scope.opt.imagenes.length > 0"
+                      :src="scope.opt.imagenes[0]"
+                      style="width: 40px; height: 40px"
+                      fit="cover"
+                    />
+                    <q-icon v-else name="image_not_supported" size="40px" color="grey-5" />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ scope.opt.nombre }}</q-item-label>
+                    <q-item-label caption>
+                      ${{ Number(scope.opt.precio).toFixed(2) }} | 
+                      {{ scope.opt.marca?.nombre || 'Sin marca' }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+              </template>
+            </q-select>
+            
+            <!-- Información del producto seleccionado (en modo edición) -->
+            <div v-if="modoEdicionOferta && productoSeleccionado" class="q-mb-md">
+              <div class="row items-center">
+                <q-img
+                  v-if="productoSeleccionado.imagenes && productoSeleccionado.imagenes.length > 0"
+                  :src="productoSeleccionado.imagenes[0]"
+                  style="width: 60px; height: 60px"
+                  fit="cover"
+                  class="q-mr-md"
+                />
+                <div>
+                  <div class="text-h6">{{ productoSeleccionado.nombre }}</div>
+                  <div class="text-subtitle2">
+                    Precio original: ${{ Number(productoSeleccionado.precio).toFixed(2) }}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <!-- Porcentaje de descuento -->
-          <q-input
-            filled
-            v-model.number="formOferta.porcentajeDescuento"
-            type="number"
-            label="Porcentaje de Descuento *"
-            min="1"
-            max="99"
-            lazy-rules
-            :rules="[
-              val => val !== null && val !== undefined || 'El porcentaje es requerido',
-              val => val > 0 && val < 100 || 'El porcentaje debe estar entre 1 y 99'
-            ]"
-          >
-            <template v-slot:append>
-              <q-icon name="percent" />
-            </template>
-          </q-input>
-          
-          <!-- Fechas de la oferta -->
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-sm-6">
-              <q-input
-                filled
-                v-model="formOferta.fechaInicioOferta"
-                label="Fecha de Inicio"
-                mask="date"
-                :rules="['date']"
-              >
-                <template v-slot:append>
-                  <q-icon name="event" class="cursor-pointer">
-                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                      <q-date v-model="formOferta.fechaInicioOferta" mask="YYYY-MM-DD">
-                        <div class="row items-center justify-end">
-                          <q-btn v-close-popup label="Cerrar" color="primary" flat />
-                        </div>
-                      </q-date>
-                    </q-popup-proxy>
-                  </q-icon>
-                </template>
-              </q-input>
-            </div>
-            <div class="col-12 col-sm-6">
-              <q-input
-                filled
-                v-model="formOferta.fechaFinOferta"
-                label="Fecha de Fin"
-                mask="date"
-                :rules="['date']"
-              >
-                <template v-slot:append>
-                  <q-icon name="event" class="cursor-pointer">
-                    <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                      <q-date v-model="formOferta.fechaFinOferta" mask="YYYY-MM-DD">
-                        <div class="row items-center justify-end">
-                          <q-btn v-close-popup label="Cerrar" color="primary" flat />
-                        </div>
-                      </q-date>
-                    </q-popup-proxy>
-                  </q-icon>
-                </template>
-              </q-input>
-            </div>
-          </div>
-          
-          <!-- Vista previa del precio con descuento -->
-          <div v-if="precioConDescuento > 0" class="q-pa-md bg-grey-2 rounded-borders">
-            <div class="text-subtitle1">Vista previa:</div>
-            <div class="row items-center q-mt-sm">
-              <div class="text-h6 text-negative">
-                ${{ precioConDescuento.toFixed(2) }}
+            
+            <!-- Porcentaje de descuento -->
+            <q-input
+              filled
+              v-model.number="formOferta.porcentajeDescuento"
+              type="number"
+              label="Porcentaje de Descuento *"
+              min="1"
+              max="99"
+              lazy-rules
+              :rules="[
+                val => val !== null && val !== undefined || 'El porcentaje es requerido',
+                val => val > 0 && val < 100 || 'El porcentaje debe estar entre 1 y 99'
+              ]"
+            >
+              <template v-slot:append>
+                <q-icon name="percent" />
+              </template>
+            </q-input>
+            
+            <!-- Fechas de la oferta -->
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-sm-6">
+                <q-input
+                  filled
+                  v-model="formOferta.fechaInicioOferta"
+                  label="Fecha de Inicio"
+                  mask="date"
+                  :rules="['date']"
+                >
+                  <template v-slot:append>
+                    <q-icon name="event" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date v-model="formOferta.fechaInicioOferta" mask="YYYY-MM-DD">
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
               </div>
-              <div class="text-caption text-grey q-ml-sm text-line-through">
-                ${{ precioOriginal.toFixed(2) }}
+              <div class="col-12 col-sm-6">
+                <q-input
+                  filled
+                  v-model="formOferta.fechaFinOferta"
+                  label="Fecha de Fin"
+                  mask="date"
+                  :rules="['date']"
+                >
+                  <template v-slot:append>
+                    <q-icon name="event" class="cursor-pointer">
+                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                        <q-date v-model="formOferta.fechaFinOferta" mask="YYYY-MM-DD">
+                          <div class="row items-center justify-end">
+                            <q-btn v-close-popup label="Cerrar" color="primary" flat />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
               </div>
-              <q-badge color="negative" class="q-ml-md">
-                {{ formOferta.porcentajeDescuento }}% OFF
-              </q-badge>
             </div>
-          </div>
-        </q-form>
-      </q-card-section>
+            
+            <!-- Vista previa del precio con descuento -->
+            <div v-if="precioConDescuento > 0" class="q-pa-md bg-grey-2 rounded-borders">
+              <div class="text-subtitle1">Vista previa:</div>
+              <div class="row items-center q-mt-sm">
+                <div class="text-h6 text-negative">
+                  ${{ precioConDescuento.toFixed(2) }}
+                </div>
+                <div class="text-caption text-grey q-ml-sm text-line-through">
+                  ${{ precioOriginal.toFixed(2) }}
+                </div>
+                <q-badge color="negative" class="q-ml-md">
+                  {{ formOferta.porcentajeDescuento }}% OFF
+                </q-badge>
+              </div>
+            </div>
+          </q-form>
+        </q-card-section>
 
-      <q-card-actions align="right">
-        <q-btn label="Cancelar" color="negative" v-close-popup />
-        <q-btn 
-          label="Guardar" 
-          color="primary" 
-          :loading="guardandoOferta" 
-          @click="onSubmitOferta" 
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
-  
-  <!-- Modal para generar ofertas automáticas -->
-  <q-dialog v-model="dialogoOfertasAutomaticas" persistent>
-    <q-card style="min-width: 400px; max-width: 80vw;">
-      <q-card-section class="row items-center q-pb-none">
-        <div class="text-h6">Generar Ofertas Automáticas</div>
-        <q-space />
-        <q-btn icon="close" flat round dense v-close-popup />
-      </q-card-section>
+        <q-card-actions align="right">
+          <q-btn label="Cancelar" color="negative" v-close-popup />
+          <q-btn 
+            label="Guardar" 
+            color="primary" 
+            :loading="guardandoOferta" 
+            @click="onSubmitOferta" 
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+    
+    <!-- Modal para generar ofertas automáticas -->
+    <q-dialog v-model="dialogoOfertasAutomaticas" persistent>
+      <q-card style="min-width: 400px; max-width: 80vw;">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Generar Ofertas Automáticas</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
+        </q-card-section>
 
-      <q-card-section class="q-pt-md">
-        <q-form ref="formOfertasAutomaticasRef" @submit.prevent="generarOfertasAutomaticas" class="q-gutter-md">
-          <p class="text-body1">
-            Esta función generará ofertas automáticamente para productos con alto stock o que llevan mucho tiempo en inventario.
-          </p>
-          
-          <q-input
-            filled
-            v-model.number="formOfertasAutomaticas.stockMinimo"
-            type="number"
-            label="Stock mínimo para considerar"
-            min="1"
-            lazy-rules
-            :rules="[val => val > 0 || 'Debe ser mayor a 0']"
-          />
-          
-          <q-input
-            filled
-            v-model.number="formOfertasAutomaticas.diasEnInventario"
-            type="number"
-            label="Días en inventario para considerar"
-            min="1"
-            lazy-rules
-            :rules="[val => val > 0 || 'Debe ser mayor a 0']"
-          />
-          
-          <q-input
-            filled
-            v-model.number="formOfertasAutomaticas.porcentajeDescuento"
-            type="number"
-            label="Porcentaje de descuento a aplicar"
-            min="1"
-            max="99"
-            lazy-rules
-            :rules="[
-              val => val > 0 && val < 100 || 'El porcentaje debe estar entre 1 y 99'
-            ]"
-          >
-            <template v-slot:append>
-              <q-icon name="percent" />
-            </template>
-          </q-input>
-          
-          <q-input
-            filled
-            v-model.number="formOfertasAutomaticas.duracionOfertaDias"
-            type="number"
-            label="Duración de la oferta (días)"
-            min="1"
-            lazy-rules
-            :rules="[val => val > 0 || 'Debe ser mayor a 0']"
-          />
-        </q-form>
-      </q-card-section>
+        <q-card-section class="q-pt-md">
+          <q-form ref="formOfertasAutomaticasRef" @submit.prevent="generarOfertasAutomaticas" class="q-gutter-md">
+            <p class="text-body1">
+              Esta función generará ofertas automáticamente para productos con alto stock o que llevan mucho tiempo en inventario.
+            </p>
+            
+            <q-input
+              filled
+              v-model.number="formOfertasAutomaticas.stockMinimo"
+              type="number"
+              label="Stock mínimo para considerar"
+              min="1"
+              lazy-rules
+              :rules="[val => val > 0 || 'Debe ser mayor a 0']"
+            />
+            
+            <q-input
+              filled
+              v-model.number="formOfertasAutomaticas.diasEnInventario"
+              type="number"
+              label="Días en inventario para considerar"
+              min="1"
+              lazy-rules
+              :rules="[val => val > 0 || 'Debe ser mayor a 0']"
+            />
+            
+            <q-input
+              filled
+              v-model.number="formOfertasAutomaticas.porcentajeDescuento"
+              type="number"
+              label="Porcentaje de descuento a aplicar"
+              min="1"
+              max="99"
+              lazy-rules
+              :rules="[
+                val => val > 0 && val < 100 || 'El porcentaje debe estar entre 1 y 99'
+              ]"
+            >
+              <template v-slot:append>
+                <q-icon name="percent" />
+              </template>
+            </q-input>
+            
+            <q-input
+              filled
+              v-model.number="formOfertasAutomaticas.duracionOfertaDias"
+              type="number"
+              label="Duración de la oferta (días)"
+              min="1"
+              lazy-rules
+              :rules="[val => val > 0 || 'Debe ser mayor a 0']"
+            />
+          </q-form>
+        </q-card-section>
 
-      <q-card-actions align="right">
-        <q-btn label="Cancelar" color="negative" v-close-popup />
-        <q-btn 
-          label="Generar" 
-          color="primary" 
-          :loading="generandoOfertasAutomaticas" 
-          @click="generarOfertasAutomaticas" 
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+        <q-card-actions align="right">
+          <q-btn label="Cancelar" color="negative" v-close-popup />
+          <q-btn 
+            label="Generar" 
+            color="primary" 
+            :loading="generandoOfertasAutomaticas" 
+            @click="generarOfertasAutomaticas" 
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+  </div>
 </template>
 
 <script setup>
@@ -863,6 +871,7 @@ import { ref, computed, onMounted } from 'vue';
 import api from '../plugins/axios.js';
 import { useQuasar } from 'quasar';
 import { showNotification } from '../utils/notifications';
+import CategoryManager from '../components/CategoryManager.vue';
 
 const $q = useQuasar();
 
@@ -981,8 +990,13 @@ async function subirArchivoACloudinary(file) {
 async function cargarProductos() {
   cargandoTabla.value = true;
   try {
-    const response = await api.get('productos');
-    listaProductos.value = Array.isArray(response?.data) ? response.data : [];
+    const response = await api.get('productos', { 
+      params: { 
+        limit: 1000, // Aumentamos el límite para mostrar más productos
+        page: 1
+      }
+    });
+    listaProductos.value = Array.isArray(response?.data?.productos) ? response.data.productos : [];
   } catch (error) {
     console.error("Error al cargar productos:", error);
     listaProductos.value = [];
@@ -1645,15 +1659,271 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-/* Tus estilos CSS permanecen IGUAL */
+<style>
+@import '../styles/admin.css';
+
+:root {
+  --admin-primary: #181c24;
+  --admin-secondary: #232a34;
+  --admin-accent: #4fc3f7;
+  --admin-success: #43e97b;
+  --admin-warning: #ffd600;
+  --admin-danger: #ff5370;
+  --admin-text: #fff; /* Blanco puro para texto principal */
+  --admin-text-secondary: #e0e6ed; /* Gris claro para texto secundario */
+  --admin-border: #232a34;
+  --admin-hover: #232a34cc;
+  --admin-card-glass: rgba(35, 42, 52, 0.92); /* Más sólido para mejor contraste */
+  --admin-glow: 0 0 8px 2px #4fc3f7cc;
+  --admin-gradient: linear-gradient(135deg, #232a34 0%, #181c24 100%);
+}
+
+body, .admin-container {
+  background: var(--admin-gradient) !important;
+  min-height: 100vh;
+  color: var(--admin-text);
+}
+
+.admin-container {
+  padding: 32px 16px 32px 16px;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 #000a;
+  backdrop-filter: blur(6px);
+}
+
+.q-tab-panel {
+  padding: 32px 24px;
+  background: var(--admin-card-glass);
+  border-radius: 18px;
+  margin-top: 18px;
+  box-shadow: 0 4px 24px 0 #0004;
+  border: 1.5px solid #232a34cc;
+  backdrop-filter: blur(8px);
+}
+
+.q-table {
+  background: var(--admin-card-glass);
+  border-radius: 16px;
+  box-shadow: 0 2px 16px 0 #0003;
+  border: 1.5px solid #232a34cc;
+  overflow: hidden;
+}
+
 .q-table th {
-  font-weight: bold;
+  background: transparent;
+  color: var(--admin-text);
+  font-weight: 800;
+  padding: 18px 12px;
+  border-bottom: 2px solid var(--admin-accent);
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 4px #000a;
 }
-.q-table--col-auto-width {
-  width: 1px;
+
+.q-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #232a3499;
+  color: var(--admin-text);
+  background: transparent;
+  text-shadow: 0 1px 4px #000a;
 }
-.scroll {
-  overflow-y: auto;
+
+.q-table tbody tr {
+  transition: background 0.2s;
+}
+.q-table tbody tr:hover {
+  background: #232a34ee;
+}
+
+.q-btn {
+  border-radius: 10px;
+  font-weight: 700;
+  transition: all 0.2s;
+  box-shadow: none;
+  text-shadow: 0 1px 4px #000a;
+}
+
+.q-btn--primary {
+  background: linear-gradient(90deg, #4fc3f7 0%, #1976d2 100%);
+  color: #fff;
+  box-shadow: var(--admin-glow);
+}
+.q-btn--primary:hover {
+  background: linear-gradient(90deg, #1976d2 0%, #4fc3f7 100%);
+  filter: brightness(1.1);
+  box-shadow: 0 0 16px 2px #4fc3f7cc;
+}
+.q-btn--negative {
+  background: linear-gradient(90deg, #ff5370 0%, #ff1744 100%);
+  color: #fff;
+}
+.q-btn--negative:hover {
+  filter: brightness(1.1);
+}
+
+.q-input, .q-select {
+  background: rgba(35,42,52,0.98); /* Más sólido */
+  border-radius: 10px;
+  box-shadow: 0 2px 8px 0 #4fc3f733;
+  border: 1.5px solid #232a34cc;
+  margin-bottom: 12px;
+}
+.q-input .q-field__control, .q-select .q-field__control {
+  background: transparent;
+  color: var(--admin-text);
+  border-radius: 10px;
+}
+.q-input .q-field__native, .q-select .q-field__native {
+  color: var(--admin-text);
+}
+.q-field--focused .q-field__control {
+  box-shadow: 0 0 0 2px #4fc3f7cc;
+  border-color: #4fc3f7;
+}
+.q-field__label {
+  color: var(--admin-accent);
+  font-weight: 700;
+  text-shadow: 0 1px 4px #000a;
+}
+.q-field__marginal {
+  color: var(--admin-text-secondary);
+}
+
+.q-badge {
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-weight: 700;
+  font-size: 1em;
+  box-shadow: 0 2px 8px 0 #4fc3f733;
+  text-shadow: 0 1px 4px #000a;
+}
+.q-badge--positive {
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  color: #181c24;
+}
+.q-badge--negative {
+  background: linear-gradient(90deg, #ff5370 0%, #ff1744 100%);
+  color: #fff;
+}
+
+.q-img {
+  border-radius: 8px;
+  border: 2px solid #232a34cc;
+  box-shadow: 0 2px 8px 0 #4fc3f733;
+}
+
+.q-tooltip {
+  background: #232a34ee;
+  color: var(--admin-accent);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 1em;
+  font-weight: 700;
+  box-shadow: 0 2px 8px 0 #4fc3f733;
+  text-shadow: 0 1px 4px #000a;
+}
+
+.q-tabs {
+  background: var(--admin-card-glass);
+  border-radius: 16px;
+  padding: 10px 0 10px 0;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 16px 0 #0003;
+  border: 1.5px solid #232a34cc;
+  backdrop-filter: blur(8px);
+}
+.q-tab {
+  color: var(--admin-text-secondary);
+  border-radius: 10px;
+  transition: all 0.2s;
+  font-weight: 700;
+  font-size: 1.1em;
+  padding: 10px 24px;
+  text-shadow: 0 1px 4px #000a;
+}
+.q-tab:hover {
+  background: #232a34cc;
+  color: var(--admin-accent);
+}
+.q-tab--active {
+  color: #fff;
+  background: linear-gradient(90deg, #4fc3f7 0%, #1976d2 100%);
+  box-shadow: 0 0 12px 2px #4fc3f7cc;
+}
+
+.q-dialog__inner > div, .q-card {
+  background: var(--admin-card-glass);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px 0 #000a;
+  border: 1.5px solid #232a34cc;
+  backdrop-filter: blur(12px);
+}
+.q-card__section {
+  border-bottom: 1px solid #232a3499;
+  color: var(--admin-text);
+}
+
+.q-select__dropdown-icon {
+  color: var(--admin-accent);
+}
+
+.q-menu {
+  background: var(--admin-card-glass);
+  border: 1.5px solid #232a34cc;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px 0 #0003;
+  backdrop-filter: blur(8px);
+}
+.q-item {
+  color: var(--admin-text);
+  transition: all 0.2s;
+  border-radius: 8px;
+  text-shadow: 0 1px 4px #000a;
+}
+.q-item:hover {
+  background: #232a34cc;
+  color: var(--admin-accent);
+}
+
+.q-checkbox__inner {
+  color: var(--admin-accent);
+}
+.q-checkbox__label {
+  color: var(--admin-text);
+  text-shadow: 0 1px 4px #000a;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #181c24;
+}
+::-webkit-scrollbar-thumb {
+  background: #232a34cc;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4fc3f7cc;
+}
+
+.q-dialog__backdrop {
+  background: rgba(24, 28, 36, 0.85);
+}
+
+.q-notification {
+  background: var(--admin-card-glass);
+  color: var(--admin-accent);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px 0 #0003;
+  font-weight: 700;
+  text-shadow: 0 1px 4px #000a;
+}
+
+.q-loading {
+  background: rgba(24, 28, 36, 0.9);
+}
+.q-loading__spinner {
+  color: var(--admin-accent);
 }
 </style>

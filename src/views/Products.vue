@@ -376,7 +376,12 @@ const fetchProducts = async () => {
     if (route.params.categoryId) params.category = route.params.categoryId
     if (subcategory.value) params.subcategory = subcategory.value._id
     if (searchQuery.value) params.search = searchQuery.value
-    if (currentBrand.value) params.brand = currentBrand.value._id
+    
+    // Asegurarse de que el filtro de marca se aplique correctamente
+    if (route.query.brand) {
+      params.brand = route.query.brand
+      console.log('Aplicando filtro de marca:', params.brand)
+    }
 
     if (priceRange.value.min > minPrice.value) params.minPrice = priceRange.value.min
     if (priceRange.value.max < maxPrice.value) params.maxPrice = priceRange.value.max
@@ -399,6 +404,7 @@ const fetchProducts = async () => {
       showOnlyOffers.value = true
     }
 
+    console.log('Parámetros de búsqueda:', params)
     const response = await api.get('/productos', { params })
 
     products.value = response.data.productos || []
@@ -622,18 +628,16 @@ watch(() => route.query, (newQuery) => {
     fetchProducts()
   }
   
-  // Si hay un cambio en el parámetro brand pero no coincide con la marca actual
-  if (newQuery.brand && (!currentBrand.value || currentBrand.value._id !== newQuery.brand)) {
+  // Si hay un cambio en el parámetro brand
+  if (newQuery.brand) {
     const brand = brands.value.find(b => b._id === newQuery.brand)
     if (brand) {
       currentBrand.value = brand
       currentPage.value = 1
       fetchProducts()
     }
-  }
-  
-  // Si se eliminó el parámetro brand pero tenemos una marca seleccionada
-  if (!newQuery.brand && currentBrand.value) {
+  } else if (currentBrand.value) {
+    // Si se eliminó el parámetro brand pero tenemos una marca seleccionada
     currentBrand.value = null
     currentPage.value = 1
     fetchProducts()

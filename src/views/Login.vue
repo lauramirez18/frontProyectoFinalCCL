@@ -1,158 +1,78 @@
 <template>
-  <body class="containerG">
- 
-    <div class="login-container">
-      <div class="login-card">
-        <div class="card">
-           <h1 class="login-title">Iniciar Sesión</h1>
-        <p class="welcome-text">Bienvenido de vuelta</p>
-        
-        <form @submit.prevent="handleLogin">
-          <div class="form-group">
-            <label for="email">Correo electrónico</label>
-            <input 
-              type="email" 
-              id="email" 
-              v-model="email" 
-              placeholder="tu@email.com"
-              required
-            />
-            <div v-if="errors.email" class="error-message">{{ errors.email }}</div>
-          </div>
-          
-          <div class="form-group">
-            <label for="password">Contraseña</label>
-            <input 
-              type="password" 
-              id="password" 
-              v-model="password"
-              placeholder="••••••••"
-              required
-            />
-            <div v-if="errors.password" class="error-message">{{ errors.password }}</div>
-            <div class="forgot-password">
-              <a href="#" @click.prevent="forgotPassword">¿Olvidaste tu contraseña?</a>
-            </div>
-          </div>
-          
-          <button type="submit" class="btn-login" :disabled="isLoading">
-            {{ isLoading ? 'Cargando...' : 'Iniciar sesión' }}
-          </button>
-          
-          <div v-if="errors.general" class="error-message general-error">
-            {{ errors.general }}
-          </div>
-        </form>
-        
-        <div class="signup-prompt">
-          <span>¿No tienes cuenta?</span>
-          <router-link to="/Register">Crear cuenta</router-link>
-        </div>
-        </div>
-       
+  <div class="admin-login-container">
+    <div class="admin-login-card">
+      <div class="admin-login-header">
+        <img src="/logo2.png" alt="Admin Logo" class="admin-logo" />
+        <h1>Panel de Administración</h1>
       </div>
-      
-      <div class="welcome-card">
-        <div class="banner-welcome">
-         <img src="/logo2.png" alt="Welcome" class="welcome-icon" />
-        <h1 class="welcome-title">¡Bienvenido de vuelta!</h1>
-        <p class="welcome-subtitle">Descubre las últimas novedades en tecnología</p>
-        
-        <div class="features-list">
-          <div class="feature-item">
-            <div class="feature-icon blue" style="background-color: #068FFF;">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            <span>Accede a tu historial de compras</span>
-          </div>
-          
-          <div class="feature-item">
-            <div class="feature-icon yellow" style="background-color: #068FFF;">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span>Revisa el estado de tus pedidos</span>
-          </div>
-          
-          <div class="feature-item">
-            <div class="feature-icon orange" style="background-color: #068FFF;">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </div>
-            <span>Gestiona tus productos favoritos</span>
-          </div>
-        </div> 
+
+      <form @submit.prevent="handleAdminLogin" class="admin-login-form">
+        <div class="form-group">
+          <label for="email">Correo electrónico</label>
+          <input 
+            type="email" 
+            id="email" 
+            v-model="email" 
+            placeholder="admin@example.com"
+            required
+          />
+          <div v-if="errors.email" class="error-message">{{ errors.email }}</div>
         </div>
         
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input 
+            type="password" 
+            id="password" 
+            v-model="password"
+            placeholder="••••••••"
+            required
+          />
+          <div v-if="errors.password" class="error-message">{{ errors.password }}</div>
+        </div>
+        
+        <button type="submit" class="btn-admin-login" :disabled="isLoading">
+          {{ isLoading ? 'Cargando...' : 'Iniciar sesión' }}
+        </button>
+        
+        <div v-if="errors.general" class="error-message general-error">
+          {{ errors.general }}
+        </div>
+      </form>
+
+      <div class="back-to-store">
+        <router-link to="/">Volver a la tienda</router-link>
       </div>
     </div>
-
-  </body>
-  
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
-import { getData, postData } from '../services/apiClient.js';
+import { postData } from '../services/apiClient.js';
 import { useAuthStore } from '../store/store.js';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
-// Datos del formulario
 const email = ref('');
 const password = ref('');
 const isLoading = ref(false);
-const authStore = useAuthStore();
 
-// Control de errores
 const errors = reactive({
-  user:'',
   email: '',
   password: '',
   general: ''
 });
 
-// Limpiar errores
 const clearErrors = () => {
-  errors.user = '';
   errors.email = '';
   errors.password = '';
   errors.general = '';
 };
 
-// Verificar si el usuario ya está autenticado
-onMounted(() => {
-  checkAuthStatus();
-});
-
-// Verificar si hay una sesión activa
-const checkAuthStatus = async () => {
-  const authData = localStorage.getItem('auth');
-
-  if (authData) {
-    try {
-      const { token, user } = JSON.parse(authData);
-
-      if (token && user) {
-        // Configurar el estado de la aplicación
-        authStore.setToken(token);
-        authStore.setUser(user);
-        router.push('/');
-      }
-    } catch (error) {
-      console.error('Error al verificar el estado de autenticación:', error);
-      localStorage.removeItem('auth');
-    }
-  }
-};
-
-// Método para inicio de sesión
-const handleLogin = async () => {
+const handleAdminLogin = async () => {
   clearErrors();
   let isValid = true;
 
@@ -170,23 +90,29 @@ const handleLogin = async () => {
 
   isLoading.value = true;
   try {
-    const response = await postData('login', {
+    const response = await postData('/usuarios/login', {
       email: email.value,
       password: password.value
     });
 
-    if (response.token) {
-      const authData = { 
-        token: response.token,
-        user: response.user
-      };
-      localStorage.setItem('auth', JSON.stringify(authData));
+    console.log('Respuesta del servidor:', response);
 
-      // Guardar el token y datos del usuario
-      authStore.setToken(response.token);
-      authStore.setUser(response.user);
+    if (response.token) {
+      const userData = response.usuario || response.user;
       
-      router.push('/');
+      // Verificar si es admin
+      if (userData && (userData.rol === 'admin' || userData.role === 'admin')) {
+        const authData = { 
+          token: response.token,
+          user: userData
+        };
+        localStorage.setItem('auth', JSON.stringify(authData));
+        authStore.setToken(response.token);
+        authStore.setUser(userData);
+        router.push('/admin');
+      } else {
+        errors.general = 'Acceso denegado. Solo administradores pueden acceder.';
+      }
     } else {
       throw new Error('No se recibió token de autenticación');
     }
@@ -215,48 +141,118 @@ const handleLogin = async () => {
     isLoading.value = false;
   }
 };
-
-// Método para recuperación de contraseña
-const forgotPassword = async () => {
-  const userEmail = prompt('Introduce tu correo electrónico para recuperar la contraseña:');
-
-  if (!userEmail) return;
-
-  if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(userEmail)) {
-    alert('Por favor, introduce un correo electrónico válido');
-    return;
-  }
-
-  isLoading.value = true;
-  try {
-    await postData('/auth/forgot-password', { email: userEmail });
-    alert(`Se ha enviado un enlace de recuperación a ${userEmail}`);
-  } catch (error) {
-    console.error('Error al solicitar recuperación:', error);
-    const errorMsg = error.response?.data?.error || 'Error al procesar la solicitud';
-    alert(`Error: ${errorMsg}`);
-  } finally {
-    isLoading.value = false;
-  }
-};
 </script>
-  
-<style scoped>
-@import url('../styles/login.css');
 
-/* Estilos adicionales para manejo de errores */
+<style scoped>
+.admin-login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  padding: 20px;
+}
+
+.admin-login-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.admin-login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.admin-logo {
+  width: 120px;
+  margin-bottom: 1rem;
+}
+
+.admin-login-header h1 {
+  color: #14213d;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  color: #14213d;
+  font-weight: 500;
+}
+
+.form-group input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #14213d;
+}
+
+.btn-admin-login {
+  background-color: #14213d;
+  color: white;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-admin-login:hover {
+  background-color: #0d1526;
+}
+
+.btn-admin-login:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 .error-message {
   color: #e53935;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-  text-align: left;
+  font-size: 0.875rem;
 }
 
 .general-error {
-  margin: 0.75rem 0;
-  padding: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
   background-color: rgba(229, 57, 53, 0.1);
   border-radius: 4px;
   text-align: center;
 }
-</style>
+
+.back-to-store {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.back-to-store a {
+  color: #14213d;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-to-store a:hover {
+  text-decoration: underline;
+}
+</style> 

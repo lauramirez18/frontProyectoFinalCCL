@@ -1,0 +1,1123 @@
+/* Estilos generales */
+:root {
+  --primary-color: #6c5ce7;
+  --primary-light: #a29bfe;
+  --primary-dark: #4a3dc0;
+  --secondary-color: #00cec9;
+  --accent-color: #fd79a8;
+  --success-color: #00b894;
+  --warning-color: #fdcb6e;
+  --danger-color: #ff7675;
+  --info-color: #0984e3;
+  --light-bg: #f8f9fa;
+  --dark-bg: #2d3436;
+  --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+  --border-radius: 12px;
+  --spacing: 1rem;
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+}
+
+/* ==================== */
+/* FORMULARIOS MEJORADOS */
+/* ==================== */
+
+/* Contenedor principal del formulario */
+.q-form {
+  padding: 2rem 2.5rem;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Borde superior decorativo */
+.q-form:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  opacity: 0.9;
+}
+
+/* Efecto hover en el formulario */
+.q-form:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Encabezado del formulario */
+.q-dialog .q-card__section:first-child {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  padding: 1.2rem 1.5rem;
+  position: relative;
+  border-radius: 12px 12px 0 0;
+  text-align: center;
+}
+
+.q-dialog .q-card__section:first-child:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+}
+
+/* Título del formulario */
+.q-dialog .text-h6 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* Botón de cierre */
+.q-dialog .q-btn--dense {
+  width: 32px;
+  height: 32px;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+}
+
+.q-dialog .q-btn--dense:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Campos de formulario */
+.q-field {
+  margin-bottom: 1.8rem;
+  border-radius: 12px;
+  overflow: visible;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
+}
+
+/* Contenedor del campo */
+.q-field--filled .q-field__control,
+.q-field--outlined .q-field__control {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 12px 20px;
+  height: auto;
+  min-height: 56px;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+/* Eliminar borde nativo */
+.q-field--filled .q-field__control:before,
+.q-field--outlined .q-field__control:before {
+  display: none;
+}
+
+/* Efecto hover en campos */
+.q-field--filled .q-field__control:hover,
+.q-field--outlined .q-field__control:hover {
+  border-color: var(--primary-light);
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.1);
+}
+
+/* Campo con foco */
+.q-field--focused .q-field__control {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.2);
+  background: #fff;
+}
+
+/* Etiquetas de los campos */
+.q-field__label {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: var(--transition);
+  padding: 0 8px;
+  background: white;
+  border-radius: 20px;
+  left: 12px;
+  top: -10px;
+  z-index: 1;
+  transform-origin: left center;
+  pointer-events: none;
+  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+}
+
+.q-field--focused .q-field__label,
+.q-field--float .q-field__label {
+  color: var(--primary-color);
+  transform: translateY(-50%) scale(0.8);
+  font-weight: 600;
+  background: white;
+  padding: 0 8px;
+}
+
+/* ==================== */
+/* INPUTS CON ICONO */
+/* ==================== */
+.q-field--with-icon .q-field__control:before {
+  display: none;
+}
+
+.q-field__append,
+.q-field__prepend {
+  padding: 0 12px;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.q-field--focused .q-field__append,
+.q-field--focused .q-field__prepend {
+  color: var(--primary-color);
+}
+
+/* Iconos interactivos */
+.q-field__append .q-icon,
+.q-field__prepend .q-icon {
+  font-size: 1.4em;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.q-field__append .q-icon:hover,
+.q-field__prepend .q-icon:hover {
+  background: rgba(108, 92, 231, 0.1);
+  transform: scale(1.1);
+}
+
+/* ==================== */
+/* SELECTORES */
+/* ==================== */
+.q-select .q-field__control {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.q-select__dropdown-icon {
+  color: var(--text-secondary);
+  font-size: 1.5em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.q-field--focused .q-select__dropdown-icon {
+  color: var(--primary-color);
+  transform: rotate(180deg);
+  background: rgba(108, 92, 231, 0.1);
+}
+
+/* Menú desplegable */
+.q-menu {
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+/* Opciones del menú */
+.q-item {
+  padding: 10px 16px;
+  min-height: 48px;
+  transition: all 0.2s ease;
+}
+
+.q-item:hover {
+  background: #f8f9fa;
+}
+
+.q-item--active,
+.q-item--active:hover {
+  background: rgba(108, 92, 231, 0.1);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* ==================== */
+/* CHECKBOX Y RADIO */
+/* ==================== */
+.q-checkbox,
+.q-radio {
+  margin-right: 12px;
+}
+
+.q-checkbox__inner,
+.q-radio__inner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.q-checkbox__inner {
+  border-radius: 5px;
+}
+
+.q-radio__inner {
+  border-radius: 50%;
+}
+
+/* Checkbox checked */
+.q-checkbox__inner--truthy {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  animation: checkAnim 0.4s ease forwards;
+}
+
+@keyframes checkAnim {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.q-checkbox__inner--truthy:before {
+  content: '✓';
+  color: white;
+  font-size: 0.8em;
+  opacity: 1;
+  animation: checkMark 0.3s ease forwards;
+}
+
+@keyframes checkMark {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Radio checked */
+.q-radio__inner--truthy {
+  border-color: var(--primary-color);
+}
+
+.q-radio__inner--truthy:before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 10px;
+  height: 10px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  animation: radioCheck 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.1s;
+}
+
+@keyframes radioCheck {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* Efecto hover */
+.q-checkbox__inner:not(.q-checkbox__inner--truthy):hover,
+.q-radio__inner:not(.q-radio__inner--truthy):hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+}
+
+/* Etiquetas de checkbox/radio */
+.q-checkbox__label,
+.q-radio__label {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+/* Sliders */
+.q-slider__track-container {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.q-slider__track {
+  background: var(--primary-light);
+}
+
+.q-slider__track--active {
+  background: var(--primary-color);
+}
+
+.q-slider__pin {
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%) scale(1);
+  transition: transform 0.2s ease;
+}
+
+.q-slider__pin:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+/* Botones mejorados */
+.q-btn {
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1) !important;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Efecto de brillo al pasar el ratón */
+.q-btn:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: 0.5s;
+}
+
+.q-btn:hover:after {
+  left: 100%;
+}
+
+/* Estilo base para botones estándar */
+.q-btn--standard:not(.q-btn--flat):not(.q-btn--outline) {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  color: white;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Efecto hover para botones estándar */
+.q-btn--standard:not(.q-btn--flat):not(.q-btn--outline):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 14px rgba(108, 92, 231, 0.3);
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+}
+
+/* Botones de acción */
+.q-btn--action {
+  background: linear-gradient(135deg, var(--secondary-color), var(--info-color));
+  color: white;
+}
+
+.q-btn--action:hover {
+  background: linear-gradient(135deg, var(--info-color), var(--secondary-color));
+}
+
+/* Botones de éxito */
+.q-btn--success {
+  background: linear-gradient(135deg, var(--success-color), #00cec9);
+  color: white;
+}
+
+/* Botones de advertencia */
+.q-btn--warning {
+  background: linear-gradient(135deg, var(--warning-color), #f39c12);
+  color: var(--text-primary);
+}
+
+/* Botones de peligro */
+.q-btn--negative {
+  background: linear-gradient(135deg, var(--danger-color), #e84393);
+  color: white;
+}
+
+/* Botones con icono */
+.q-btn--with-icon .q-icon {
+  margin-right: 8px;
+  transition: transform 0.3s ease;
+}
+
+.q-btn--with-icon:hover .q-icon {
+  transform: scale(1.1);
+}
+
+/* Botón flotante de acción */
+.q-btn--floating {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 24px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Tarjetas mejoradas */
+.q-card {
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  overflow: hidden;
+  background: white;
+  border: none;
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.q-card:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.q-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  border-color: rgba(108, 92, 231, 0.2);
+}
+
+.q-card:hover:before {
+  opacity: 1;
+}
+
+.q-card__section {
+  position: relative;
+  z-index: 1;
+}
+
+/* Estilo para secciones de tarjeta con fondo de gradiente */
+.q-card__section--gradient {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+}
+
+.q-card__section--gradient .text-h6 {
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Pestañas mejoradas */
+.q-tabs {
+  border-radius: var(--border-radius);
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  box-shadow: var(--card-shadow);
+  padding: 0.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.q-tabs:before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  opacity: 0.1;
+}
+
+.q-tab {
+  padding: 1rem 2rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  margin: 0 0.25rem;
+  border-radius: 8px 8px 0 0;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.q-tab:not(:last-child) {
+  margin-right: 0.25rem;
+}
+
+.q-tab:before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  transition: var(--transition);
+  opacity: 0;
+  z-index: 0;
+}
+
+.q-tab:hover {
+  color: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.q-tab:hover .q-tab__icon {
+  transform: scale(1.1);
+}
+
+.q-tab--active {
+  color: white;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+  z-index: 1;
+}
+
+.q-tab--active:before {
+  opacity: 1;
+  height: 100%;
+}
+
+.q-tab--active .q-tab__label {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.q-tab__icon {
+  margin-right: 8px;
+  transition: transform 0.3s ease;
+}
+
+/* Tablas mejoradas */
+.q-table {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.q-table thead th {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75em;
+  letter-spacing: 0.5px;
+  padding: 1rem;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.q-table thead th:after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.q-table tbody tr {
+  transition: var(--transition);
+  position: relative;
+}
+
+.q-table tbody tr:not(:last-child):after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 1rem;
+  right: 1rem;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.q-table tbody tr:hover {
+  background: rgba(108, 92, 231, 0.03) !important;
+  transform: translateX(4px);
+}
+
+.q-table tbody td {
+  padding: 1rem;
+  border: none;
+  vertical-align: middle;
+}
+
+/* Celdas de acción */
+.q-table tbody td:last-child {
+  white-space: nowrap;
+}
+
+/* Botones en celdas */
+.q-table .q-btn {
+  margin: 0 2px;
+  min-width: 32px;
+  padding: 4px 8px;
+}
+
+/* Paginación */
+.q-table__bottom {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+}
+
+/* Estado de carga */
+.q-table__loading:after {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Filas alternas */
+.q-table--dense tbody tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+/* Estilos para celdas con imágenes */
+.table-image-cell {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.table-image-cell:hover {
+  transform: scale(1.8);
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Notificaciones mejoradas */
+.q-notification {
+  border-radius: var(--border-radius);
+  margin: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid var(--primary-color);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.5, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.q-notification:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(108, 92, 231, 0.03), rgba(108, 92, 231, 0.01));
+  z-index: 0;
+}
+
+.q-notification__message {
+  position: relative;
+  z-index: 1;
+}
+
+/* Tipos de notificaciones */
+.q-notification--info {
+  border-left-color: var(--info-color);
+}
+
+.q-notification--positive {
+  border-left-color: var(--success-color);
+}
+
+.q-notification--warning {
+  border-left-color: var(--warning-color);
+}
+
+.q-notification--negative {
+  border-left-color: var(--danger-color);
+}
+
+/* Iconos de notificación */
+.q-notification__icon {
+  font-size: 1.8rem;
+  margin-right: 1rem;
+  opacity: 0.9;
+}
+
+/* Botón de cierre */
+.q-notification__close {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  transition: var(--transition);
+}
+
+.q-notification__close:hover {
+  opacity: 1;
+  transform: rotate(90deg);
+}
+
+/* Scroll personalizado mejorado */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 10px;
+  margin: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--primary-dark), var(--primary-color));
+}
+
+/* Scrollbar para Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+/* Efectos de hover en tarjetas */
+.hover-effect {
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.hover-effect:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Clases de utilidad */
+.text-gradient {
+  background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+.bg-gradient {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+}
+
+/* Estilos para los diálogos */
+.q-dialog__inner > div {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Efecto de carga */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Responsive */
+/* Estilos responsivos */
+@media (max-width: 1024px) {
+  .q-tab {
+    padding: 0.8rem 1rem;
+    font-size: 0.8em;
+  }
+  
+  .q-table thead {
+    display: none;
+  }
+  
+  .q-table tbody tr {
+    display: block;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+  
+  .q-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    text-align: right;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .q-table tbody td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-right: 1rem;
+  }
+  
+  .q-table tbody td:last-child {
+    border-bottom: none;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 600px) {
+  .q-tab {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.75em;
+  }
+  
+  .q-btn {
+    padding: 8px 16px;
+    font-size: 0.85em;
+  }
+  
+  .q-dialog {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 0.5rem !important;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Clases de utilidad */
+.animated {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-right {
+  animation-name: slideInRight;
+}
+
+/* Efecto de carga */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+  border-radius: 4px;
+}
+
+/* Efecto de elevación al pasar el ratón */
+.hover-elevate {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-elevate:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Texto con gradiente */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+/* Badges */
+.q-badge {
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-weight: 600;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tooltips */
+.q-tooltip {
+  font-size: 0.85em;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--dark-bg);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Diálogos */
+.q-dialog__inner > div {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+/* Transiciones */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Clases para mensajes de validación */
+.text-validation {
+  color: var(--danger-color);
+  font-size: 0.8em;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Estilos para los selectores */
+.q-select__dropdown-icon {
+  color: var(--primary-color);
+}
+
+/* Efecto de hover en las opciones del select */
+.q-item {
+  transition: var(--transition);
+}
+
+.q-item:hover {
+  background: rgba(108, 92, 231, 0.1);
+  padding-left: 20px;
+}
+
+/* Estilos para los checkboxes y radios */
+.q-checkbox__inner {
+  color: var(--primary-color);
+}
+
+/* Estilos para los sliders */
+.q-slider__track-container {
+  background: #e9ecef;
+}
+
+.q-slider__track {
+  background: var(--primary-color);
+}
+
+/* Efecto de hover en las imágenes */
+.img-hover-zoom {
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.img-hover-zoom img {
+  transition: transform 0.5s ease;
+}
+
+.img-hover-zoom:hover img {
+  transform: scale(1.05);
+}
+
+/* Clase para los títulos de sección */
+.section-title {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  color: #2d3436;
+}
+
+.section-title:after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 50px;
+  height: 4px;
+  background: var(--primary-color);
+  border-radius: 2px;
+}
+
+/* Estilos para los badges */
+.q-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7em;
+  letter-spacing: 0.5px;
+}
+
+/* Efecto de sombra al pasar el ratón */
+.hover-shadow {
+  transition: var(--transition);
+}
+
+.hover-shadow:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Estilos para los tooltips */
+.q-tooltip {
+  font-size: 0.8em;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #2d3436;
+  color: white;
+}
+
+/* Clase para los contenedores de tarjetas */
+.card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+}
+
+/* Media query para pantallas pequeñas */
+@media (max-width: 600px) {
+  .card-container {
+    grid-template-columns: 1fr;
+  }
+}

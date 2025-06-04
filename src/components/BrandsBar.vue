@@ -50,7 +50,7 @@ const getBrands = async () => {
 const goToBrandProducts = (brand) => {
   router.push({
     name: 'AllProducts',
-    query: { marca: brand.nombre }
+    query: { brand: brand._id }
   })
 }
 
