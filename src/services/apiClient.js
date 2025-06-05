@@ -1,13 +1,41 @@
 import apiClient from '../plugins/axios'
 
-
-export async function getData(url, params = {}) { // <-- ¡Aquí está el cambio!
+export async function getData(url, params = {}) {
   try {
-    // Axios espera los parámetros de consulta en un objeto 'params' dentro del segundo argumento
-    const response = await apiClient.get(url, { params }); // <-- ¡Aquí está el cambio!
+    console.log(`getData: Iniciando petición GET a ${url}`, params);
+    const response = await apiClient.get(url, { params });
+    console.log(`getData: Respuesta completa de ${url}:`, response);
+    
+    // Manejo específico para marcas
+    if (url === 'marcas') {
+      console.log('getData: Procesando respuesta de marcas');
+      if (Array.isArray(response.data)) {
+        console.log('getData: Marcas encontradas:', response.data.length);
+        return response.data;
+      } else {
+        console.warn('getData: Formato de respuesta de marcas inesperado:', response.data);
+        return [];
+      }
+    }
+    
+    // Para otras URLs, mantener el comportamiento original
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    
+    const possibleArrayProps = ['marcas', 'productos', 'data', 'items'];
+    for (const prop of possibleArrayProps) {
+      if (response.data[prop] && Array.isArray(response.data[prop])) {
+        return response.data[prop];
+      }
+    }
+    
     return response.data;
   } catch (error) {
-    console.log('Error en la petición GET:', error.response ? error.response.data : error.message);
+    console.error(`getData: Error en la petición GET a ${url}:`, error);
+    console.error('Detalles del error:', error.response?.data);
+    console.error('URL de la petición:', error.config?.url);
+    console.error('Método de la petición:', error.config?.method);
     throw error;
   }
 }

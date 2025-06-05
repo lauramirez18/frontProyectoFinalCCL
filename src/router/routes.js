@@ -54,6 +54,11 @@ const routes = [
         component: Products
       },
       {
+        path: '/marcas/:id', 
+        name: 'BrandProducts',
+        component: Products
+      },
+      {
         path: '/products/:categoryId', 
         name: 'CategoryProducts',
         component: Products
