@@ -217,7 +217,7 @@ h6 {
   font-weight: 700;
   text-align: center;
   margin-bottom: 40px;
-  color: #0a1b47;
+  color: #068FFF;
   text-transform: uppercase;
   letter-spacing: 1px;
   position: relative;

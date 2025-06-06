@@ -96,7 +96,7 @@
       </div>
     </div>
 
-    <div v-if="pagination.totalPages > 1" class="q-mt-lg flex flex-center">
+    <div v-if="pagination && pagination.totalPages > 1" class="q-mt-lg flex flex-center">
       <q-pagination
         v-model="currentPage"
         :max="pagination.totalPages"
