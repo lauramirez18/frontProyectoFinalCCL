@@ -6,17 +6,17 @@
       <q-spinner-hourglass color="primary" size="4em" />
       <div class="q-mt-md text-primary">Cargando productos...</div>
     </div>
-    <div v-else-if="products.length === 0" class="text-center text-grey-7 q-my-xl">
+    <div v-else-if="!products || products.length === 0" class="text-center text-grey-7 q-my-xl">
       <q-icon name="sentiment_dissatisfied" size="4em" class="q-mb-md" />
       <div class="text-h6">No se encontraron productos que coincidan con tu búsqueda.</div>
       <p class="q-mt-sm">Intenta con otros términos o filtros.</p>
     </div>
     <div v-else class="products-grid">
-      <div v-for="product in products" :key="product._id">
+      <div v-for="product in products" :key="product._id" class="product-wrapper">
         <q-card class="product-card tech-card" flat>
           <div class="img-wrapper">
             <q-img 
-              :src="product.imagenes?.[0] || 'https://via.placeholder.com/300'" 
+              :src="product.imagenes && product.imagenes.length > 0 ? product.imagenes[0] : 'https://via.placeholder.com/300'" 
               :alt="product.nombre"
               ratio="1"
               class="product-image"
@@ -27,13 +27,12 @@
                 </div>
               </template>
 
-
               <div class="tech-overlay">
                 <div class="rating-container">
                   <div class="rating-stars tech-rating">
                     <RatingStars
-                      :rating="product.promedioCalificacion"
-                      :review-count="product.totalResenas"
+                      :rating="product.promedioCalificacion || 0"
+                      :review-count="product.totalResenas || 0"
                       size="1.2em"
                     />
                     <span class="rating-count text-white q-ml-sm">
@@ -128,7 +127,7 @@ const pagination = ref({
   total: 0,
   page: 1,
   limit: 10,
-  totalPages: 1,
+  totalPages: 1
 });
 
 const formatPrice = (price) => {
@@ -151,14 +150,53 @@ const fetchProducts = async () => {
     };
 
     const response = await getData('productos', params);
+    console.log('Response from API:', response); // Debug log
 
-    products.value = response.productos;
-    pagination.value = response.pagination;
-    currentPage.value = response.pagination.page;
+    // Handle array response
+    if (Array.isArray(response)) {
+      products.value = response;
+      console.log('Products array:', products.value); // Debug log
+      
+      // Set default pagination since we're getting an array
+      pagination.value = {
+        total: response.length,
+        page: 1,
+        limit: response.length,
+        totalPages: 1
+      };
+      currentPage.value = 1;
+    } else if (response && response.productos) {
+      // Handle object response with productos property
+      products.value = response.productos;
+      pagination.value = {
+        total: response.pagination?.total || response.productos.length,
+        page: response.pagination?.page || 1,
+        limit: response.pagination?.limit || response.productos.length,
+        totalPages: response.pagination?.totalPages || 1
+      };
+      currentPage.value = pagination.value.page;
+    } else {
+      console.warn('Unexpected response format:', response);
+      products.value = [];
+      pagination.value = {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 1
+      };
+      currentPage.value = 1;
+    }
 
   } catch (error) {
     console.error('Error al obtener productos:', error);
     products.value = [];
+    pagination.value = {
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 1
+    };
+    currentPage.value = 1;
   } finally {
     loading.value = false;
   }
@@ -354,8 +392,6 @@ const changePage = (newPage) => {
   background: rgba(6, 143, 255, 0.2);
 }
 
-
-
 .tech-details-btn {
   background: transparent;
   color: var(--q-color-text-dark);
@@ -382,5 +418,11 @@ const changePage = (newPage) => {
 
 .tech-details-btn:hover .arrow-icon {
   transform: translateX(3px);
+}
+
+.product-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 </style>
