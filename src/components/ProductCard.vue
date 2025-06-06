@@ -56,11 +56,18 @@
       
       <!-- Rating -->
       <div class="row items-center q-mt-xs">
-        <RatingStars
-          :rating="product.promedioCalificacion"
-          :review-count="product.totalResenas"
-          size="1em"
-        />
+        <q-rating
+  :model-value="typeof product.rating === 'number' ? product.rating : 0"
+  size="1em"
+  color="yellow"
+  icon="star_border"
+  icon-selected="star"
+  readonly
+/>
+
+        <span class="text-caption text-grey-7 q-ml-xs">
+          ({{ product.reviewsCount || 0 }})
+        </span>
       </div>
       
       <!-- Precios -->
@@ -106,20 +113,14 @@
     <q-card-actions class="q-px-md q-pb-md">
       <q-btn
         color="primary"
-        label="Agregar al carrito"
+        label="Agregar"
         icon="shopping_cart"
-        class="cart-btn full-width"
+        class="full-width"
         @click="addToCart"
-        :loading="loading"
-        :disable="loading"
-      >
-        <q-tooltip>
-          Agregar al carrito
-        </q-tooltip>
-      </q-btn>
+      />
       <FavoriteButton
         :product="product"
-        class="absolute-top-right q-ma-sm"
+        class="favorite-btn"
       />
     </q-card-actions>
   </q-card>
@@ -133,7 +134,6 @@ import { showNotification } from '../utils/notifications'
 import FavoriteButton from './FavoriteButton.vue'
 import RatingStars from './RatingStars.vue'
 
-
 const props = defineProps({
   product: {
     type: Object,
@@ -143,6 +143,7 @@ const props = defineProps({
 
 const router = useRouter()
 const currentImage = ref(0)
+const loading = ref(false)
 
 const mainImage = computed(() => {
   return props.product.imagenes[currentImage.value] || '/placeholder-product.png'
@@ -166,12 +167,18 @@ const formatPrice = (price) => {
   return price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
 }
 
-const loading = ref(false)
-
 const addToCart = async () => {
   try {
     loading.value = true
-    await authStore.addToCart(props.product)
+    const cartItem = {
+      id: props.product._id,
+      name: props.product.nombre,
+      price: props.product.enOferta ? props.product.precioOferta : props.product.precio,
+      image: props.product.imagenes && props.product.imagenes.length > 0 ? props.product.imagenes[0] : '/placeholder-product.png',
+      quantity: 1,
+      seller: typeof props.product.marca === 'object' ? props.product.marca.nombre : (props.product.marca || 'Vendedor oficial')
+    }
+    await authStore.addToCart(cartItem)
     showNotification('success', 'Producto agregado al carrito')
   } catch (error) {
     console.error('Error al agregar al carrito:', error)
@@ -203,30 +210,5 @@ const authStore = useAuthStore()
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.cart-btn {
-  background: linear-gradient(135deg, #068FFF, #0052a3);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  text-transform: none;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.cart-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 143, 255, 0.3);
-}
-
-.cart-btn:active {
-  transform: translateY(0);
-}
-
-.absolute-top-right {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 2;
 }
 </style>

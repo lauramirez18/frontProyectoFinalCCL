@@ -113,17 +113,57 @@ const fetchProducts = async () => {
     const { page } = route.query;
     const params = {
       page: page || 1,
-      enOferta: true
+      enOferta: true,
+      limit: 12
     };
 
+    console.log('Fetching products with params:', params);
     const response = await getData('productos', params);
-    products.value = response.productos;
-    pagination.value = response.pagination;
-    currentPage.value = response.pagination.page;
+    console.log('API Response:', response);
+    
+    // Handle both array and object responses
+    let productosArray;
+    if (Array.isArray(response)) {
+      productosArray = response;
+    } else if (response && Array.isArray(response.productos)) {
+      productosArray = response.productos;
+    } else {
+      productosArray = [];
+    }
+    
+    // Filtrar solo los productos que realmente están en oferta
+    const productosEnOferta = productosArray.filter(producto => 
+      producto.enOferta === true && 
+      producto.precioOferta && 
+      producto.precioOferta < producto.precio
+    );
+    
+    console.log('Total productos:', productosArray.length);
+    console.log('Productos en oferta:', productosEnOferta.length);
+    
+    products.value = productosEnOferta;
+
+    // Set pagination data
+    pagination.value = {
+      total: productosEnOferta.length,
+      page: page || 1,
+      limit: 12,
+      totalPages: Math.ceil(productosEnOferta.length / 12)
+    };
+    currentPage.value = pagination.value.page;
 
   } catch (error) {
     console.error('Error al obtener productos en oferta:', error);
+    console.error('Error details:', error.response?.data);
     products.value = [];
+    // Reset pagination on error
+    pagination.value = {
+      total: 0,
+      page: 1,
+      limit: 12,
+      totalPages: 1
+    };
+    currentPage.value = 1;
   } finally {
     loading.value = false;
   }

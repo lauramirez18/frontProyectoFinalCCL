@@ -82,6 +82,20 @@
               </div>
             </div>
 
+            <!-- Add description field -->
+            <div class="row q-col-gutter-md q-mt-md">
+              <div class="col-12">
+                <q-input
+                  filled
+                  v-model="formCategoria.description"
+                  label="Descripción *"
+                  type="textarea"
+                  lazy-rules
+                  :rules="[val => !!val || 'La descripción es requerida']"
+                />
+              </div>
+            </div>
+
             <!-- Subcategorías -->
             <div class="q-mt-lg">
               <div class="text-subtitle1 q-mb-sm">Subcategorías</div>
@@ -245,6 +259,7 @@ const formCategoriaInicial = () => ({
   _id: null,
   name: '',
   codigo: '',
+  description: '',
   subcategorias: [],
   especificaciones: []
 });
@@ -286,6 +301,7 @@ function abrirModalEditarCategoria(categoria) {
     _id: categoria._id,
     name: categoria.name,
     codigo: categoria.codigo,
+    description: categoria.description,
     subcategorias: categoria.subcategorias || [],
     especificaciones: categoria.especificaciones || []
   };

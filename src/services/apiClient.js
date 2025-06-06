@@ -18,6 +18,30 @@ export async function getData(url, params = {}) {
       }
     }
     
+    // Manejo específico para productos
+    if (url === 'productos') {
+      console.log('getData: Procesando respuesta de productos');
+      if (response.data) {
+        // Si la respuesta es directamente un array de productos
+        if (Array.isArray(response.data)) {
+          console.log('getData: Array de productos recibido directamente:', response.data.length);
+          return response.data;
+        }
+        // Si la respuesta tiene la estructura { productos: [...] }
+        else if (response.data.productos && Array.isArray(response.data.productos)) {
+          console.log('getData: Productos encontrados en data.productos:', response.data.productos.length);
+          return response.data.productos;
+        }
+        // Si la respuesta es un objeto con la estructura esperada
+        else if (typeof response.data === 'object') {
+          console.log('getData: Objeto de productos recibido:', response.data);
+          return response.data;
+        }
+      }
+      console.warn('getData: No se encontraron productos en la respuesta:', response.data);
+      return [];
+    }
+    
     // Para otras URLs, mantener el comportamiento original
     if (Array.isArray(response.data)) {
       return response.data;

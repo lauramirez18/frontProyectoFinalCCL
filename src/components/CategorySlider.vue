@@ -183,23 +183,46 @@ watch(currentScrollPos, (newPos) => {
 }
 
 .category-section {
-  padding: 30px 20px; /* Aumentar el padding general */
-  background-color: #f8f8f8; /* Un color de fondo más suave para la sección */
+  padding: 30px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(245, 245, 245, 0.5) 100%);
   border-radius: 12px;
-  margin: 20px auto; /* Centrar y añadir margen exterior */
- 
+  margin: 20px auto;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efecto de fondo tecnológico similar al login */
+.category-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(6, 143, 255, 0.05) 0%, transparent 35%),
+    radial-gradient(circle at 80% 70%, rgba(6, 143, 255, 0.05) 0%, transparent 35%);
+  animation: circuitPulse 6s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes circuitPulse {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.3; }
 }
 
 h6 {
   font-size: 2.5em;
   font-weight: 700;
   text-align: center;
-  margin-bottom: 40px; /* Más espacio debajo del título */
-  color: #333; /* Color de texto más oscuro */
+  margin-bottom: 40px;
+  color: #0a1b47;
   text-transform: uppercase;
   letter-spacing: 1px;
   position: relative;
-  padding-bottom: 10px;
+  padding-bottom: 15px;
+  font-family: 'Montserrat', sans-serif;
 }
 
 h6::after {
@@ -210,7 +233,7 @@ h6::after {
   transform: translateX(-50%);
   width: 100px;
   height: 4px;
-  background-color: #068FFF; /* Línea decorativa debajo del título */
+  background: linear-gradient(90deg, #068FFF, #0052a3);
   border-radius: 2px;
 }
 
@@ -218,7 +241,8 @@ h6::after {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0 20px; /* Espacio para las flechas */
+  padding: 0 20px;
+  z-index: 1;
 }
 
 .carousel-wrapper {
@@ -245,53 +269,62 @@ h6::after {
   100% { transform: translateX(-50%); }
 } */
 
-
 .category-card {
-  flex: 0 0 200px; /* Ancho fijo para cada tarjeta */
-  height: 280px; /* Altura un poco mayor */
+  flex: 0 0 200px;
+  height: 280px;
   cursor: pointer;
-  background-color: white;
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08); /* Sombra más suave y moderna */
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Para que el overlay no se salga */
-  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.5s ease; /* Para animación de entrada */
-  opacity: 0; /* Inicialmente ocultas para la animación de entrada */
-  transform: translateY(20px); /* Inicialmente un poco abajo */
-  animation: fadeInMoveUp 0.6s forwards; /* Animación de entrada */
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(6, 143, 255, 0.1);
+  position: relative;
 }
 
-/* Animación de entrada para las tarjetas */
-@keyframes fadeInMoveUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.category-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(6, 143, 255, 0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .category-card:hover {
-  transform: scale(1.03) translateY(-5px); /* Efecto de elevación al hover */
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); /* Sombra más pronunciada al hover */
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(6, 143, 255, 0.15);
+}
+
+.category-card:hover::before {
+  opacity: 1;
 }
 
 .category-img {
   width: 100%;
-  height: 200px; /* Mayor altura para la imagen */
+  height: 200px;
   object-fit: cover;
   background-position: center;
   position: relative;
-  overflow: hidden; /* Para contener el overlay */
+  transition: transform 0.3s ease;
 }
 
-/* Overlay para el nombre de la categoría en la imagen */
+.category-img:hover {
+  transform: scale(1.05);
+}
+
 .category-img-overlay {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 8px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0)); /* Degradado sutil */
+  padding: 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
   color: white;
   font-size: 1.1em;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
@@ -300,50 +333,52 @@ h6::after {
 .category-info {
   padding: 15px;
   text-align: center;
-  flex-grow: 1; /* Permite que la info ocupe el espacio restante */
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  background: white;
 }
 
 .category-info .text-subtitle2 {
   font-size: 1.1em;
   margin-bottom: 5px;
-  color: #444;
+  color: #0a1b47;
+  font-weight: 600;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .category-info .text-caption {
   font-size: 0.85em;
-  line-height: 1.3;
-  color: #777;
+  line-height: 1.4;
+  color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Limita la descripción a 2 líneas */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-
 
 .nav-arrow {
   position: absolute;
   z-index: 2;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.9); /* Fondo semitransparente */
-  box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
-  color: #333; /* Color de icono oscuro */
-  font-size: 1.5em; /* Iconos más grandes */
-  padding: 0; /* Quitar padding por defecto */
-  width: 50px; /* Ancho fijo para los botones */
-  height: 50px; /* Altura fija para los botones */
-  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 15px rgba(6, 143, 255, 0.15);
+  color: #0a1b47;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(6, 143, 255, 0.2);
 }
 
 .nav-arrow:hover {
-  background-color: #068FFF; /* Fondo azul al hover */
-  color: white; /* Texto blanco al hover */
-  transform: translateY(-50%) scale(1.1); /* Efecto de escala al hover */
+  background: linear-gradient(135deg, #068FFF, #0052a3);
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 8px 25px rgba(6, 143, 255, 0.3);
 }
 
 .nav-arrow.left {

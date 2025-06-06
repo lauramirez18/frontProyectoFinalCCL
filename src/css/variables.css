@@ -1,0 +1,10 @@
+:root {
+  --q-color-primary-blue: #068FFF;
+  --q-color-dark-blue: #0052a3;
+  --q-color-text-dark: #0a1b47;
+  --q-color-text-grey-light: #90a4ae;
+  --q-color-bg-light: #fdfdfd;
+  --q-color-neutral-border: rgba(0, 0, 0, 0.05);
+  --q-color-card-shadow-light: rgba(0, 0, 0, 0.03);
+  --q-color-card-shadow-hover: rgba(0, 0, 0, 0.08);
+} 

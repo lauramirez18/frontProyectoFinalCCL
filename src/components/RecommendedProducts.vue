@@ -1,14 +1,16 @@
 <template>
-  <div class="bestsellers-wrapper q-px-md q-mt-lg">
-    <div class="section-header q-mb-xl text-center">
+  <div class="bestsellers-section">
+    <div class="section-header text-center">
       <h6 class="text-h5 text-weight-bold q-mb-sm glowing-text">
         <div class="stars-wrapper">
-
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
         </div>
         <q-icon name="trending_up" class="q-mr-sm" />
         Lo Más Recomendado
         <div class="stars-wrapper">
-          
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
         </div>
       </h6>
       <p class="text-grey-7 text-subtitle1 animated-subtitle">
@@ -28,14 +30,14 @@
       <p class="q-mt-sm">No hay productos disponibles en este momento</p>
     </div>
 
-    <div v-else class="row q-col-gutter-xl">
-      <div 
-        v-for="(product, index) in sortedProducts" 
+    <div v-else class="products-grid">
+      <div
+        v-for="(product, index) in validProducts"
         :key="product._id"
-        class="col-12 col-sm-6 col-md-4 col-lg-3"
+        class="col-12 col-sm-6 col-md-3"
         :style="{ animationDelay: index * 0.1 + 's' }"
       >
-        <q-card 
+        <q-card
           class="product-card tech-card"
           flat
           @click="goToProduct(product._id)"
@@ -53,15 +55,21 @@
                 </div>
               </template>
 
-              <div class="brand-badge absolute-top-left" v-if="product.marca">
-                <q-badge 
-                  rounded 
-                  class="brand-name tech-badge"
-                  :style="{ backgroundColor: getBrandColor(product.marca?.nombre) }"
+              <div class="brand-badge" v-if="product.marca">
+                <q-chip
+                  dense
+                  class="brand-chip"
+                  size="sm"
                 >
-                  <q-icon name="verified" size="xs" class="q-mr-xs" />
-                  {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
-                </q-badge>
+                  <q-icon
+                    name="verified"
+                    size="xs"
+                    class="brand-icon"
+                  />
+                  <span class="brand-name-text">
+                    {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
+                  </span>
+                </q-chip>
               </div>
 
               <div class="absolute-top-right q-ma-sm">
@@ -71,8 +79,7 @@
                   :icon="favorites.has(product._id) ? 'favorite' : 'favorite_border'"
                   class="favorite-btn tech-btn"
                   :class="{ 'is-favorite': favorites.has(product._id) }"
-                  :color="favorites.has(product._id) ? 'red-5' : 'grey-7'"
-                  @click.stop="toggleFavorite(product)"
+                  :color="favorites.has(product._id) ? 'red-5' : 'grey-5'" @click.stop="toggleFavorite(product)"
                 >
                   <q-tooltip>
                     {{ favorites.has(product._id) ? 'Quitar de favoritos' : 'Agregar a favoritos' }}
@@ -81,36 +88,19 @@
               </div>
 
               <div class="tech-overlay">
-                <div class="rating-container q-pa-md">
+                <div class="rating-container">
                   <div class="rating-stars tech-rating">
-                    <div class="stars-background">
-                      <q-rating
-                        v-model="product.promedioCalificacion"
-                        max="5"
-                        size="1.4em"
-                        color="yellow-3"
-                        icon="star"
-                        readonly
-                      />
-                    </div>
-                    <div class="stars-foreground" :style="{ width: (product.promedioCalificacion / 5 * 100) + '%' }">
-                      <q-rating
-                        :value="5"
-                        max="5"
-                        size="1.4em"
-                        color="yellow"
-                        icon="star"
-                        readonly
-                      />
-                    </div>
-                    <div class="rating-info">
-                      <span class="rating-value text-white text-weight-bold">
-                        {{ (product.promedioCalificacion || 0).toFixed(1) }}
-                      </span>
-                      <span class="rating-count text-blue-2">
-                        {{ product.totalResenas || 0 }} valoraciones
-                      </span>
-                    </div>
+                    <q-rating
+                      v-model="product.promedioCalificacion"
+                      max="5"
+                      size="1.2em"
+                      color="yellow"
+                      icon="star"
+                      readonly
+                    />
+                    <span class="rating-count text-white q-ml-sm">
+                      ({{ product.totalResenas || 0 }})
+                    </span>
                   </div>
                 </div>
               </div>
@@ -118,26 +108,23 @@
           </div>
 
           <q-card-section class="product-info">
-            <div class="product-title text-weight-bold tech-text">{{ product.nombre }}</div>
-            <div class="product-description text-grey-7">{{ product.descripcion }}</div>
+            <div class="brand-caption" v-if="product.marca">
+              {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
+            </div>
+            <div class="product-title">{{ product.nombre }}</div>
 
-            <div class="price-section q-mt-md">
+            <div class="price-section">
               <div class="price-container">
                 <template v-if="product.enOferta">
-                  <div class="price-tag">
-                    <div class="original-price text-grey-6">
-                      ${{ formatThousands(product.precio) }}
-                    </div>
-                    <div class="offer-price text-negative text-weight-bold glow-text">
-                      ${{ formatThousands(product.precioOferta) }}
-                    </div>
-                    <q-badge color="negative" class="discount-badge tech-badge pulse-badge">
-                      -{{ calculateDiscount(product.precio, product.precioOferta) }}%
-                    </q-badge>
+                  <div class="original-price">
+                    ${{ formatThousands(product.precio) }}
+                  </div>
+                  <div class="offer-price">
+                    ${{ formatThousands(product.precioOferta) }}
                   </div>
                 </template>
                 <template v-else>
-                  <div class="current-price text-weight-bold tech-price">
+                  <div class="current-price">
                     ${{ formatThousands(product.precio) }}
                   </div>
                 </template>
@@ -145,29 +132,25 @@
 
               <q-btn
                 round
-                color="primary"
-                icon="shopping_cart"
-                class="cart-btn tech-btn q-ml-sm"
+                flat
+                class="cart-btn"
                 @click.stop="addToCart(product)"
               >
+                <q-icon name="add_shopping_cart" size="sm" />
                 <q-tooltip>Agregar al carrito</q-tooltip>
               </q-btn>
             </div>
-          </q-card-section>
 
-          <q-card-actions align="center" class="q-pa-md">
-            <q-btn 
-              flat 
-              color="primary"
-              class="tech-details-btn full-width"
+            <q-btn
+              flat
+              class="tech-details-btn"
               @click.stop="goToProduct(product._id)"
             >
-              <div class="row items-center justify-center full-width">
-                <span class="q-mr-sm">Ver detalles</span>
-                <q-icon name="arrow_forward" class="arrow-icon" />
-              </div>
+              <q-icon name="visibility" size="sm" />
+              <span>Ver producto</span>
+              <q-icon name="chevron_right" class="arrow-icon" />
             </q-btn>
-          </q-card-actions>
+          </q-card-section>
         </q-card>
       </div>
     </div>
@@ -178,23 +161,23 @@
 import { ref, onMounted, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getData } from '../services/apiclient'
-import { reviewsService } from '../services/resenias'
+import { reviewsService } from '../services/resenias' // Ensure this is needed, or remove if not used
 import { useThousandsFormat } from '../composables/useThousandFormat'
 
 const router = useRouter()
-const currentImages = reactive({})
+const currentImages = reactive({}) // This variable doesn't seem to be used. Consider removing if not needed.
 const { formatThousands } = useThousandsFormat()
 const loading = ref(true)
 const bestSellers = ref([])
-const productRatings = ref({})
+const productRatings = ref({}) // This variable doesn't seem to be used. Consider removing if not needed.
 const favorites = ref(new Set())
 
 const validProducts = computed(() => {
   return bestSellers.value.filter(product => {
-    return product && 
-           typeof product === 'object' && 
+    return product &&
+           typeof product === 'object' &&
            !Array.isArray(product) &&
-           product._id && 
+           product._id &&
            product.nombre &&
            typeof product.nombre === 'string'
   })
@@ -211,18 +194,20 @@ const sortedProducts = computed(() => {
   });
 });
 
+// calculateDiscount is not used in the template, consider removing if not needed.
 const calculateDiscount = (originalPrice, offerPrice) => {
   return Math.round(((originalPrice - offerPrice) / originalPrice) * 100)
 }
 
+// getBrandColor is not used in the template, consider removing if not needed.
 const getBrandColor = (brandName) => {
   if (!brandName) return 'rgba(52, 152, 219, 0.95)'
-  
+
   let hash = 0
   for (let i = 0; i < brandName.length; i++) {
     hash = brandName.charCodeAt(i) + ((hash << 5) - hash)
   }
-  
+
   const hue = hash % 360
   return `hsla(${hue}, 70%, 50%, 0.95)`
 }
@@ -237,13 +222,14 @@ const toggleFavorite = (product) => {
 
 const addToCart = (product) => {
   console.log('Añadir al carrito:', product)
+  // Implement actual add to cart logic here (e.g., using a store like Pinia/Vuex)
 }
 
 const getProductImage = (product) => {
   if (product && product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
     return product.imagenes[0]
   }
-  return '/placeholder.png'
+  return '/placeholder.png' // Ensure you have a generic placeholder image
 }
 
 const goToProduct = (productId) => {
@@ -257,47 +243,69 @@ const fetchBestSellers = async () => {
   try {
     console.log('Frontend: Iniciando fetch de productos...')
     const response = await getData('productos')
-    
-    console.log('Frontend: Contenido de response:', response)
 
-    if (response && Array.isArray(response)) {
-      // Obtener las calificaciones para cada producto
-      const productosConCalificaciones = await Promise.all(
-        response.map(async (product) => {
-          try {
-            const ratings = await reviewsService.getProductRatings(product._id)
-            return {
-              ...product,
-              promedioCalificacion: ratings.promedioTotal || 0,
-              totalResenas: ratings.totalReseñas || 0
-            }
-          } catch (error) {
-            console.error(`Error al obtener calificaciones para producto ${product._id}:`, error)
-            return {
-              ...product,
-              promedioCalificacion: 0,
-              totalResenas: 0
-            }
-          }
-        })
-      )
+    console.log('Frontend: Respuesta completa del servidor:', response)
 
-      bestSellers.value = productosConCalificaciones.map(product => ({
-        _id: product._id,
-        nombre: product.nombre || 'Producto sin nombre',
-        descripcion: product.descripcion || 'Sin descripción',
-        precio: parseFloat(product.precio) || 0,
-        precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
-        enOferta: Boolean(product.enOferta),
-        marca: product.marca || null,
-        imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
-        promedioCalificacion: parseFloat(product.promedioCalificacion) || 0,
-        totalResenas: parseInt(product.totalResenas) || 0
-      }))
-    } else {
-      console.log('Frontend: No se encontraron productos en la respuesta')
+    if (!response) {
+      console.error('Frontend: No se recibió respuesta del servidor')
       bestSellers.value = []
+      return
     }
+
+    // Asegurarse de que response sea un array
+    const productos = Array.isArray(response) ? response : []
+
+    if (productos.length === 0) {
+      console.log('Frontend: No hay productos disponibles')
+      bestSellers.value = []
+      return
+    }
+
+    // Obtener las calificaciones para cada producto
+    const productosConCalificaciones = await Promise.all(
+      productos.map(async (product) => {
+        if (!product || !product._id) {
+          console.error('Producto inválido:', product)
+          return null
+        }
+
+        try {
+          console.log(`Procesando producto:`, product)
+          const ratings = await reviewsService.getProductRatings(product._id)
+          console.log(`Calificaciones obtenidas para ${product._id}:`, ratings)
+          
+          return {
+            _id: product._id,
+            nombre: product.nombre || 'Producto sin nombre',
+            descripcion: product.descripcion || 'Sin descripción',
+            precio: parseFloat(product.precio) || 0,
+            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
+            enOferta: Boolean(product.enOferta),
+            marca: product.marca || null,
+            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
+            promedioCalificacion: ratings?.promedioTotal || 0,
+            totalResenas: ratings?.totalReseñas || 0
+          }
+        } catch (error) {
+          console.error(`Error al procesar producto ${product._id}:`, error)
+          return null
+        }
+      })
+    )
+
+    // Filtrar productos nulos y ordenar por calificación
+    bestSellers.value = productosConCalificaciones
+      .filter(product => product !== null)
+      .sort((a, b) => {
+        // Primero por calificación
+        if (b.promedioCalificacion !== a.promedioCalificacion) {
+          return b.promedioCalificacion - a.promedioCalificacion
+        }
+        // Si tienen la misma calificación, por número de reseñas
+        return b.totalResenas - a.totalResenas
+      })
+
+    console.log('Frontend: Productos procesados y ordenados:', bestSellers.value.length)
   } catch (error) {
     console.error('Frontend: Error al obtener productos:', error)
     bestSellers.value = []
@@ -312,6 +320,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import '../css/variables.css';
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -340,48 +350,51 @@ onMounted(() => {
   to { transform: translateX(0); }
 }
 
-.section-header h6 {
-  font-family: 'Montserrat', sans-serif;
-  color: #1976D2;
+.bestsellers-section {
+  padding: 2rem;
+  background: #f0f2f5;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.glowing-text {
-  animation: glowText 2s infinite;
-  letter-spacing: 1px;
+.section-header {
+  margin-bottom: 3rem;
 }
 
-.animated-subtitle {
-  opacity: 0;
-  animation: fadeInUp 0.8s forwards;
-  animation-delay: 0.3s;
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-.tech-loader {
-  text-align: center;
-}
-
-.loading-text {
-  margin-top: 10px;
-  color: #1976D2;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
+@media (min-width: 1200px) {
+  .products-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .product-card {
   opacity: 0;
   animation: fadeInUp 0.5s forwards;
   height: 100%;
-  border-radius: 20px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  background: linear-gradient(145deg, #ffffff, #f5f5f5);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #ffffff;
+  box-shadow: 0 2px 8px var(--q-color-card-shadow-light);
+  transition: all 0.3s ease-in-out;
+  border: 1px solid var(--q-color-neutral-border);
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
 }
 
 .tech-card {
   position: relative;
+  z-index: 1; /* Ensure card content is above potential ::before */
 }
 
 .tech-card::before {
@@ -391,10 +404,10 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  border-radius: 20px;
-  background: linear-gradient(45deg, transparent, rgba(33, 150, 243, 0.1));
+  border-radius: 12px;
+  background: linear-gradient(45deg, transparent, rgba(33, 150, 243, 0.03)); /* Very subtle tint */
   z-index: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease-out;
   opacity: 0;
 }
 
@@ -403,21 +416,42 @@ onMounted(() => {
 }
 
 .product-card:hover {
-  transform: translateY(-10px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 8px 20px var(--q-color-card-shadow-hover);
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.03);
 }
 
 .img-wrapper {
   position: relative;
   overflow: hidden;
+  padding: 1rem;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
 }
 
 .product-image {
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s ease-in-out;
 }
 
-.product-card:hover .product-image {
-  transform: scale(1.15);
+:deep(.q-img) {
+  width: 100%;
+  height: auto !important;
+}
+
+:deep(.q-img__content) {
+  position: relative !important;
+}
+
+:deep(.q-img__content > div) {
+  background-size: contain !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 
 .tech-overlay {
@@ -425,151 +459,153 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, 
-    rgba(0, 0, 0, 0.9),
-    rgba(0, 0, 0, 0.7) 50%,
+  background: linear-gradient(to top,
+    rgba(0, 0, 0, 0.3), /* Lighter black tint */
+    rgba(0, 0, 0, 0.1) 70%,
     transparent
   );
-  padding: 20px;
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 10px;
+  /* Removed transform: translateY(100%); so it's always visible */
+  transition: background 0.3s ease;
 }
 
-.product-card:hover .tech-overlay {
-  transform: translateY(0);
+.rating-container {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
 }
 
-.tech-badge {
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
+.rating-stars {
+  display: flex;
+  align-items: center;
 }
 
-.tech-badge:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+.rating-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: white;
 }
 
-.tech-btn {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.product-info {
+  padding: 16px !important;
+  background: #ffffff;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.tech-btn:hover {
-  transform: scale(1.15) rotate(5deg);
+.product-title {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  height: 2.8em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: var(--q-color-text-dark); /* Use variable */
+  font-weight: 500;
+  transition: color 0.3s ease;
+  letter-spacing: -0.2px;
 }
 
-.tech-btn.is-favorite {
-  animation: pulse 1s infinite;
+.product-card:hover .product-title {
+  color: var(--q-color-primary-blue);
 }
 
-.tech-rating {
+.price-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(6, 143, 255, 0.03);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(6, 143, 255, 0.08);
+}
+
+.price-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.original-price {
+  font-size: 0.75rem;
+  text-decoration: line-through;
+  color: var(--q-color-text-grey-light); /* Use variable */
+}
+
+.offer-price,
+.current-price {
+  font-size: 1.1rem;
+  background: linear-gradient(45deg, var(--q-color-primary-blue), var(--q-color-dark-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.cart-btn {
+  width: 36px;
+  height: 36px;
+  min-height: unset;
+  background: linear-gradient(135deg, var(--q-color-primary-blue), var(--q-color-dark-blue));
+  color: white;
+  box-shadow: 0 2px 6px rgba(6, 143, 255, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
   position: relative;
-  display: inline-block;
+  overflow: hidden;
+  transition: all 0.3s ease-in-out; /* Add transition for hover */
 }
 
-.stars-background {
-  opacity: 0.3;
-}
-
-.stars-foreground {
+.cart-btn::before {
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
-  overflow: hidden;
-  white-space: nowrap;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
 }
 
-.rating-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+.cart-btn:hover::before {
+  transform: translateX(100%);
 }
 
-.rating-value {
-  font-size: 1.2rem;
-  background: linear-gradient(45deg, #FFD700, #FFA500);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.tech-text {
-  background: linear-gradient(45deg, #2196F3, #1976D2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 1.2rem;
-}
-
-.tech-price {
-  font-size: 1.5rem;
-  background: linear-gradient(45deg, #2196F3, #1976D2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.glow-text {
-  text-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
-}
-
-.pulse-badge {
-  animation: pulse 2s infinite;
+.cart-btn:hover {
+  background: linear-gradient(135deg, var(--q-color-dark-blue), #003870); /* Darker on hover */
+  transform: scale(1.05);
 }
 
 .tech-details-btn {
-  position: relative;
-  overflow: hidden;
+  background: transparent;
+  color: var(--q-color-text-dark); /* Use variable */
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 10px;
+  border-top: 1px solid rgba(6, 143, 255, 0.08);
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
-.tech-details-btn:hover .arrow-icon {
-  animation: slideIn 0.5s forwards;
+.tech-details-btn:hover {
+  color: var(--q-color-primary-blue);
+  background: rgba(6, 143, 255, 0.04);
 }
 
-.arrow-icon {
+.tech-details-btn .q-icon {
+  font-size: 1.1rem;
   transition: transform 0.3s ease;
 }
 
-.tech-details-btn:hover .arrow-icon {
-  transform: translateX(4px);
-}
-
-@media (max-width: 768px) {
-  .product-card {
-    border-radius: 16px;
-  }
-
-  .tech-text {
-    font-size: 1.1rem;
-  }
-
-  .tech-price {
-    font-size: 1.3rem;
-  }
-
-  .rating-value {
-    font-size: 1.1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .product-card {
-    border-radius: 14px;
-  }
-
-  .tech-text {
-    font-size: 1rem;
-  }
-
-  .tech-price {
-    font-size: 1.2rem;
-  }
-
-  .tech-badge {
-    font-size: 0.8rem;
-  }
+.tech-details-btn:hover .q-icon {
+  transform: translateX(3px);
 }
 
 .pulse-animation {
@@ -577,7 +613,7 @@ onMounted(() => {
 }
 
 .pulse-slow {
-  animation: pulse 3s infinite;
+  animation: pulse 3s infinite ease-in-out; /* Softer pulse */
 }
 
 .stars-wrapper {
@@ -593,11 +629,66 @@ onMounted(() => {
 
 .star-icon:nth-child(1) { animation-delay: 0s; }
 .star-icon:nth-child(2) { animation-delay: 0.5s; }
-.star-icon:nth-child(3) { animation-delay: 1s; }
 
 @keyframes starTwinkle {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.2); opacity: 0.8; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+.brand-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.brand-chip {
+  background: rgba(6, 143, 255, 0.07) !important; /* Subtle brand blue tint */
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(6, 143, 255, 0.15); /* Aligned border color */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 0 8px;
+  height: 24px;
+  transition: all 0.3s ease;
+}
+
+.brand-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 143, 255, 0.15);
+  background: white !important;
+  border-color: rgba(6, 143, 255, 0.2);
+}
+
+.brand-name-text {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--q-color-text-dark); /* Use variable */
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.brand-icon {
+  color: var(--q-color-primary-blue) !important;
+  margin-right: 4px;
+}
+
+.favorite-btn {
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+.favorite-btn.is-favorite {
+  color: #EF5350 !important; /* Standard red for favorite */
+  animation: pulse .8s ease-out; /* Add a subtle pulse when becoming favorite */
+}
+
+.brand-caption {
+  font-size: 0.65rem;
+  color: #9e9e9e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  font-weight: 500;
+  opacity: 0.7;
 }
 </style>
