@@ -75,8 +75,9 @@
         </div>
       </div>
       
-      <button class="checkout-btn" @click="proceedToCheckout">
-        <span>Proceder al pago</span>
+      <button class="checkout-btn">
+        <router-link to="/payments"><span>Proceder al pago</span></router-link>
+        
         <q-icon name="arrow_forward" size="sm" />
       </button>
       <button class="continue-btn" @click="continueShopping">Seguir comprando</button>
