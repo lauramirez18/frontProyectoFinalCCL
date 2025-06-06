@@ -75,6 +75,7 @@
                   class="action-btn cart-btn"
                   icon="add_shopping_cart"
                   color="primary"
+                  @click="handleAddToCart(product)"
                 >
                   <q-tooltip>Agregar al carrito</q-tooltip>
                 </q-btn>
@@ -107,6 +108,9 @@
         size="md"
       />
     </div>
+
+    <!-- Login Dialog -->
+    <LoginDialog v-model="showLoginDialog" />
   </q-page>
 </template>
 
@@ -116,13 +120,19 @@ import { useRoute, useRouter } from 'vue-router';
 import { getData } from '../services/apiClient.js';
 import FavoriteButton from './FavoriteButton.vue';
 import RatingStars from './RatingStars.vue';
+import LoginDialog from './LoginDialog.vue';
+import { useAuthStore } from '../store/store.js';
+import { useQuasar } from 'quasar';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+const $q = useQuasar();
 
 const products = ref([]);
 const loading = ref(true);
 const currentPage = ref(1);
+const showLoginDialog = ref(false);
 const pagination = ref({
   total: 0,
   page: 1,
@@ -135,6 +145,36 @@ const formatPrice = (price) => {
   return price.toLocaleString('es-CO', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
+  });
+};
+
+const handleAddToCart = (product) => {
+  if (!authStore.token) {
+    $q.dialog({
+      title: 'Iniciar sesión',
+      message: '¿Deseas iniciar sesión para agregar productos al carrito?',
+      cancel: true,
+      persistent: true,
+      ok: {
+        label: 'Sí, iniciar sesión',
+        color: 'primary'
+      },
+      cancel: {
+        label: 'No, continuar sin sesión',
+        color: 'grey'
+      }
+    }).onOk(() => {
+      showLoginDialog.value = true;
+    });
+    return;
+  }
+  
+  // TODO: Implement add to cart functionality
+  $q.notify({
+    type: 'positive',
+    message: 'Producto agregado al carrito',
+    position: 'top',
+    timeout: 2000
   });
 };
 
