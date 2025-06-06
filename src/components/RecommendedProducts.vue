@@ -260,8 +260,29 @@ const fetchBestSellers = async () => {
     
     console.log('Frontend: Contenido de response:', response)
 
-    if (response && response.productos && Array.isArray(response.productos)) {
-      bestSellers.value = response.productos.map(product => ({
+    if (response && Array.isArray(response)) {
+      // Obtener las calificaciones para cada producto
+      const productosConCalificaciones = await Promise.all(
+        response.map(async (product) => {
+          try {
+            const ratings = await reviewsService.getProductRatings(product._id)
+            return {
+              ...product,
+              promedioCalificacion: ratings.promedioTotal || 0,
+              totalResenas: ratings.totalReseñas || 0
+            }
+          } catch (error) {
+            console.error(`Error al obtener calificaciones para producto ${product._id}:`, error)
+            return {
+              ...product,
+              promedioCalificacion: 0,
+              totalResenas: 0
+            }
+          }
+        })
+      )
+
+      bestSellers.value = productosConCalificaciones.map(product => ({
         _id: product._id,
         nombre: product.nombre || 'Producto sin nombre',
         descripcion: product.descripcion || 'Sin descripción',

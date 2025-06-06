@@ -410,7 +410,27 @@ const fetchProducts = async () => {
       // Filtros por especificación
       for (const key in activeFilters.value) {
         if (activeFilters.value[key] && activeFilters.value[key].length > 0) {
-          params[key] = activeFilters.value[key].map(opt => opt.value);
+          // Obtener los valores seleccionados y filtrar valores undefined o null
+          const selectedValues = activeFilters.value[key]
+            .map(opt => {
+              // Si opt es un string, usarlo directamente
+              if (typeof opt === 'string') return opt;
+              // Si opt es un objeto, usar la propiedad value o label
+              return opt.value || opt.label || opt;
+            })
+            .filter(value => value !== undefined && value !== null && value !== 'undefined');
+
+          if (selectedValues.length > 0) {
+            // Si solo hay un valor seleccionado, enviarlo directamente
+            if (selectedValues.length === 1) {
+              params[`especificaciones.${key}`] = selectedValues[0];
+            } else {
+              // Si hay múltiples valores, enviar cada uno como un parámetro separado
+              selectedValues.forEach((value, index) => {
+                params[`especificaciones.${key}[${index}]`] = value;
+              });
+            }
+          }
         }
       }
 
@@ -425,8 +445,19 @@ const fetchProducts = async () => {
         showOnlyOffers.value = true;
       }
 
-      console.log('Parámetros de búsqueda:', params);
-      response = await api.get('/productos', { params });
+      // Construir la URL con los parámetros
+      const queryString = Object.entries(params)
+        .filter(([_, value]) => value !== undefined && value !== null && value !== 'undefined')
+        .map(([key, value]) => {
+          if (Array.isArray(value)) {
+            return value.map((v, i) => `${key}[${i}]=${encodeURIComponent(v)}`).join('&');
+          }
+          return `${key}=${encodeURIComponent(value)}`;
+        })
+        .join('&');
+
+      console.log('URL de búsqueda:', `/productos?${queryString}`);
+      response = await api.get(`/productos?${queryString}`);
 
       products.value = response.data.productos || [];
       pagination.value = response.data.pagination || {
@@ -566,7 +597,19 @@ const fetchAvailableFilters = async () => {
 
   try {
     const filtersResponse = await api.get(`/productos/filtros-disponibles/${route.params.categoryId}`)
-    availableFilters.value = filtersResponse.data.filters || {}
+    console.log('Filtros disponibles recibidos:', filtersResponse.data)
+    
+    // Procesar los filtros recibidos
+    const processedFilters = {}
+    for (const key in filtersResponse.data.filters) {
+      const filterValues = filtersResponse.data.filters[key]
+      processedFilters[key] = filterValues.map(value => ({
+        label: value.label || value,
+        value: value.value || value
+      }))
+    }
+    
+    availableFilters.value = processedFilters
 
     // Inicializar filtros activos
     for (const key in availableFilters.value) {
@@ -574,6 +617,8 @@ const fetchAvailableFilters = async () => {
         activeFilters.value[key] = []
       }
     }
+    
+    console.log('Filtros procesados:', availableFilters.value)
   } catch (error) {
     console.warn('Error al cargar filtros disponibles:', error)
     availableFilters.value = {}
