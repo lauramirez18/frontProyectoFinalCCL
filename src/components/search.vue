@@ -96,7 +96,7 @@
       </div>
     </div>
 
-    <div v-if="pagination.totalPages > 1" class="q-mt-lg flex flex-center">
+    <div v-if="pagination && pagination.totalPages > 1" class="q-mt-lg flex flex-center">
       <q-pagination
         v-model="currentPage"
         :max="pagination.totalPages"
@@ -128,7 +128,7 @@ const pagination = ref({
   total: 0,
   page: 1,
   limit: 10,
-  totalPages: 1,
+  totalPages: 0
 });
 
 const formatPrice = (price) => {
@@ -152,13 +152,45 @@ const fetchProducts = async () => {
 
     const response = await getData('productos', params);
 
-    products.value = response.productos;
-    pagination.value = response.pagination;
-    currentPage.value = response.pagination.page;
+    if (response && response.productos) {
+      products.value = response.productos;
+      
+      // Manejar la paginación de forma segura
+      if (response.pagination) {
+        pagination.value = response.pagination;
+        currentPage.value = response.pagination.page;
+      } else {
+        // Si no hay información de paginación, establecer valores por defecto
+        pagination.value = {
+          total: response.productos.length,
+          page: 1,
+          limit: 10,
+          totalPages: 1
+        };
+        currentPage.value = 1;
+      }
+    } else {
+      // Si no hay productos, establecer arrays vacíos y paginación por defecto
+      products.value = [];
+      pagination.value = {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0
+      };
+      currentPage.value = 1;
+    }
 
   } catch (error) {
     console.error('Error al obtener productos:', error);
     products.value = [];
+    pagination.value = {
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 0
+    };
+    currentPage.value = 1;
   } finally {
     loading.value = false;
   }
