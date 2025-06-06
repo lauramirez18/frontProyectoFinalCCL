@@ -244,46 +244,68 @@ const fetchBestSellers = async () => {
     console.log('Frontend: Iniciando fetch de productos...')
     const response = await getData('productos')
 
-    console.log('Frontend: Contenido de response:', response)
+    console.log('Frontend: Respuesta completa del servidor:', response)
 
-    if (response && Array.isArray(response)) {
-      // Obtener las calificaciones para cada producto
-      const productosConCalificaciones = await Promise.all(
-        response.map(async (product) => {
-          try {
-            const ratings = await reviewsService.getProductRatings(product._id)
-            return {
-              ...product,
-              promedioCalificacion: ratings.promedioTotal || 0,
-              totalResenas: ratings.totalReseñas || 0
-            }
-          } catch (error) {
-            console.error(`Error al obtener calificaciones para producto ${product._id}:`, error)
-            return {
-              ...product,
-              promedioCalificacion: 0,
-              totalResenas: 0
-            }
-          }
-        })
-      )
-
-      bestSellers.value = productosConCalificaciones.map(product => ({
-        _id: product._id,
-        nombre: product.nombre || 'Producto sin nombre',
-        descripcion: product.descripcion || 'Sin descripción',
-        precio: parseFloat(product.precio) || 0,
-        precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
-        enOferta: Boolean(product.enOferta),
-        marca: product.marca || null,
-        imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
-        promedioCalificacion: parseFloat(product.promedioCalificacion) || 0,
-        totalResenas: parseInt(product.totalResenas) || 0
-      }))
-    } else {
-      console.log('Frontend: No se encontraron productos en la respuesta')
+    if (!response) {
+      console.error('Frontend: No se recibió respuesta del servidor')
       bestSellers.value = []
+      return
     }
+
+    // Asegurarse de que response sea un array
+    const productos = Array.isArray(response) ? response : []
+
+    if (productos.length === 0) {
+      console.log('Frontend: No hay productos disponibles')
+      bestSellers.value = []
+      return
+    }
+
+    // Obtener las calificaciones para cada producto
+    const productosConCalificaciones = await Promise.all(
+      productos.map(async (product) => {
+        if (!product || !product._id) {
+          console.error('Producto inválido:', product)
+          return null
+        }
+
+        try {
+          console.log(`Procesando producto:`, product)
+          const ratings = await reviewsService.getProductRatings(product._id)
+          console.log(`Calificaciones obtenidas para ${product._id}:`, ratings)
+          
+          return {
+            _id: product._id,
+            nombre: product.nombre || 'Producto sin nombre',
+            descripcion: product.descripcion || 'Sin descripción',
+            precio: parseFloat(product.precio) || 0,
+            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
+            enOferta: Boolean(product.enOferta),
+            marca: product.marca || null,
+            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
+            promedioCalificacion: ratings?.promedioTotal || 0,
+            totalResenas: ratings?.totalReseñas || 0
+          }
+        } catch (error) {
+          console.error(`Error al procesar producto ${product._id}:`, error)
+          return null
+        }
+      })
+    )
+
+    // Filtrar productos nulos y ordenar por calificación
+    bestSellers.value = productosConCalificaciones
+      .filter(product => product !== null)
+      .sort((a, b) => {
+        // Primero por calificación
+        if (b.promedioCalificacion !== a.promedioCalificacion) {
+          return b.promedioCalificacion - a.promedioCalificacion
+        }
+        // Si tienen la misma calificación, por número de reseñas
+        return b.totalResenas - a.totalResenas
+      })
+
+    console.log('Frontend: Productos procesados y ordenados:', bestSellers.value.length)
   } catch (error) {
     console.error('Frontend: Error al obtener productos:', error)
     bestSellers.value = []

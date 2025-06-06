@@ -21,28 +21,25 @@ export async function getData(url, params = {}) {
     // Manejo específico para productos
     if (url === 'productos') {
       console.log('getData: Procesando respuesta de productos');
-      if (response.data && typeof response.data === 'object') {
-        // Si la respuesta tiene la estructura esperada (productos y paginación)
-        if (response.data.productos && response.data.pagination) {
-          console.log('getData: Productos encontrados:', response.data.productos.length);
+      if (response.data) {
+        // Si la respuesta es directamente un array de productos
+        if (Array.isArray(response.data)) {
+          console.log('getData: Array de productos recibido directamente:', response.data.length);
           return response.data;
         }
-        // Si la respuesta es un array de productos
-        else if (Array.isArray(response.data)) {
-          console.log('getData: Productos encontrados (array):', response.data.length);
-          return {
-            productos: response.data,
-            pagination: {
-              total: response.data.length,
-              page: params.page || 1,
-              limit: params.limit || 12,
-              totalPages: Math.ceil(response.data.length / (params.limit || 12))
-            }
-          };
+        // Si la respuesta tiene la estructura { productos: [...] }
+        else if (response.data.productos && Array.isArray(response.data.productos)) {
+          console.log('getData: Productos encontrados en data.productos:', response.data.productos.length);
+          return response.data.productos;
+        }
+        // Si la respuesta es un objeto con la estructura esperada
+        else if (typeof response.data === 'object') {
+          console.log('getData: Objeto de productos recibido:', response.data);
+          return response.data;
         }
       }
-      console.warn('getData: Formato de respuesta de productos inesperado:', response.data);
-      return { productos: [], pagination: { total: 0, page: 1, limit: 12, totalPages: 1 } };
+      console.warn('getData: No se encontraron productos en la respuesta:', response.data);
+      return [];
     }
     
     // Para otras URLs, mantener el comportamiento original
