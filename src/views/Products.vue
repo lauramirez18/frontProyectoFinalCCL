@@ -303,7 +303,7 @@ const pagination = ref({
 
 const alphabeticFields = ref({
   marca: { label: 'Marca', letters: [] },
-
+  modelo: { label: 'Modelo', letters: [] }
 })
 
 const sortOptions = [
@@ -372,53 +372,132 @@ const fetchProducts = async () => {
       sort: sortOption.value
     }
 
-    // Aplicar filtros
-    if (route.params.categoryId) params.category = route.params.categoryId
-    if (subcategory.value) params.subcategory = subcategory.value._id
-    if (searchQuery.value) params.search = searchQuery.value
-    if (currentBrand.value) params.brand = currentBrand.value._id
-
-    if (priceRange.value.min > minPrice.value) params.minPrice = priceRange.value.min
-    if (priceRange.value.max < maxPrice.value) params.maxPrice = priceRange.value.max
-
-    // Filtros por especificación
-    for (const key in activeFilters.value) {
-      if (activeFilters.value[key] && activeFilters.value[key].length > 0) {
-        params[key] = activeFilters.value[key].map(opt => opt.value)
+    let response;
+    
+    // Si estamos en la ruta de marca, usar el endpoint específico
+    if (route.params.id) {
+      console.log('Products: Obteniendo productos de marca:', route.params.id);
+      response = await api.get(`/marcas/${route.params.id}`);
+      console.log('Products: Respuesta de marca:', response);
+      
+      // Transformar la respuesta al formato esperado
+      if (response.data && response.data.productos) {
+        products.value = response.data.productos;
+        pagination.value = {
+          total: response.data.productos.length,
+          page: 1,
+          limit: response.data.productos.length,
+          totalPages: 1
+        };
+      } else {
+        products.value = [];
+        pagination.value = {
+          total: 0,
+          page: 1,
+          limit: pagination.value.limit,
+          totalPages: 0
+        };
       }
-    }
+    } else {
+      // Para otras rutas, mantener el comportamiento original
+      if (route.params.categoryId) params.category = route.params.categoryId;
+      if (subcategory.value) params.subcategory = subcategory.value._id;
+      if (searchQuery.value) params.search = searchQuery.value;
 
-    // Filtro alfabético
-    if (activeAlphaFilter.value.field && activeAlphaFilter.value.letter) {
-      params[`especificaciones.${activeAlphaFilter.value.field}`] = activeAlphaFilter.value.letter
-    }
+      if (priceRange.value.min > minPrice.value) params.minPrice = priceRange.value.min;
+      if (priceRange.value.max < maxPrice.value) params.maxPrice = priceRange.value.max;
 
-    // Filtro de ofertas
-    if (showOnlyOffers.value || route.query.ofertas === 'true') {
-      params.ofertas = true
-      showOnlyOffers.value = true
-    }
+      // Filtros por especificación
+      for (const key in activeFilters.value) {
+        if (activeFilters.value[key] && activeFilters.value[key].length > 0) {
+          // Obtener los valores seleccionados y filtrar valores undefined o null
+          const selectedValues = activeFilters.value[key]
+            .map(opt => {
+              // Si opt es un string, usarlo directamente
+              if (typeof opt === 'string') return opt;
+              // Si opt es un objeto, usar la propiedad value o label
+              return opt.value || opt.label || opt;
+            })
+            .filter(value => value !== undefined && value !== null && value !== 'undefined');
 
-    const response = await api.get('/productos', { params })
+          if (selectedValues.length > 0) {
+            // Si solo hay un valor seleccionado, enviarlo directamente
+            if (selectedValues.length === 1) {
+              params[`especificaciones.${key}`] = selectedValues[0];
+            } else {
+              // Si hay múltiples valores, enviar cada uno como un parámetro separado
+              selectedValues.forEach((value, index) => {
+                params[`especificaciones.${key}[${index}]`] = value;
+              });
+            }
+          }
+        }
+      }
 
-    products.value = response.data.productos || []
-    pagination.value = response.data.pagination || {
-      total: products.value.length,
-      page: currentPage.value,
-      limit: pagination.value.limit,
-      totalPages: 1
+      // Filtro alfabético
+      if (activeAlphaFilter.value.field && activeAlphaFilter.value.letter) {
+        params[`especificaciones.${activeAlphaFilter.value.field}`] = activeAlphaFilter.value.letter;
+      }
+
+      // Filtro de ofertas
+      if (showOnlyOffers.value || route.query.ofertas === 'true') {
+        params.ofertas = true;
+        showOnlyOffers.value = true;
+      }
+
+      // Construir la URL con los parámetros
+      const queryString = Object.entries(params)
+        .filter(([_, value]) => value !== undefined && value !== null && value !== 'undefined')
+        .map(([key, value]) => {
+          if (Array.isArray(value)) {
+            return value.map((v, i) => `${key}[${i}]=${encodeURIComponent(v)}`).join('&');
+          }
+          return `${key}=${encodeURIComponent(value)}`;
+        })
+        .join('&');
+
+      console.log('URL de búsqueda:', `/productos?${queryString}`);
+      response = await api.get(`/productos?${queryString}`);
+
+      products.value = response.data.productos || [];
+      pagination.value = response.data.pagination || {
+        total: products.value.length,
+        page: currentPage.value,
+        limit: pagination.value.limit,
+        totalPages: 1
+      };
     }
 
   } catch (error) {
-    showError('Error al cargar productos', error.message)
-    products.value = []
+    console.error('Products: Error al cargar productos:', error);
+    showError('Error al cargar productos', error.message);
+    products.value = [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 // Obtener datos de categoría y marcas
 const fetchCategoryData = async () => {
+  // Si estamos en la ruta de marca, cargar los datos de la marca
+  if (route.params.id) {
+    try {
+      console.log('Products: Iniciando carga de marca...');
+      const brandResponse = await api.get(`/marcas/${route.params.id}`);
+      console.log('Products: Respuesta de marca:', brandResponse);
+      
+      if (brandResponse.data && brandResponse.data.marca) {
+        currentBrand.value = brandResponse.data.marca;
+        console.log('Products: Marca cargada:', currentBrand.value.nombre);
+      }
+    } catch (error) {
+      console.error('Products: Error al cargar marca:', error);
+      showError('Error al cargar marca', error.message);
+      router.push('/');
+      return;
+    }
+  }
+
   if (route.params.categoryId) {
     try {
       // Cargar categoría
@@ -430,15 +509,35 @@ const fetchCategoryData = async () => {
 
       // Cargar marcas
       try {
-        const brandsResponse = await api.get('/marcas')
-        brands.value = brandsResponse.data
+        console.log('Products: Iniciando carga de marcas...');
+        const brandsResponse = await api.get('/marcas');
+        console.log('Products: Respuesta completa de marcas:', brandsResponse);
         
-        // Establecer marca actual si hay filtro en la URL
-        if (route.query.brand) {
-          currentBrand.value = brands.value.find(b => b._id === route.query.brand)
+        if (brandsResponse.data) {
+          console.log('Products: Datos de marcas recibidos:', brandsResponse.data);
+          
+          // Verificar que la respuesta sea un array
+          if (Array.isArray(brandsResponse.data)) {
+            // Filtrar solo marcas activas y con logo
+            brands.value = brandsResponse.data.filter(brand => 
+              brand.state === '1' && 
+              brand.logo && 
+              brand.nombre
+            );
+            console.log('Products: Marcas válidas encontradas:', brands.value.length);
+          } else {
+            console.warn('Products: Formato de respuesta de marcas inesperado:', brandsResponse.data);
+            brands.value = [];
+          }
+        } else {
+          console.warn('Products: No se recibieron datos de marcas');
+          brands.value = [];
         }
       } catch (brandsError) {
-        console.warn('Error al cargar marcas:', brandsError)
+        console.error('Products: Error al cargar marcas:', brandsError);
+        console.error('Products: Detalles del error:', brandsError.response?.data);
+        console.error('Products: URL de la petición:', brandsError.config?.url);
+        brands.value = [];
       }
 
       // Cargar subcategoría si existe
@@ -498,7 +597,19 @@ const fetchAvailableFilters = async () => {
 
   try {
     const filtersResponse = await api.get(`/productos/filtros-disponibles/${route.params.categoryId}`)
-    availableFilters.value = filtersResponse.data.filters || {}
+    console.log('Filtros disponibles recibidos:', filtersResponse.data)
+    
+    // Procesar los filtros recibidos
+    const processedFilters = {}
+    for (const key in filtersResponse.data.filters) {
+      const filterValues = filtersResponse.data.filters[key]
+      processedFilters[key] = filterValues.map(value => ({
+        label: value.label || value,
+        value: value.value || value
+      }))
+    }
+    
+    availableFilters.value = processedFilters
 
     // Inicializar filtros activos
     for (const key in availableFilters.value) {
@@ -506,6 +617,8 @@ const fetchAvailableFilters = async () => {
         activeFilters.value[key] = []
       }
     }
+    
+    console.log('Filtros procesados:', availableFilters.value)
   } catch (error) {
     console.warn('Error al cargar filtros disponibles:', error)
     availableFilters.value = {}
@@ -558,23 +671,19 @@ const setBrandFilter = (brand) => {
   currentBrand.value = brand
   currentPage.value = 1
   
-  // Actualizar la URL sin recargar la página
-  const query = { ...route.query, brand: brand._id }
-  router.push({ query })
-  
-  fetchProducts()
+  // Navegar a la ruta de marca
+  router.push({ 
+    name: 'BrandProducts',
+    params: { id: brand._id }
+  })
 }
 
 const clearBrandFilter = () => {
   currentBrand.value = null
   currentPage.value = 1
   
-  // Eliminar el parámetro de marca de la URL
-  const query = { ...route.query }
-  delete query.brand
-  router.push({ query })
-  
-  fetchProducts()
+  // Volver a la ruta de productos
+  router.push({ name: 'AllProducts' })
 }
 
 // Limpiar todos los filtros
@@ -622,18 +731,16 @@ watch(() => route.query, (newQuery) => {
     fetchProducts()
   }
   
-  // Si hay un cambio en el parámetro brand pero no coincide con la marca actual
-  if (newQuery.brand && (!currentBrand.value || currentBrand.value._id !== newQuery.brand)) {
+  // Si hay un cambio en el parámetro brand
+  if (newQuery.brand) {
     const brand = brands.value.find(b => b._id === newQuery.brand)
     if (brand) {
       currentBrand.value = brand
       currentPage.value = 1
       fetchProducts()
     }
-  }
-  
-  // Si se eliminó el parámetro brand pero tenemos una marca seleccionada
-  if (!newQuery.brand && currentBrand.value) {
+  } else if (currentBrand.value) {
+    // Si se eliminó el parámetro brand pero tenemos una marca seleccionada
     currentBrand.value = null
     currentPage.value = 1
     fetchProducts()

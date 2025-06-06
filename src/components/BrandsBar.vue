@@ -39,19 +39,46 @@ const brands = ref([])
 
 const getBrands = async () => {
   try {
+    console.log('BrandsBar: Iniciando carga de marcas...');
     const res = await getData('marcas');
-    brands.value = res.map(brand => ({ ...brand, loaded: false }));
+    console.log('BrandsBar: Respuesta de marcas:', res);
+    
+    if (Array.isArray(res)) {
+      // Filtrar solo marcas activas y con logo
+      const marcasValidas = res.filter(brand => 
+        brand.state === '1' && 
+        brand.logo && 
+        brand.nombre
+      );
+      
+      console.log('BrandsBar: Marcas válidas encontradas:', marcasValidas.length);
+      brands.value = marcasValidas.map(brand => ({ 
+        ...brand, 
+        loaded: false,
+        nombre: brand.nombre.trim()
+      }));
+    } else {
+      console.warn('BrandsBar: Formato de respuesta inesperado:', res);
+      brands.value = [];
+    }
   } catch (error) {
-    console.error('Error al obtener las marcas:', error);
+    console.error('BrandsBar: Error al obtener las marcas:', error);
+    console.error('BrandsBar: Detalles del error:', error.response?.data);
     brands.value = [];
   }
 }
 
 const goToBrandProducts = (brand) => {
+  if (!brand || !brand._id) {
+    console.error('BrandsBar: Intento de navegación con marca inválida:', brand);
+    return;
+  }
+  
+  console.log('BrandsBar: Navegando a productos de marca:', brand.nombre);
   router.push({
-    name: 'AllProducts',
-    query: { marca: brand.nombre }
-  })
+    name: 'BrandProducts',
+    params: { id: brand._id }
+  });
 }
 
 onMounted(() => {

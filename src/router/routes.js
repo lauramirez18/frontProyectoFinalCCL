@@ -1,33 +1,32 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MainLayout from '../layouts/MainLayout.vue';
-import Login from '../views/Login.vue';
 import Home from '../views/Home.vue';
+import Register from '../views/Register.vue';
+import Admin from '../views/admin.vue';
+import AdminLogin from '../views/Login.vue';
+import Login from '../views/Login.vue';
 import Car from '../views/Car.vue';
 import Details from '../views/Details.vue';
-import Admin from '../views/admin.vue';
-import Register from '../views/Register.vue';
-import Products from '../views/Products.vue'; // Assuming this is your productos.vue
+import Products from '../views/Products.vue'; 
 import Category from '../views/Category.vue';
 import Payments from '../views/Payments.vue';
 import SearchResultsPage from '../components/search.vue';
 import Favorites from '../views/Favorites.vue';
 import Account from '../views/Account.vue';
+import Ofertas from '../views/Ofertas.vue';
 
 const routes = [
   {
-    path: '/login',
-    name: 'Login',
-    component: Login
-  },
-  {
-    path: '/register',
-    name: 'Register',
-    component: Register
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: AdminLogin,
+    meta: { requiresAuth: false }
   },
   {
     path: '/admin',
     name: 'admin',
-    component: Admin
+    component: Admin,
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/',
@@ -35,9 +34,13 @@ const routes = [
     children: [
       {
         path: '',
-        name: 'Home',
-        component: Home,
-        meta: { requiresAuth: true }
+        name: 'home',
+        component: Home
+      },
+      {
+        path: 'register',
+        name: 'Register',
+        component: Register
       },
       {
         path: '/account',
@@ -45,18 +48,20 @@ const routes = [
         component: Account,
         meta: { requiresAuth: true }
       },
-    
       {
         path: '/productos', 
         name: 'AllProducts', 
-        component: Products, 
-        meta: { requiresAuth: true }
+        component: Products
+      },
+      {
+        path: '/marcas/:id', 
+        name: 'BrandProducts',
+        component: Products
       },
       {
         path: '/products/:categoryId', 
         name: 'CategoryProducts',
-        component: Products,
-        meta: { requiresAuth: true }
+        component: Products
       },
       {
         path: '/payments',
@@ -67,8 +72,7 @@ const routes = [
       {
         path: 'category/:id',
         name: 'category',
-        component: Category,
-        meta: { requiresAuth: true }
+        component: Category
       },
       {
         path: 'Car',
@@ -79,20 +83,23 @@ const routes = [
       {
         path: 'Details/:id',
         name: 'Details',
-        component: Details,
-        meta: { requiresAuth: true }
+        component: Details
       },
       {
         path: 'search-results',
         name: 'SearchResults',
-        component: SearchResultsPage,
-        meta: { requiresAuth: true }
+        component: SearchResultsPage
       },
       {
         path: 'favorites',
         name: 'Favorites',
         component: Favorites,
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'ofertas',
+        name: 'Ofertas',
+        component: Ofertas
       }
     ]
   },
@@ -102,7 +109,9 @@ const routes = [
   }
 ];
 
-export const router = createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes
 });
+
+export { router };

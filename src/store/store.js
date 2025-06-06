@@ -240,6 +240,10 @@ export const useAuthStore = defineStore('auth', () => {
     return userName.value
   }
 
+  function isAdmin() {
+    return user.value && (user.value.rol === 'admin' || user.value.role === 'admin')
+  }
+
   function logout() {
     token.value = ''
     user.value = null
@@ -314,7 +318,8 @@ export const useAuthStore = defineStore('auth', () => {
     syncFavorites,
     getFavorites,
     login,
-    register
+    register,
+    isAdmin
   }
 }, {
   persist: true
