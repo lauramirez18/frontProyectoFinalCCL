@@ -113,17 +113,66 @@ const fetchProducts = async () => {
     const { page } = route.query;
     const params = {
       page: page || 1,
-      enOferta: true
+      enOferta: true,
+      limit: 12
     };
 
+    console.log('Fetching products with params:', params);
     const response = await getData('productos', params);
-    products.value = response.productos;
-    pagination.value = response.pagination;
-    currentPage.value = response.pagination.page;
+    console.log('API Response:', response);
+    
+    // Ensure we have valid data before assigning
+    if (response && Array.isArray(response.productos)) {
+      // Filtrar solo los productos que realmente están en oferta
+      const productosEnOferta = response.productos.filter(producto => 
+        producto.enOferta === true && 
+        producto.precioOferta && 
+        producto.precioOferta < producto.precio
+      );
+      
+      console.log('Total productos:', response.productos.length);
+      console.log('Productos en oferta:', productosEnOferta.length);
+      
+      products.value = productosEnOferta;
+    } else {
+      console.log('No products array found in response');
+      products.value = [];
+    }
+
+    // Safely handle pagination data
+    if (response && response.pagination) {
+      console.log('Pagination data:', response.pagination);
+      pagination.value = {
+        total: response.pagination.total || 0,
+        page: response.pagination.page || 1,
+        limit: response.pagination.limit || 12,
+        totalPages: response.pagination.totalPages || 1
+      };
+      currentPage.value = pagination.value.page;
+    } else {
+      console.log('No pagination data found, using defaults');
+      // Set default pagination if not available
+      pagination.value = {
+        total: 0,
+        page: 1,
+        limit: 12,
+        totalPages: 1
+      };
+      currentPage.value = 1;
+    }
 
   } catch (error) {
     console.error('Error al obtener productos en oferta:', error);
+    console.error('Error details:', error.response?.data);
     products.value = [];
+    // Reset pagination on error
+    pagination.value = {
+      total: 0,
+      page: 1,
+      limit: 12,
+      totalPages: 1
+    };
+    currentPage.value = 1;
   } finally {
     loading.value = false;
   }

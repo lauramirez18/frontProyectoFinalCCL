@@ -77,6 +77,22 @@ const props = defineProps({
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rating-stars {
+  display: flex;
+  align-items: center;
+}
+
+.rating-stars :deep(.q-rating) {
+  display: flex;
+  align-items: center;
+}
+
+.rating-stars :deep(.q-rating__icon) {
+  color: #ffd700;
+  text-shadow: 0 0 2px rgba(0,0,0,0.1);
 }
 
 .rating-info {
@@ -89,6 +105,7 @@ const props = defineProps({
 
 .rating-value {
   font-weight: 600;
+  color: #333;
 }
 
 .rating-count {

@@ -18,6 +18,33 @@ export async function getData(url, params = {}) {
       }
     }
     
+    // Manejo específico para productos
+    if (url === 'productos') {
+      console.log('getData: Procesando respuesta de productos');
+      if (response.data && typeof response.data === 'object') {
+        // Si la respuesta tiene la estructura esperada (productos y paginación)
+        if (response.data.productos && response.data.pagination) {
+          console.log('getData: Productos encontrados:', response.data.productos.length);
+          return response.data;
+        }
+        // Si la respuesta es un array de productos
+        else if (Array.isArray(response.data)) {
+          console.log('getData: Productos encontrados (array):', response.data.length);
+          return {
+            productos: response.data,
+            pagination: {
+              total: response.data.length,
+              page: params.page || 1,
+              limit: params.limit || 12,
+              totalPages: Math.ceil(response.data.length / (params.limit || 12))
+            }
+          };
+        }
+      }
+      console.warn('getData: Formato de respuesta de productos inesperado:', response.data);
+      return { productos: [], pagination: { total: 0, page: 1, limit: 12, totalPages: 1 } };
+    }
+    
     // Para otras URLs, mantener el comportamiento original
     if (Array.isArray(response.data)) {
       return response.data;
