@@ -4,8 +4,6 @@
     <p class="shipping-subtitle">
       Completa la información para el envío de tu pedido
     </p>
-
-    <!-- Shipping Address Form -->
     <div class="shipping-form">
       <div class="form-row">
         <div class="form-group half">
@@ -13,8 +11,7 @@
           <input
             type="text"
             id="firstName"
-            :value="firstName"
-            @input="firstName = $event.target.value.toUpperCase()"
+            v-model="firstName"
             required
             placeholder="Tu nombre"
           />
@@ -25,8 +22,7 @@
           <input
             type="text"
             id="lastName"
-            :value="lastName"
-            @input="lastName = $event.target.value.toUpperCase()"
+            v-model="lastName"
             required
             placeholder="Tus apellidos"
           />
@@ -34,35 +30,36 @@
         </div>
       </div>
 
-<div class="form-group">
-  <label for="phone">Teléfono *</label>
-  <div class="phone-input-group">
-    <select v-model="phonePrefix" class="phone-prefix">
-      <option value="+57">🇨🇴 +57</option>
-      <option value="+34">🇪🇸 +34</option>
-      <option value="+52">🇲🇽 +52</option>
-      <option value="+54">🇦🇷 +54</option>
-      <option value="+56">🇨🇱 +56</option>
-    </select>
-    <input
-      type="tel"
-      id="phone"
-      v-model="phone"
-      required
-      placeholder="Ej: 320 123 4567"
-      class="phone-input"
-    />
-  </div>
-  <p class="error" v-if="errors.phone">{{ errors.phone }}</p>
-</div>
+      <div class="form-group">
+        <label for="phone">Teléfono *</label>
+        <div class="phone-input-group">
+          <select v-model="phonePrefix" class="phone-prefix">
+            <option
+              v-for="prefixOption in phoneCodes"
+              :key="prefixOption.code"
+              :value="prefixOption.dial_code"
+            >
+              {{ prefixOption.code }} {{ prefixOption.dial_code }}
+            </option>
+          </select>
+          <input
+            type="tel"
+            id="phone"
+            v-model="phone"
+            required
+            placeholder="Ej: 320 123 4567"
+            class="phone-input"
+          />
+        </div>
+        <p class="error" v-if="errors.phone">{{ errors.phone }}</p>
+      </div>
 
       <div class="form-group">
         <label for="address">Dirección completa *</label>
         <input
           type="text"
           id="address"
-          :value="address"
-          @input="address = $event.target.value.toUpperCase()"
+          v-model="address"
           required
           placeholder="Calle, número, apartamento, etc."
         />
@@ -71,47 +68,59 @@
 
       <div class="form-row">
         <div class="form-group half">
-          <label for="country">País</label>
-          <select id="country" v-model="country" @change="onCountryChange">
+          <label for="country">País *</label>
+          <select id="country" v-model="selectedCountry" @change="onCountryChange">
             <option value="">Selecciona un país</option>
-            <option value="CO">Colombia</option>
-            <option value="ES">España</option>
-            <option value="MX">México</option>
-            <option value="AR">Argentina</option>
-            <option value="CL">Chile</option>
+            <option
+              v-for="countryOption in countries"
+              :key="countryOption.id"
+              :value="countryOption.id"
+            >
+              {{ countryOption.name }}
+            </option>
           </select>
+          <p class="error" v-if="errors.country">{{ errors.country }}</p>
         </div>
         <div class="form-group half">
-          <label for="state">{{ getStateLabel() }}</label>
-          <select id="state" v-model="state" :disabled="!country">
+          <label for="state">{{ getStateLabel() }} *</label>
+          <select id="state" v-model="selectedState" :disabled="!selectedCountry" @change="onStateChange">
             <option value="">
               {{
-                country
+                selectedCountry
                   ? `Selecciona ${getStateLabel().toLowerCase()}`
                   : "Primero selecciona un país"
               }}
             </option>
             <option
               v-for="stateOption in availableStates"
-              :key="stateOption.code"
-              :value="stateOption.code"
+              :key="stateOption.id"
+              :value="stateOption.id"
             >
               {{ stateOption.name }}
             </option>
           </select>
+          <p class="error" v-if="errors.state">{{ errors.state }}</p>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group half">
           <label for="city">Ciudad *</label>
-          <input
-            type="text"
-            id="city"
-            :value="city"
-            @input="city = $event.target.value.toUpperCase()"
-            required
-            placeholder="Tu ciudad"
-          />
+          <select id="city" v-model="selectedCity" :disabled="!selectedState">
+            <option value="">
+              {{
+                selectedState
+                  ? "Selecciona una ciudad"
+                  : "Primero selecciona un estado/departamento"
+              }}
+            </option>
+            <option
+              v-for="cityOption in availableCities"
+              :key="cityOption.id"
+              :value="cityOption.id"
+            >
+              {{ cityOption.name }}
+            </option>
+          </select>
           <p class="error" v-if="errors.city">{{ errors.city }}</p>
         </div>
         <div class="form-group half">
@@ -122,7 +131,7 @@
             v-model="postalCode"
             placeholder="Código postal"
           />
-          <p class="error" v-if="errors.firstName">{{ errors.postalCode }}</p>
+          <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
         </div>
       </div>
       <div class="form-group">
@@ -135,7 +144,6 @@
         ></textarea>
       </div>
 
-      <!-- Order Summary -->
       <div class="order-summary">
         <h3 class="summary-title">Resumen de tu pedido</h3>
         <div class="total-section">
@@ -167,7 +175,6 @@
 
     <div class="divider"></div>
 
-    <!-- PayPal Button -->
     <div class="payment-section">
       <div class="payment-info">
         <div class="info-card">
@@ -225,6 +232,12 @@ import Swal from "sweetalert2";
 import { useAuthStore } from "../store/store.js";
 import { useRouter } from 'vue-router'
 
+// Importa tus archivos JSON
+import countriesData from '../utils/countries.json';
+import statesData from '../utils/states.json';
+import citiesData from '../utils/cities.json';
+import phoneCodesData from '../utils/CountryCodes.json'; // Importa el nuevo archivo
+
 const router = useRouter()
 const authStore = useAuthStore();
 const totalCOP = ref(0);
@@ -234,19 +247,20 @@ const totalUSD = ref(0);
 const firstName = ref("");
 const lastName = ref("");
 const phone = ref("");
-const phonePrefix = ref('+57')
+const phonePrefix = ref('+57'); // Valor inicial si lo deseas, o cámbialo a null o ''
 const address = ref("");
 const postalCode = ref("");
-const city = ref("");
-const country = ref("");
-const state = ref("");
-const notes = ref("");
+const deliveryNotes = ref("");
+
+// Variables para almacenar las selecciones
+const selectedCountry = ref(null);
+const selectedState = ref(null);
+const selectedCity = ref(null);
 
 // Variables para mostrar en el modal de factura
 const payerName = ref("");
 const payerEmail = ref("");
 const amountPaid = ref("");
-
 
 const errors = reactive({
   firstName: "",
@@ -254,185 +268,76 @@ const errors = reactive({
   phone: "",
   address: "",
   city: "",
-
+  country: "",
   state: "",
+  postalCode: "",
 });
 
-// Datos de estados/departamentos por país
-const statesData = {
-  CO: {
-    // Colombia
-    label: "Departamento",
-    states: [
-      { code: "AMA", name: "Amazonas" },
-      { code: "ANT", name: "Antioquia" },
-      { code: "ARA", name: "Arauca" },
-      { code: "ATL", name: "Atlántico" },
-      { code: "BOL", name: "Bolívar" },
-      { code: "BOY", name: "Boyacá" },
-      { code: "CAL", name: "Caldas" },
-      { code: "CAQ", name: "Caquetá" },
-      { code: "CAS", name: "Casanare" },
-      { code: "CAU", name: "Cauca" },
-      { code: "CES", name: "Cesar" },
-      { code: "CHO", name: "Chocó" },
-      { code: "COR", name: "Córdoba" },
-      { code: "CUN", name: "Cundinamarca" },
-      { code: "GUA", name: "Guainía" },
-      { code: "GUV", name: "Guaviare" },
-      { code: "HUI", name: "Huila" },
-      { code: "LAG", name: "La Guajira" },
-      { code: "MAG", name: "Magdalena" },
-      { code: "MET", name: "Meta" },
-      { code: "NAR", name: "Nariño" },
-      { code: "NSA", name: "Norte de Santander" },
-      { code: "PUT", name: "Putumayo" },
-      { code: "QUI", name: "Quindío" },
-      { code: "RIS", name: "Risaralda" },
-      { code: "SAP", name: "San Andrés y Providencia" },
-      { code: "SAN", name: "Santander" },
-      { code: "SUC", name: "Sucre" },
-      { code: "TOL", name: "Tolima" },
-      { code: "VAC", name: "Valle del Cauca" },
-      { code: "VAU", name: "Vaupés" },
-      { code: "VIC", name: "Vichada" },
-    ],
-  },
-  ES: {
-    // España
-    label: "Comunidad Autónoma",
-    states: [
-      { code: "AN", name: "Andalucía" },
-      { code: "AR", name: "Aragón" },
-      { code: "AS", name: "Asturias" },
-      { code: "IB", name: "Islas Baleares" },
-      { code: "CN", name: "Canarias" },
-      { code: "CB", name: "Cantabria" },
-      { code: "CM", name: "Castilla-La Mancha" },
-      { code: "CL", name: "Castilla y León" },
-      { code: "CT", name: "Cataluña" },
-      { code: "EX", name: "Extremadura" },
-      { code: "GA", name: "Galicia" },
-      { code: "MD", name: "Madrid" },
-      { code: "MC", name: "Murcia" },
-      { code: "NC", name: "Navarra" },
-      { code: "PV", name: "País Vasco" },
-      { code: "RI", name: "La Rioja" },
-      { code: "VC", name: "Valencia" },
-      { code: "CE", name: "Ceuta" },
-      { code: "ML", name: "Melilla" },
-    ],
-  },
-  MX: {
-    // México
-    label: "Estado",
-    states: [
-      { code: "AGU", name: "Aguascalientes" },
-      { code: "BCN", name: "Baja California" },
-      { code: "BCS", name: "Baja California Sur" },
-      { code: "CAM", name: "Campeche" },
-      { code: "CHP", name: "Chiapas" },
-      { code: "CHH", name: "Chihuahua" },
-      { code: "COA", name: "Coahuila" },
-      { code: "COL", name: "Colima" },
-      { code: "DIF", name: "Ciudad de México" },
-      { code: "DUR", name: "Durango" },
-      { code: "GUA", name: "Guanajuato" },
-      { code: "GRO", name: "Guerrero" },
-      { code: "HID", name: "Hidalgo" },
-      { code: "JAL", name: "Jalisco" },
-      { code: "MEX", name: "Estado de México" },
-      { code: "MIC", name: "Michoacán" },
-      { code: "MOR", name: "Morelos" },
-      { code: "NAY", name: "Nayarit" },
-      { code: "NLE", name: "Nuevo León" },
-      { code: "OAX", name: "Oaxaca" },
-      { code: "PUE", name: "Puebla" },
-      { code: "QUE", name: "Querétaro" },
-      { code: "ROO", name: "Quintana Roo" },
-      { code: "SLP", name: "San Luis Potosí" },
-      { code: "SIN", name: "Sinaloa" },
-      { code: "SON", name: "Sonora" },
-      { code: "TAB", name: "Tabasco" },
-      { code: "TAM", name: "Tamaulipas" },
-      { code: "TLA", name: "Tlaxcala" },
-      { code: "VER", name: "Veracruz" },
-      { code: "YUC", name: "Yucatán" },
-      { code: "ZAC", name: "Zacatecas" },
-    ],
-  },
-  AR: {
-    // Argentina
-    label: "Provincia",
-    states: [
-      { code: "BA", name: "Buenos Aires" },
-      { code: "CA", name: "Catamarca" },
-      { code: "CH", name: "Chaco" },
-      { code: "CU", name: "Chubut" },
-      { code: "CB", name: "Córdoba" },
-      { code: "CR", name: "Corrientes" },
-      { code: "ER", name: "Entre Ríos" },
-      { code: "FO", name: "Formosa" },
-      { code: "JU", name: "Jujuy" },
-      { code: "LP", name: "La Pampa" },
-      { code: "LR", name: "La Rioja" },
-      { code: "MZ", name: "Mendoza" },
-      { code: "MI", name: "Misiones" },
-      { code: "NQ", name: "Neuquén" },
-      { code: "RN", name: "Río Negro" },
-      { code: "SA", name: "Salta" },
-      { code: "SJ", name: "San Juan" },
-      { code: "SL", name: "San Luis" },
-      { code: "SC", name: "Santa Cruz" },
-      { code: "SF", name: "Santa Fe" },
-      { code: "SE", name: "Santiago del Estero" },
-      { code: "TF", name: "Tierra del Fuego" },
-      { code: "TU", name: "Tucumán" },
-      { code: "CABA", name: "Ciudad Autónoma de Buenos Aires" },
-    ],
-  },
-  CL: {
-    // Chile
-    label: "Región",
-    states: [
-      { code: "AI", name: "Arica y Parinacota" },
-      { code: "TA", name: "Tarapacá" },
-      { code: "AN", name: "Antofagasta" },
-      { code: "AT", name: "Atacama" },
-      { code: "CO", name: "Coquimbo" },
-      { code: "VS", name: "Valparaíso" },
-      { code: "RM", name: "Metropolitana de Santiago" },
-      { code: "LI", name: "Libertador Gral. Bernardo O'Higgins" },
-      { code: "ML", name: "Maule" },
-      { code: "NB", name: "Ñuble" },
-      { code: "BI", name: "Biobío" },
-      { code: "AR", name: "La Araucanía" },
-      { code: "LR", name: "Los Ríos" },
-      { code: "LL", name: "Los Lagos" },
-      { code: "AY", name: "Aysén del Gral. Carlos Ibáñez del Campo" },
-      { code: "MA", name: "Magallanes y de la Antártica Chilena" },
-    ],
-  },
-};
+// Referencias a los datos cargados
+const countries = ref(countriesData.countries);
+const states = ref(statesData.states);
+const cities = ref(citiesData.cities);
+const phoneCodes = ref(phoneCodesData.countries); // Asume que el JSON tiene una clave 'countries'
 
 // Computed para obtener los estados disponibles según el país seleccionado
 const availableStates = computed(() => {
-  return country.value && statesData[country.value]
-    ? statesData[country.value].states
-    : [];
+  if (!selectedCountry.value) {
+    return [];
+  }
+  return states.value.filter(state => state.id_country === selectedCountry.value);
+});
+
+// Computed para obtener las ciudades disponibles según el estado seleccionado
+const availableCities = computed(() => {
+  if (!selectedState.value) {
+    return [];
+  }
+  return cities.value.filter(city => city.id_state === selectedState.value);
 });
 
 // Función para obtener la etiqueta del campo de estado/departamento
 const getStateLabel = () => {
-  return country.value && statesData[country.value]
-    ? statesData[country.value].label
-    : "Estado/Departamento";
+  const countryObject = countries.value.find(c => c.id === selectedCountry.value);
+  if (countryObject && countryObject.name === "Colombia") {
+    return "Departamento";
+  }
+  if (countryObject && countryObject.name === "España") {
+    return "Comunidad Autónoma";
+  }
+  if (countryObject && countryObject.name === "México") {
+    return "Estado";
+  }
+  if (countryObject && countryObject.name === "Argentina") {
+    return "Provincia";
+  }
+  if (countryObject && countryObject.name === "Chile") {
+    return "Región";
+  }
+  return "Estado/Departamento";
 };
 
 // Función que se ejecuta cuando cambia el país
 const onCountryChange = () => {
-  // Resetear la selección de estado cuando cambia el país
-  state.value = "";
+  selectedState.value = null; // Resetear la selección de estado
+  selectedCity.value = null;  // Resetear la selección de ciudad
+
+  // Establecer el prefijo telefónico basado en el país seleccionado
+  const selectedCountryObject = countries.value.find(c => c.id === selectedCountry.value);
+  if (selectedCountryObject) {
+    const phoneCodeEntry = phoneCodes.value.find(pc => pc.name === selectedCountryObject.name);
+    if (phoneCodeEntry) {
+      phonePrefix.value = phoneCodeEntry.dial_code;
+    } else {
+      phonePrefix.value = ''; // O un valor por defecto si no se encuentra
+    }
+  } else {
+    phonePrefix.value = ''; // O un valor por defecto si no hay país seleccionado
+  }
+};
+
+// Función que se ejecuta cuando cambia el estado
+const onStateChange = () => {
+  selectedCity.value = null; // Resetear la selección de ciudad
 };
 
 // Cargar PayPal SDK
@@ -459,7 +364,6 @@ const fetchExchangeRate = async () => {
       "https://v6.exchangerate-api.com/v6/ee2b23888520b147bcfb0c05/latest/COP"
     );
     const data = await res.json();
-    console.log("Respuesta de la API:", data);
 
     if (data && data.conversion_rates && data.conversion_rates.USD) {
       return data.conversion_rates.USD;
@@ -475,23 +379,47 @@ const fetchExchangeRate = async () => {
 
 // Validar datos de envío
 const validateShippingData = () => {
-  const requiredFields = [
-    { field: firstName.value, name: "Nombre" },
-    { field: lastName.value, name: "Apellidos" },
-    { field: phone.value, name: "Teléfono" },
-    { field: address.value, name: "Dirección" },
-    { field: city.value, name: "Ciudad" },
-    { field: country.value, name: "País" },
-    { field: state.value, name: getStateLabel() },
-  ];
+  // Limpiar errores previos
+  Object.keys(errors).forEach((key) => (errors[key] = ""));
 
-  for (const { field, name } of requiredFields) {
-    if (!field || field.trim() === "") {
-      return false;
-    }
+  let isValid = true;
+
+  if (!firstName.value) {
+    errors.firstName = "El nombre es obligatorio.";
+    isValid = false;
   }
-  return true;
+  if (!lastName.value) {
+    errors.lastName = "Los apellidos son obligatorios.";
+    isValid = false;
+  }
+  if (!phone.value || !/^\+?\d{7,15}$/.test(phone.value)) {
+    errors.phone = "Teléfono inválido.";
+    isValid = false;
+  }
+  if (!address.value) {
+    errors.address = "La dirección es obligatoria.";
+    isValid = false;
+  }
+  if (!selectedCountry.value) {
+    errors.country = "El país es obligatorio.";
+    isValid = false;
+  }
+  if (!selectedState.value) {
+    errors.state = `El ${getStateLabel().toLowerCase()} es obligatorio.`;
+    isValid = false;
+  }
+  if (!selectedCity.value) {
+    errors.city = "La ciudad es obligatoria.";
+    isValid = false;
+  }
+  if (!phonePrefix.value) { // Asegurarse de que se haya seleccionado un prefijo
+    errors.phone = "El prefijo telefónico es obligatorio.";
+    isValid = false;
+  }
+
+  return isValid;
 };
+
 
 // Mostrar alerta de agradecimiento con el botón "Ver factura"
 const mostrarFactura = () => {
@@ -502,21 +430,15 @@ const mostrarFactura = () => {
       "Haz clic en el botón para ver tu factura."
     );
     mostrarFacturaModal();
-    
   });
-  
 };
 
 // Mostrar el modal con la información de la factura
 const mostrarFacturaModal = () => {
-  const selectedCountryName = country.value
-    ? document.querySelector(`#country option[value="${country.value}"]`)
-        .textContent
-    : "";
-  const selectedStateName =
-    state.value && availableStates.value.length > 0
-      ? availableStates.value.find((s) => s.code === state.value)?.name || ""
-      : "";
+  const selectedCountryObject = countries.value.find(c => c.id === selectedCountry.value);
+  const selectedCountryName = selectedCountryObject ? selectedCountryObject.name : "";
+  const selectedStateName = states.value.find(s => s.id === selectedState.value)?.name || "";
+  const selectedCityName = cities.value.find(c => c.id === selectedCity.value)?.name || "";
 
   Swal.fire({
     title: "Factura de pago",
@@ -524,17 +446,15 @@ const mostrarFacturaModal = () => {
       <div style="text-align: left; padding: 10px;">
         <p><strong>Nombre:</strong> ${payerName.value}</p>
         <p><strong>Email:</strong> ${payerEmail.value}</p>
-        <p><strong>Teléfono:</strong> ${phone.value}</p>
+        <p><strong>Teléfono:</strong> ${phonePrefix.value} ${phone.value}</p>
         <p><strong>Dirección:</strong> ${address.value}</p>
-        <p><strong>Ciudad:</strong> ${city.value}</p>
+        <p><strong>Ciudad:</strong> ${selectedCityName}</p>
         <p><strong>${getStateLabel()}:</strong> ${selectedStateName}</p>
         <p><strong>Código Postal:</strong> ${postalCode.value}</p>
         <p><strong>País:</strong> ${selectedCountryName}</p>
-        ${notes.value ? `<p><strong>Notas:</strong> ${notes.value}</p>` : ""}
+        ${deliveryNotes.value ? `<p><strong>Notas:</strong> ${deliveryNotes.value}</p>` : ""}
         <hr style="margin: 15px 0;">
-        <p style="font-size: 18px;"><strong>Total Pagado:</strong> $${
-          amountPaid.value
-        }</p>
+        <p style="font-size: 18px;"><strong>Total Pagado:</strong> $${amountPaid.value}</p>
       </div>
     `,
     icon: "success",
@@ -552,6 +472,11 @@ const renderPayPalButtons = () => {
         createOrder: (data, actions) => {
           // Validar datos antes de crear la orden
           if (!validateShippingData()) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error de validación',
+              text: 'Por favor, completa todos los campos obligatorios.',
+            });
             return Promise.reject("Datos de envío incompletos");
           }
 
@@ -593,44 +518,6 @@ const getCartTotalInCOP = () => {
   }, 0);
 };
 
-function validateForm() {
-  let isValid = true;
-
-  // Resetear errores
-  Object.keys(errors).forEach((key) => (errors[key] = ""));
-
-  if (!firstName.value) {
-    errors.firstName = "El nombre es obligatorio.";
-    isValid = false;
-  }
-  if (!lastName.value) {
-    errors.lastName = "Los apellidos son obligatorios.";
-    isValid = false;
-  }
-  if (!phone.value || !/^\+?\d{7,15}$/.test(phone.value)) {
-    errors.phone = "Teléfono inválido.";
-    isValid = false;
-  }
-  if (!address.value) {
-    errors.address = "La dirección es obligatoria.";
-    isValid = false;
-  }
-  if (!city.value) {
-    errors.city = "La ciudad es obligatoria.";
-    isValid = false;
-  }
-  if (!country.value) {
-    errors.country = "El país es obligatorio.";
-    isValid = false;
-  }
-  if (!state.value) {
-    errors.state = "La región es obligatoria.";
-    isValid = false;
-  }
-
-  return isValid;
-}
-
 onMounted(async () => {
   await loadPayPalScript();
   renderPayPalButtons();
@@ -639,7 +526,6 @@ onMounted(async () => {
   totalUSD.value = (totalCOP.value * exchangeRate).toFixed(2);
 });
 </script>
-
 
 <style scoped>
 .shipping-container {

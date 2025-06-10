@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+Excluir archivos JSON de utilidades
+src/utils/countries.json
+src/utils/states.json
+src/utils/cities.json
+src/utils/phone_codes.json
