@@ -15,6 +15,7 @@
             v-model="firstName"
             required
             placeholder="Tu nombre"
+            @blur="validateField('firstName')"
           />
           <p class="error" v-if="errors.firstName">{{ errors.firstName }}</p>
         </div>
@@ -26,6 +27,7 @@
             v-model="lastName"
             required
             placeholder="Tus apellidos"
+            @blur="validateField('lastName')"
           />
           <p class="error" v-if="errors.lastName">{{ errors.lastName }}</p>
         </div>
@@ -34,7 +36,11 @@
       <div class="form-group">
         <label for="phone">Teléfono *</label>
         <div class="phone-input-group">
-          <select v-model="phonePrefix" class="phone-prefix">
+          <select
+            v-model="phonePrefix"
+            class="phone-prefix"
+            @change="validateField('phonePrefix')"
+          >
             <option
               v-for="prefixOption in phoneCodes"
               :key="prefixOption.code"
@@ -50,6 +56,7 @@
             required
             placeholder="Ej: 320 123 4567"
             class="phone-input"
+            @blur="validateField('phone')"
           />
         </div>
         <p class="error" v-if="errors.phone">{{ errors.phone }}</p>
@@ -63,6 +70,7 @@
           v-model="address"
           required
           placeholder="Calle, número, apartamento, etc."
+          @blur="validateField('address')"
         />
         <p class="error" v-if="errors.address">{{ errors.address }}</p>
       </div>
@@ -70,7 +78,12 @@
       <div class="form-row">
         <div class="form-group half">
           <label for="country">País *</label>
-          <select id="country" v-model="selectedCountry" @change="onCountryChange">
+          <select
+            id="country"
+            v-model="selectedCountry"
+            @change="onCountryChange"
+            @blur="validateField('country')"
+          >
             <option value="">Selecciona un país</option>
             <option
               v-for="countryOption in countries"
@@ -84,7 +97,13 @@
         </div>
         <div class="form-group half">
           <label for="state">{{ getStateLabel() }} *</label>
-          <select id="state" v-model="selectedState" :disabled="!selectedCountry" @change="onStateChange">
+          <select
+            id="state"
+            v-model="selectedState"
+            :disabled="!selectedCountry"
+            @change="onStateChange"
+            @blur="validateField('state')"
+          >
             <option value="">
               {{
                 selectedCountry
@@ -106,7 +125,13 @@
       <div class="form-row">
         <div class="form-group half">
           <label for="city">Ciudad *</label>
-          <select id="city" v-model="selectedCity" :disabled="!selectedState">
+          <select
+            id="city"
+            v-model="selectedCity"
+            :disabled="!selectedState"
+            @change="validateField('city')"
+            @blur="validateField('city')"
+          >
             <option value="">
               {{
                 selectedState
@@ -131,6 +156,7 @@
             id="postalCode"
             v-model="postalCode"
             placeholder="Código postal"
+            @blur="validateField('postalCode')"
           />
           <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
         </div>
@@ -231,13 +257,13 @@
 import { ref, onMounted, computed, reactive } from "vue";
 import Swal from "sweetalert2";
 import { useAuthStore } from "../store/store.js";
-import { useRouter } from 'vue-router'
+import { useRouter } from "vue-router";
 
 // Importa tus archivos JSON
-import countriesData from '../utils/countries.json';
-import statesData from '../utils/states.json';
-import citiesData from '../utils/cities.json';
-import phoneCodesData from '../utils/CountryCodes.json'; // Importa el nuevo archivo
+import countriesData from "../utils/countries.json";
+import statesData from "../utils/states.json";
+import citiesData from "../utils/cities.json";
+import phoneCodesData from "../utils/CountryCodes.json"; // Importa el nuevo archivo
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -246,7 +272,7 @@ const authStore = useAuthStore();
 const firstName = ref("");
 const lastName = ref("");
 const phone = ref("");
-const phonePrefix = ref('+57'); // Valor inicial para Colombia
+const phonePrefix = ref("+57"); // Valor inicial para Colombia
 const address = ref("");
 const postalCode = ref("");
 const deliveryNotes = ref("");
@@ -259,8 +285,6 @@ const selectedCity = ref(null);
 // Variables para PayPal
 const totalCOP = ref(0);
 const totalUSD = ref(0);
-// No necesitas exchangeRate como ref si lo vas a buscar cada vez en onMounted
-// const exchangeRate = ref(4000); 
 const payerName = ref("");
 const payerEmail = ref("");
 const amountPaid = ref("");
@@ -280,7 +304,6 @@ const errors = reactive({
 const countries = ref(countriesData.countries);
 const states = ref(statesData.states);
 const cities = ref(citiesData.cities);
-// Asegúrate de que tu JSON de prefijos tenga una clave 'countries' o ajusta esta línea
 const phoneCodes = ref(phoneCodesData);
 
 // Computed para obtener los estados disponibles según el país seleccionado
@@ -288,7 +311,9 @@ const availableStates = computed(() => {
   if (!selectedCountry.value) {
     return [];
   }
-  return states.value.filter(state => state.id_country === selectedCountry.value);
+  return states.value.filter(
+    (state) => state.id_country === selectedCountry.value
+  );
 });
 
 // Computed para obtener las ciudades disponibles según el estado seleccionado
@@ -296,12 +321,12 @@ const availableCities = computed(() => {
   if (!selectedState.value) {
     return [];
   }
-  return cities.value.filter(city => city.id_state === selectedState.value);
+  return cities.value.filter((city) => city.id_state === selectedState.value);
 });
 
 // Función para obtener la etiqueta del campo de estado/departamento
 const getStateLabel = () => {
-  const countryObject = countries.value.find(c => c.id === selectedCountry.value);
+  const countryObject = countries.value.find((c) => c.id === selectedCountry.value);
   if (countryObject && countryObject.name === "Colombia") {
     return "Departamento";
   }
@@ -323,75 +348,112 @@ const getStateLabel = () => {
 // Función que se ejecuta cuando cambia el país
 const onCountryChange = () => {
   selectedState.value = null; // Resetear la selección de estado
-  selectedCity.value = null;  // Resetear la selección de ciudad
+  selectedCity.value = null; // Resetear la selección de ciudad
+  validateField("country"); // Validar país al cambiar
 
   // Establecer el prefijo telefónico basado en el país seleccionado
-  const selectedCountryObject = countries.value.find(c => c.id === selectedCountry.value);
+  const selectedCountryObject = countries.value.find(
+    (c) => c.id === selectedCountry.value
+  );
   if (selectedCountryObject) {
-    // Busca el prefijo por el nombre del país para que coincida con tus datos de países
-    const phoneCodeEntry = phoneCodes.value.find(pc => pc.name === selectedCountryObject.name);
+    const phoneCodeEntry = phoneCodes.value.find(
+      (pc) => pc.name === selectedCountryObject.name
+    );
     if (phoneCodeEntry) {
       phonePrefix.value = phoneCodeEntry.dial_code;
     } else {
-      phonePrefix.value = ''; // O un valor por defecto si no se encuentra
+      phonePrefix.value = ""; // O un valor por defecto si no se encuentra
     }
   } else {
-    phonePrefix.value = ''; // O un valor por defecto si no hay país seleccionado
+    phonePrefix.value = ""; // O un valor por defecto si no hay país seleccionado
   }
 };
 
 // Función que se ejecuta cuando cambia el estado
 const onStateChange = () => {
   selectedCity.value = null; // Resetear la selección de ciudad
+  validateField("state"); // Validar estado al cambiar
 };
 
 // --- Validaciones y Lógica de Pago ---
 
-// **ÚNICA** Función de validación de datos de envío
+// Función de validación individual de campos
+const validateField = (field) => {
+  errors[field] = ""; // Limpiar error previo para el campo específico
+
+  switch (field) {
+    case "firstName":
+      if (!firstName.value || firstName.value.trim() === "") {
+        errors.firstName = "El nombre es obligatorio.";
+      }
+      break;
+    case "lastName":
+      if (!lastName.value || lastName.value.trim() === "") {
+        errors.lastName = "Los apellidos son obligatorios.";
+      }
+      break;
+    case "phone":
+      if (!phone.value || !/^\d{7,15}$/.test(phone.value)) {
+        errors.phone = "Número de teléfono inválido (7-15 dígitos).";
+      }
+      break;
+    case "phonePrefix":
+      if (!phonePrefix.value) {
+        errors.phone = "El prefijo telefónico es obligatorio.";
+      }
+      break;
+    case "address":
+      if (!address.value || address.value.trim() === "") {
+        errors.address = "La dirección es obligatoria.";
+      }
+      break;
+    case "country":
+      if (!selectedCountry.value) {
+        errors.country = "El país es obligatorio.";
+      }
+      break;
+    case "state":
+      if (!selectedState.value) {
+        errors.state = `El ${getStateLabel().toLowerCase()} es obligatorio.`;
+      }
+      break;
+    case "city":
+      if (!selectedCity.value) {
+        errors.city = "La ciudad es obligatoria.";
+      }
+      break;
+    case "postalCode":
+      // Puedes añadir validación para postalCode si es requerido o tiene un formato específico
+      // if (postalCode.value && !/^\d{5}$/.test(postalCode.value)) {
+      //   errors.postalCode = "Código postal inválido.";
+      // }
+      break;
+    default:
+      break;
+  }
+};
+
+// Función para validar todos los datos de envío
 const validateShippingData = () => {
-  // Limpiar errores previos
-  Object.keys(errors).forEach((key) => (errors[key] = ""));
-
   let isValid = true;
+  const fieldsToValidate = [
+    "firstName",
+    "lastName",
+    "phone",
+    "phonePrefix",
+    "address",
+    "country",
+    "state",
+    "city",
+    // "postalCode" // Descomentar si es obligatorio
+  ];
 
-  if (!firstName.value || firstName.value.trim() === "") {
-    errors.firstName = "El nombre es obligatorio.";
-    isValid = false;
-  }
-  if (!lastName.value || lastName.value.trim() === "") {
-    errors.lastName = "Los apellidos son obligatorios.";
-    isValid = false;
-  }
-  // Combina prefijo y número para validar el teléfono completo
-  if (!phone.value || !/^\d{7,15}$/.test(phone.value)) { // Ajusta el regex si necesitas el prefijo incluido
-    errors.phone = "Número de teléfono inválido (7-15 dígitos).";
-    isValid = false;
-  }
-  if (!phonePrefix.value) {
-    errors.phone = "El prefijo telefónico es obligatorio.";
-    isValid = false;
-  }
-  if (!address.value || address.value.trim() === "") {
-    errors.address = "La dirección es obligatoria.";
-    isValid = false;
-  }
-  if (!selectedCountry.value) {
-    errors.country = "El país es obligatorio.";
-    isValid = false;
-  }
-  if (!selectedState.value) {
-    errors.state = `El ${getStateLabel().toLowerCase()} es obligatorio.`;
-    isValid = false;
-  }
-  if (!selectedCity.value) {
-    errors.city = "La ciudad es obligatoria.";
-    isValid = false;
-  }
-  // Puedes añadir validación para postalCode si es requerido o tiene un formato específico
-  // if (postalCode.value && !/^\d{5}$/.test(postalCode.value)) {
-  //   errors.postalCode = "Código postal inválido.";
-  //   isValid = false;
-  // }
+  fieldsToValidate.forEach((field) => {
+    validateField(field);
+    if (errors[field]) {
+      isValid = false;
+    }
+  });
 
   return isValid;
 };
@@ -399,7 +461,7 @@ const validateShippingData = () => {
 // Cargar PayPal SDK
 const loadPayPalScript = () => {
   return new Promise((resolve, reject) => {
-    if (document.getElementById("paypal-sdk") || window.paypal) { // Check both global window and existing script
+    if (document.getElementById("paypal-sdk") || window.paypal) {
       resolve();
       return;
     }
@@ -447,10 +509,16 @@ const mostrarFactura = () => {
 
 // Mostrar el modal con la información de la factura
 const mostrarFacturaModal = () => {
-  const selectedCountryObject = countries.value.find(c => c.id === selectedCountry.value);
-  const selectedCountryName = selectedCountryObject ? selectedCountryObject.name : "";
-  const selectedStateName = states.value.find(s => s.id === selectedState.value)?.name || "";
-  const selectedCityName = cities.value.find(c => c.id === selectedCity.value)?.name || "";
+  const selectedCountryObject = countries.value.find(
+    (c) => c.id === selectedCountry.value
+  );
+  const selectedCountryName = selectedCountryObject
+    ? selectedCountryObject.name
+    : "";
+  const selectedStateName =
+    states.value.find((s) => s.id === selectedState.value)?.name || "";
+  const selectedCityName =
+    cities.value.find((c) => c.id === selectedCity.value)?.name || "";
 
   Swal.fire({
     title: "Factura de pago",
@@ -482,14 +550,25 @@ const renderPayPalButtons = () => {
     window.paypal
       .Buttons({
         createOrder: (data, actions) => {
-          // Validar datos antes de crear la orden
+          // Validate shipping data before creating the order
           if (!validateShippingData()) {
             Swal.fire({
-              icon: 'error',
-              title: 'Error de validación',
-              text: 'Por favor, completa todos los campos obligatorios.',
+              icon: "error",
+              title: "Error de validación",
+              text: "Por favor, completa todos los campos obligatorios.",
             });
             return Promise.reject("Datos de envío incompletos");
+          }
+
+          // Check if totalUSD is 0
+          if (parseFloat(totalUSD.value) <= 0) {
+            Swal.fire({
+              icon: "error",
+              title: "Monto inválido",
+              text: "El total del pedido no puede ser $0.00. Por favor, agrega productos a tu carrito.",
+            });
+            router.push("/"); // Redirect to the root path
+            return Promise.reject("Total del pedido es 0");
           }
 
           return actions.order.create({
@@ -526,16 +605,30 @@ const renderPayPalButtons = () => {
 
 const getCartTotalInCOP = () => {
   return authStore.cartItems.reduce((total, item) => {
-    return total + (item.price * item.quantity);
+    return total + item.price * item.quantity;
   }, 0);
 };
 
 onMounted(async () => {
   await loadPayPalScript();
-  renderPayPalButtons();
   totalCOP.value = getCartTotalInCOP();
-  const exchangeRateValue = await fetchExchangeRate(); // Renombrar la constante
+  const exchangeRateValue = await fetchExchangeRate();
   totalUSD.value = (totalCOP.value * exchangeRateValue).toFixed(2);
+
+  // If totalUSD is 0, show an alert and redirect
+  if (parseFloat(totalUSD.value) <= 0) {
+    Swal.fire({
+      icon: "info",
+      title: "Carrito vacío",
+      text: "Tu carrito está vacío. Por favor, agrega productos antes de proceder al pago.",
+      confirmButtonText: "Ir a la tienda",
+      confirmButtonColor: "#068FFF",
+    }).then(() => {
+      router.push("/"); // Redirect to the root path
+    });
+  } else {
+    renderPayPalButtons();
+  }
 });
 </script>
 
@@ -782,6 +875,12 @@ textarea {
 
 #paypal-button-container {
   min-height: 50px;
+}
+
+.error {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
 }
 
 @keyframes shine {
