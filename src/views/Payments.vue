@@ -544,31 +544,172 @@ const mostrarFacturaModal = () => {
   });
 };
 
-// Renderizar el botón de PayPal
+const createBackendOrder = async () => {
+  try {
+    console.log('=== CREANDO ORDEN EN BACKEND ===');
+    
+    // Validate auth and user
+    if (!authStore.token) {
+      throw new Error('No se encontró el token de autenticación. Por favor inicia sesión nuevamente.');
+    }
+
+    if (!authStore.user) {
+      throw new Error('No se pudo obtener la información del usuario. Por favor recarga la página e inicia sesión nuevamente.');
+    }
+
+    const userId = authStore.user.id || authStore.user._id;
+    if (!userId) {
+      throw new Error('La información del usuario no es válida. Falta el ID del usuario.');
+    }
+
+    // Validate and format shipping info
+    const shippingInfo = {
+      firstName: String(firstName.value || '').trim(),
+      lastName: String(lastName.value || '').trim(),
+      phone: `${phonePrefix.value}${String(phone.value || '').trim()}`,
+      address: String(address.value || '').trim(),
+      city: String(city.value || '').trim(),
+      state: String(state.value || '').trim(),
+      country: String(country.value || '').trim(),
+      postalCode: String(postalCode.value || '').trim(),
+      notes: String(deliveryNotes.value || '').trim()
+    };
+
+    // Validar que los campos requeridos no estén vacíos
+    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'city'];
+    const missingFields = requiredFields.filter(field => !shippingInfo[field] || shippingInfo[field].length === 0);
+
+    if (missingFields.length > 0) {
+      throw new Error(`Los siguientes campos son requeridos: ${missingFields.join(', ')}`);
+    }
+
+    // Validate products
+    if (!authStore.cartItems || authStore.cartItems.length === 0) {
+      throw new Error('El carrito está vacío');
+    }
+
+    // Calcular total real basado en precios con descuento
+    const products = authStore.cartItems.map(item => {
+      const productId = item.id || item._id;
+      if (!productId) {
+        throw new Error('Uno o más productos no tienen un ID válido');
+      }
+      
+      // Asegurarse de que los precios sean números y tengan exactamente 2 decimales
+      const price = Math.round(Number(item.discountedPrice || item.price || 0) * 100) / 100;
+      const originalPrice = Math.round(Number(item.price || 0) * 100) / 100;
+      const quantity = parseInt(item.quantity) || 1;
+      const discountApplied = originalPrice > price ? Math.round((originalPrice - price) * 100) / 100 : 0;
+      const subtotal = Math.round((price * quantity) * 100) / 100;
+      
+      return {
+        productId: productId,
+        quantity: quantity,
+        price: price,
+        originalPrice: originalPrice,
+        discountApplied: discountApplied,
+        subtotal: subtotal
+      };
+    });
+
+    // Calcular el total basado en los precios con descuento
+    const total = Math.round(products.reduce((sum, product) => {
+      return sum + (product.price * product.quantity);
+    }, 0) * 100) / 100;
+
+    // Si no hay tasa de cambio, usar un valor por defecto
+    const currentExchangeRate = exchangeRate.value || 4000;
+    
+    // Actualizar el total en COP y USD
+    totalCOP.value = total;
+    totalUSD.value = Math.round((total / currentExchangeRate) * 100) / 100;
+    
+    console.log('=== DETALLES DE LA ORDEN ===');
+    console.log('Productos procesados:', JSON.stringify(products, null, 2));
+    console.log('Total calculado (COP):', total);
+    console.log('Total calculado (USD):', totalUSD.value);
+    console.log('Tipo de total:', typeof total);
+    console.log('Tipo de totalUSD:', typeof totalUSD.value);
+    console.log('Tipo de precio de primer producto:', typeof products[0]?.price);
+    console.log('Tipo de cantidad de primer producto:', typeof products[0]?.quantity);
+
+    // ESTRUCTURA CORRECTA DE DATOS
+    const orderData = {
+      usuarioId: userId,
+      products: products.map(p => ({
+        productId: p.productId,
+        quantity: p.quantity,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        discountApplied: p.discountApplied,
+        subtotal: p.subtotal
+      })),
+      total: total,
+      totalUSD: totalUSD.value,
+      shippingInfo: shippingInfo,
+      exchangeRate: currentExchangeRate,
+      currency: 'COP',
+      status: 'pending'
+    };
+    
+    // Validar que la suma de los subtotales sea igual al total
+    const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
+    if (Math.abs(calculatedTotal - total) > 0.01) {
+      throw new Error(`La suma de los subtotales (${calculatedTotal}) no coincide con el total (${total})`);
+    }
+
+    console.log('Order data to send:', JSON.stringify(orderData, null, 2));
+    console.log('Shipping info specifically:', JSON.stringify(orderData.shippingInfo, null, 2));
+
+    const response = await fetch('http://localhost:3000/api/ordenes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify(orderData)
+    });
+
+    const responseText = await response.text();
+    console.log('Server response status:', response.status);
+    console.log('Server response text:', responseText);
+
+    if (!response.ok) {
+      let errorMessage = `Server error: ${response.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.message || errorMessage;
+        if (errorData.errors) {
+          errorMessage += ` - Errores: ${errorData.errors.join(', ')}`;
+        }
+      } catch (parseError) {
+        errorMessage += ` - ${responseText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error('Error in createBackendOrder:', error);
+    throw error;
+  }
+};
+
+
+// PayPal buttons corregidos
 const renderPayPalButtons = () => {
   if (window.paypal) {
     window.paypal
       .Buttons({
         createOrder: (data, actions) => {
-          // Validate shipping data before creating the order
+          // Validar datos antes de crear la orden
           if (!validateShippingData()) {
             Swal.fire({
-              icon: "error",
-              title: "Error de validación",
-              text: "Por favor, completa todos los campos obligatorios.",
+              icon: 'error',
+              title: 'Error de validación',
+              text: 'Por favor, completa todos los campos obligatorios.',
             });
             return Promise.reject("Datos de envío incompletos");
-          }
-
-          // Check if totalUSD is 0
-          if (parseFloat(totalUSD.value) <= 0) {
-            Swal.fire({
-              icon: "error",
-              title: "Monto inválido",
-              text: "El total del pedido no puede ser $0.00. Por favor, agrega productos a tu carrito.",
-            });
-            router.push("/"); // Redirect to the root path
-            return Promise.reject("Total del pedido es 0");
           }
 
           return actions.order.create({
@@ -603,32 +744,50 @@ const renderPayPalButtons = () => {
   }
 };
 
+
+
+
 const getCartTotalInCOP = () => {
   return authStore.cartItems.reduce((total, item) => {
-    return total + item.price * item.quantity;
+    return total + (item.price * item.quantity);
   }, 0);
+  
+  // Luego calcular el total con descuentos
+  const totalConDescuento = authStore.cartItems.reduce((sum, item) => {
+    const originalPrice = Number(item.originalPrice || item.price || 0);
+    const hasDiscount = item.discountedPrice && 
+                       Number(item.discountedPrice) > 0 && 
+                       Number(item.discountedPrice) < originalPrice;
+    
+    const priceToUse = hasDiscount ? Number(item.discountedPrice) : originalPrice;
+    const quantity = parseInt(item.quantity) || 1;
+    
+    console.log(`Producto: ${item.name || 'sin nombre'}`);
+    console.log(`- Precio original: ${originalPrice}`);
+    console.log(`- Precio con descuento: ${hasDiscount ? item.discountedPrice : 'N/A'}`);
+    console.log(`- Precio a usar: ${priceToUse}`);
+    console.log(`- Cantidad: ${quantity}`);
+    console.log(`- Subtotal: ${priceToUse * quantity}`);
+    console.log('---');
+    
+    return sum + (priceToUse * quantity);
+  }, 0);
+  
+  console.log('=== RESUMEN DE TOTALES ===');
+  console.log('Total sin descuentos:', totalSinDescuento);
+  console.log('Total con descuentos:', totalConDescuento);
+  console.log('Ahorro total:', totalSinDescuento - totalConDescuento);
+  
+  return Math.round(totalConDescuento * 100) / 100;
 };
+
 
 onMounted(async () => {
   await loadPayPalScript();
+  renderPayPalButtons();
   totalCOP.value = getCartTotalInCOP();
-  const exchangeRateValue = await fetchExchangeRate();
+  const exchangeRateValue = await fetchExchangeRate(); // Renombrar la constante
   totalUSD.value = (totalCOP.value * exchangeRateValue).toFixed(2);
-
-  // If totalUSD is 0, show an alert and redirect
-  if (parseFloat(totalUSD.value) <= 0) {
-    Swal.fire({
-      icon: "info",
-      title: "Carrito vacío",
-      text: "Tu carrito está vacío. Por favor, agrega productos antes de proceder al pago.",
-      confirmButtonText: "Ir a la tienda",
-      confirmButtonColor: "#068FFF",
-    }).then(() => {
-      router.push("/"); // Redirect to the root path
-    });
-  } else {
-    renderPayPalButtons();
-  }
 });
 </script>
 
