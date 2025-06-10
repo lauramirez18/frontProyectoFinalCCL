@@ -232,6 +232,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function clearCart() {
+    cartItems.value = []
+  }
+
   function getUser() {
     return user.value
   }
@@ -309,6 +313,7 @@ export const useAuthStore = defineStore('auth', () => {
     removeFromFavorites,
     isFavorite,
     addToCart,
+    clearCart,
     setToken,
     getToken,
     setUser,

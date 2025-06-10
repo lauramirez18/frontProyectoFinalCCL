@@ -323,7 +323,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from '../store/store';
-import { postData, putData } from '../services/apiClient';
+import { postData, putData, getData } from '../services/apiClient';
 
 const $q = useQuasar();
 const authStore = useAuthStore();
@@ -375,9 +375,12 @@ const themeOptions = [
 // Cargar datos del usuario
 onMounted(async () => {
   try {
-    // Aquí cargarías los datos del usuario desde tu API
-    const user = authStore.user;
+    // Obtener datos del usuario desde el backend
+    const response = await getData('account/profile');
+    const user = response;
+
     if (user) {
+      // Actualizar datos del usuario
       userData.name = user.name;
       userData.email = user.email;
       
@@ -386,8 +389,19 @@ onMounted(async () => {
       formData.firstName = firstName;
       formData.lastName = lastNameParts.join(' ');
       formData.email = user.email;
+      formData.phone = user.phone || '';
+      formData.address = user.address || '';
+      formData.city = user.city || '';
       
-      // Si tienes una foto de perfil guardada
+      // Cargar preferencias
+      if (user.preferences) {
+        formData.language = user.preferences.language || 'es';
+        formData.theme = user.preferences.theme || 'light';
+        formData.notifications = user.preferences.notifications ?? true;
+        formData.newsletter = user.preferences.newsletter ?? true;
+      }
+      
+      // Si tiene una foto de perfil guardada
       if (user.photoUrl) {
         photoUrl.value = user.photoUrl;
       }
@@ -426,7 +440,7 @@ const onFileSelected = async (event) => {
     formData.append('photo', file);
 
     // Aquí harías la petición a tu API para subir la foto
-    const response = await postData('usuarios/upload-photo', formData);
+    const response = await postData('account/upload-photo', formData);
     photoUrl.value = response.photoUrl;
 
     showSuccess('Foto de perfil actualizada');
@@ -459,13 +473,12 @@ const onSubmit = async () => {
     };
 
     // Actualizar datos en el backend
-    await putData('usuarios/update', updateData);
+    const response = await putData('account/update-profile', updateData);
 
-    // Actualizar store
-    authStore.updateUser({
+    // Actualizar store con los nuevos datos
+    authStore.setUser({
       ...authStore.user,
-      name: updateData.name,
-      email: updateData.email
+      ...updateData
     });
 
     showSuccess('Datos actualizados correctamente');
@@ -497,7 +510,7 @@ const onChangePassword = async () => {
 
   try {
     loading.value = true;
-    await putData('usuarios/change-password', {
+    await putData('account/change-password', {
       currentPassword: passwordForm.current,
       newPassword: passwordForm.new
     });
@@ -521,7 +534,7 @@ const onChangePassword = async () => {
 const deleteAccount = async () => {
   try {
     loading.value = true;
-    await postData('usuarios/delete-account');
+    await postData('account/delete-account');
     
     // Cerrar sesión y redirigir
     authStore.logout();

@@ -13,7 +13,7 @@
           <input
             type="text"
             id="firstName"
-            :value="firstName"
+            v-model="firstName"
             @input="firstName = $event.target.value.toUpperCase()"
             required
             placeholder="Tu nombre"
@@ -25,7 +25,7 @@
           <input
             type="text"
             id="lastName"
-            :value="lastName"
+            v-model="lastName"
             @input="lastName = $event.target.value.toUpperCase()"
             required
             placeholder="Tus apellidos"
@@ -34,34 +34,34 @@
         </div>
       </div>
 
-<div class="form-group">
-  <label for="phone">Teléfono *</label>
-  <div class="phone-input-group">
-    <select v-model="phonePrefix" class="phone-prefix">
-      <option value="+57">🇨🇴 +57</option>
-      <option value="+34">🇪🇸 +34</option>
-      <option value="+52">🇲🇽 +52</option>
-      <option value="+54">🇦🇷 +54</option>
-      <option value="+56">🇨🇱 +56</option>
-    </select>
-    <input
-      type="tel"
-      id="phone"
-      v-model="phone"
-      required
-      placeholder="Ej: 320 123 4567"
-      class="phone-input"
-    />
-  </div>
-  <p class="error" v-if="errors.phone">{{ errors.phone }}</p>
-</div>
+      <div class="form-group">
+        <label for="phone">Teléfono *</label>
+        <div class="phone-input-group">
+          <select v-model="phonePrefix" class="phone-prefix">
+            <option value="+57">🇨🇴 +57</option>
+            <option value="+34">🇪🇸 +34</option>
+            <option value="+52">🇲🇽 +52</option>
+            <option value="+54">🇦🇷 +54</option>
+            <option value="+56">🇨🇱 +56</option>
+          </select>
+          <input
+            type="tel"
+            id="phone"
+            v-model="phone"
+            required
+            placeholder="Ej: 320 123 4567"
+            class="phone-input"
+          />
+        </div>
+        <p class="error" v-if="errors.phone">{{ errors.phone }}</p>
+      </div>
 
       <div class="form-group">
         <label for="address">Dirección completa *</label>
         <input
           type="text"
           id="address"
-          :value="address"
+          v-model="address"
           @input="address = $event.target.value.toUpperCase()"
           required
           placeholder="Calle, número, apartamento, etc."
@@ -71,8 +71,8 @@
 
       <div class="form-row">
         <div class="form-group half">
-          <label for="country">País</label>
-          <select id="country" v-model="country" @change="onCountryChange">
+          <label for="country">País *</label>
+          <select id="country" v-model="country" @change="onCountryChange" required>
             <option value="">Selecciona un país</option>
             <option value="CO">Colombia</option>
             <option value="ES">España</option>
@@ -80,10 +80,11 @@
             <option value="AR">Argentina</option>
             <option value="CL">Chile</option>
           </select>
+          <p class="error" v-if="errors.country">{{ errors.country }}</p>
         </div>
         <div class="form-group half">
-          <label for="state">{{ getStateLabel() }}</label>
-          <select id="state" v-model="state" :disabled="!country">
+          <label for="state">{{ getStateLabel() }} *</label>
+          <select id="state" v-model="state" :disabled="!country" required>
             <option value="">
               {{
                 country
@@ -99,6 +100,7 @@
               {{ stateOption.name }}
             </option>
           </select>
+          <p class="error" v-if="errors.state">{{ errors.state }}</p>
         </div>
       </div>
       <div class="form-row">
@@ -107,7 +109,7 @@
           <input
             type="text"
             id="city"
-            :value="city"
+            v-model="city"
             @input="city = $event.target.value.toUpperCase()"
             required
             placeholder="Tu ciudad"
@@ -122,7 +124,7 @@
             v-model="postalCode"
             placeholder="Código postal"
           />
-          <p class="error" v-if="errors.firstName">{{ errors.postalCode }}</p>
+          <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
         </div>
       </div>
       <div class="form-group">
@@ -223,30 +225,31 @@
 import { ref, onMounted, computed, reactive } from "vue";
 import Swal from "sweetalert2";
 import { useAuthStore } from "../store/store.js";
-import { useRouter } from 'vue-router'
+import { useRouter } from 'vue-router';
 
-const router = useRouter()
+const router = useRouter();
 const authStore = useAuthStore();
-const totalCOP = ref(0);
-const totalUSD = ref(0);
 
 // Datos de envío
 const firstName = ref("");
 const lastName = ref("");
 const phone = ref("");
-const phonePrefix = ref('+57')
+const phonePrefix = ref('+57');
 const address = ref("");
 const postalCode = ref("");
 const city = ref("");
 const country = ref("");
 const state = ref("");
-const notes = ref("");
+const deliveryNotes = ref("");
 
-// Variables para mostrar en el modal de factura
+// Variables para PayPal
+const totalCOP = ref(0);
+const totalUSD = ref(0);
+const exchangeRate = ref(4000); // Tasa de cambio por defecto (1 USD = 4000 COP)
 const payerName = ref("");
 const payerEmail = ref("");
 const amountPaid = ref("");
-
+const currentOrderId = ref(null);
 
 const errors = reactive({
   firstName: "",
@@ -254,14 +257,13 @@ const errors = reactive({
   phone: "",
   address: "",
   city: "",
-
   state: "",
+  country: ""
 });
 
-// Datos de estados/departamentos por país
+// Estados/departamentos por país
 const statesData = {
   CO: {
-    // Colombia
     label: "Departamento",
     states: [
       { code: "AMA", name: "Amazonas" },
@@ -289,42 +291,71 @@ const statesData = {
       { code: "PUT", name: "Putumayo" },
       { code: "QUI", name: "Quindío" },
       { code: "RIS", name: "Risaralda" },
-      { code: "SAP", name: "San Andrés y Providencia" },
       { code: "SAN", name: "Santander" },
       { code: "SUC", name: "Sucre" },
       { code: "TOL", name: "Tolima" },
       { code: "VAC", name: "Valle del Cauca" },
       { code: "VAU", name: "Vaupés" },
-      { code: "VIC", name: "Vichada" },
-    ],
+      { code: "VIC", name: "Vichada" }
+    ]
   },
   ES: {
-    // España
-    label: "Comunidad Autónoma",
+    label: "Provincia",
     states: [
-      { code: "AN", name: "Andalucía" },
-      { code: "AR", name: "Aragón" },
-      { code: "AS", name: "Asturias" },
-      { code: "IB", name: "Islas Baleares" },
-      { code: "CN", name: "Canarias" },
-      { code: "CB", name: "Cantabria" },
-      { code: "CM", name: "Castilla-La Mancha" },
-      { code: "CL", name: "Castilla y León" },
-      { code: "CT", name: "Cataluña" },
-      { code: "EX", name: "Extremadura" },
-      { code: "GA", name: "Galicia" },
-      { code: "MD", name: "Madrid" },
-      { code: "MC", name: "Murcia" },
-      { code: "NC", name: "Navarra" },
-      { code: "PV", name: "País Vasco" },
-      { code: "RI", name: "La Rioja" },
-      { code: "VC", name: "Valencia" },
+      { code: "A", name: "Alicante" },
+      { code: "AB", name: "Albacete" },
+      { code: "AV", name: "Ávila" },
+      { code: "B", name: "Barcelona" },
+      { code: "BA", name: "Badajoz" },
+      { code: "BI", name: "Vizcaya" },
+      { code: "BU", name: "Burgos" },
+      { code: "C", name: "La Coruña" },
+      { code: "CA", name: "Cádiz" },
+      { code: "CC", name: "Cáceres" },
       { code: "CE", name: "Ceuta" },
+      { code: "CO", name: "Córdoba" },
+      { code: "CR", name: "Ciudad Real" },
+      { code: "CS", name: "Castellón" },
+      { code: "CU", name: "Cuenca" },
+      { code: "GC", name: "Las Palmas" },
+      { code: "GI", name: "Girona" },
+      { code: "GR", name: "Granada" },
+      { code: "GU", name: "Guadalajara" },
+      { code: "H", name: "Huelva" },
+      { code: "HU", name: "Huesca" },
+      { code: "J", name: "Jaén" },
+      { code: "L", name: "Lleida" },
+      { code: "LE", name: "León" },
+      { code: "LO", name: "La Rioja" },
+      { code: "LU", name: "Lugo" },
+      { code: "M", name: "Madrid" },
+      { code: "MA", name: "Málaga" },
       { code: "ML", name: "Melilla" },
-    ],
+      { code: "MU", name: "Murcia" },
+      { code: "NA", name: "Navarra" },
+      { code: "O", name: "Asturias" },
+      { code: "OR", name: "Ourense" },
+      { code: "P", name: "Palencia" },
+      { code: "PM", name: "Baleares" },
+      { code: "PO", name: "Pontevedra" },
+      { code: "S", name: "Cantabria" },
+      { code: "SA", name: "Salamanca" },
+      { code: "SE", name: "Sevilla" },
+      { code: "SG", name: "Segovia" },
+      { code: "SO", name: "Soria" },
+      { code: "SS", name: "Guipúzcoa" },
+      { code: "T", name: "Tarragona" },
+      { code: "TE", name: "Teruel" },
+      { code: "TF", name: "Santa Cruz de Tenerife" },
+      { code: "TO", name: "Toledo" },
+      { code: "V", name: "Valencia" },
+      { code: "VA", name: "Valladolid" },
+      { code: "VI", name: "Álava" },
+      { code: "Z", name: "Zaragoza" },
+      { code: "ZA", name: "Zamora" }
+    ]
   },
   MX: {
-    // México
     label: "Estado",
     states: [
       { code: "AGU", name: "Aguascalientes" },
@@ -335,13 +366,12 @@ const statesData = {
       { code: "CHH", name: "Chihuahua" },
       { code: "COA", name: "Coahuila" },
       { code: "COL", name: "Colima" },
-      { code: "DIF", name: "Ciudad de México" },
       { code: "DUR", name: "Durango" },
       { code: "GUA", name: "Guanajuato" },
       { code: "GRO", name: "Guerrero" },
       { code: "HID", name: "Hidalgo" },
       { code: "JAL", name: "Jalisco" },
-      { code: "MEX", name: "Estado de México" },
+      { code: "MEX", name: "México" },
       { code: "MIC", name: "Michoacán" },
       { code: "MOR", name: "Morelos" },
       { code: "NAY", name: "Nayarit" },
@@ -359,287 +389,581 @@ const statesData = {
       { code: "VER", name: "Veracruz" },
       { code: "YUC", name: "Yucatán" },
       { code: "ZAC", name: "Zacatecas" },
-    ],
+      { code: "CMX", name: "Ciudad de México" }
+    ]
   },
   AR: {
-    // Argentina
     label: "Provincia",
     states: [
-      { code: "BA", name: "Buenos Aires" },
-      { code: "CA", name: "Catamarca" },
-      { code: "CH", name: "Chaco" },
-      { code: "CU", name: "Chubut" },
-      { code: "CB", name: "Córdoba" },
-      { code: "CR", name: "Corrientes" },
-      { code: "ER", name: "Entre Ríos" },
-      { code: "FO", name: "Formosa" },
-      { code: "JU", name: "Jujuy" },
-      { code: "LP", name: "La Pampa" },
-      { code: "LR", name: "La Rioja" },
-      { code: "MZ", name: "Mendoza" },
-      { code: "MI", name: "Misiones" },
-      { code: "NQ", name: "Neuquén" },
-      { code: "RN", name: "Río Negro" },
-      { code: "SA", name: "Salta" },
-      { code: "SJ", name: "San Juan" },
-      { code: "SL", name: "San Luis" },
-      { code: "SC", name: "Santa Cruz" },
-      { code: "SF", name: "Santa Fe" },
-      { code: "SE", name: "Santiago del Estero" },
-      { code: "TF", name: "Tierra del Fuego" },
-      { code: "TU", name: "Tucumán" },
-      { code: "CABA", name: "Ciudad Autónoma de Buenos Aires" },
-    ],
+      { code: "C", name: "Ciudad Autónoma de Buenos Aires" },
+      { code: "B", name: "Buenos Aires" },
+      { code: "K", name: "Catamarca" },
+      { code: "H", name: "Chaco" },
+      { code: "U", name: "Chubut" },
+      { code: "X", name: "Córdoba" },
+      { code: "W", name: "Corrientes" },
+      { code: "E", name: "Entre Ríos" },
+      { code: "P", name: "Formosa" },
+      { code: "Y", name: "Jujuy" },
+      { code: "L", name: "La Pampa" },
+      { code: "F", name: "La Rioja" },
+      { code: "M", name: "Mendoza" },
+      { code: "N", name: "Misiones" },
+      { code: "Q", name: "Neuquén" },
+      { code: "R", name: "Río Negro" },
+      { code: "A", name: "Salta" },
+      { code: "J", name: "San Juan" },
+      { code: "D", name: "San Luis" },
+      { code: "Z", name: "Santa Cruz" },
+      { code: "S", name: "Santa Fe" },
+      { code: "G", name: "Santiago del Estero" },
+      { code: "V", name: "Tierra del Fuego" },
+      { code: "T", name: "Tucumán" }
+    ]
   },
   CL: {
-    // Chile
     label: "Región",
     states: [
-      { code: "AI", name: "Arica y Parinacota" },
-      { code: "TA", name: "Tarapacá" },
-      { code: "AN", name: "Antofagasta" },
-      { code: "AT", name: "Atacama" },
-      { code: "CO", name: "Coquimbo" },
-      { code: "VS", name: "Valparaíso" },
+      { code: "XV", name: "Arica y Parinacota" },
+      { code: "I", name: "Tarapacá" },
+      { code: "II", name: "Antofagasta" },
+      { code: "III", name: "Atacama" },
+      { code: "IV", name: "Coquimbo" },
+      { code: "V", name: "Valparaíso" },
       { code: "RM", name: "Metropolitana de Santiago" },
-      { code: "LI", name: "Libertador Gral. Bernardo O'Higgins" },
-      { code: "ML", name: "Maule" },
-      { code: "NB", name: "Ñuble" },
-      { code: "BI", name: "Biobío" },
-      { code: "AR", name: "La Araucanía" },
-      { code: "LR", name: "Los Ríos" },
-      { code: "LL", name: "Los Lagos" },
-      { code: "AY", name: "Aysén del Gral. Carlos Ibáñez del Campo" },
-      { code: "MA", name: "Magallanes y de la Antártica Chilena" },
-    ],
-  },
+      { code: "VI", name: "O'Higgins" },
+      { code: "VII", name: "Maule" },
+      { code: "XVI", name: "Ñuble" },
+      { code: "VIII", name: "Biobío" },
+      { code: "IX", name: "La Araucanía" },
+      { code: "XIV", name: "Los Ríos" },
+      { code: "X", name: "Los Lagos" },
+      { code: "XI", name: "Aysén" },
+      { code: "XII", name: "Magallanes y Antártica Chilena" }
+    ]
+  }
 };
 
-// Computed para obtener los estados disponibles según el país seleccionado
 const availableStates = computed(() => {
-  return country.value && statesData[country.value]
-    ? statesData[country.value].states
+  return country.value && statesData[country.value] 
+    ? statesData[country.value].states 
     : [];
 });
 
-// Función para obtener la etiqueta del campo de estado/departamento
 const getStateLabel = () => {
   return country.value && statesData[country.value]
     ? statesData[country.value].label
     : "Estado/Departamento";
 };
 
-// Función que se ejecuta cuando cambia el país
 const onCountryChange = () => {
-  // Resetear la selección de estado cuando cambia el país
   state.value = "";
+  // Limpiar error de estado al cambiar país
+  errors.state = "";
 };
 
-// Cargar PayPal SDK
+// Función de validación mejorada
+const validateShippingData = () => {
+  console.log('=== VALIDANDO DATOS DE ENVÍO ===');
+  console.log('firstName:', firstName.value);
+  console.log('lastName:', lastName.value);
+  console.log('phone:', phone.value);
+  console.log('address:', address.value);
+  console.log('city:', city.value);
+  console.log('country:', country.value);
+  console.log('state:', state.value);
+
+  // Limpiar errores previos
+  Object.keys(errors).forEach(key => {
+    errors[key] = "";
+  });
+
+  let isValid = true;
+
+  // Validar campos requeridos
+  if (!firstName.value || firstName.value.trim() === "") {
+    errors.firstName = "Nombre es requerido";
+    isValid = false;
+  }
+
+  if (!lastName.value || lastName.value.trim() === "") {
+    errors.lastName = "Apellidos son requeridos";
+    isValid = false;
+  }
+
+  if (!phone.value || phone.value.trim() === "") {
+    errors.phone = "Teléfono es requerido";
+    isValid = false;
+  }
+
+  if (!address.value || address.value.trim() === "") {
+    errors.address = "Dirección es requerida";
+    isValid = false;
+  }
+
+  if (!city.value || city.value.trim() === "") {
+    errors.city = "Ciudad es requerida";
+    isValid = false;
+  }
+
+  if (!country.value || country.value.trim() === "") {
+    errors.country = "País es requerido";
+    isValid = false;
+  }
+
+  if (!state.value || state.value.trim() === "") {
+    errors.state = `${getStateLabel()} es requerido`;
+    isValid = false;
+  }
+
+  console.log('Validación completada. Es válido:', isValid);
+  console.log('Errores:', errors);
+
+  return isValid;
+};
+
 const loadPayPalScript = () => {
   return new Promise((resolve, reject) => {
-    if (document.getElementById("paypal-sdk")) {
+    if (window.paypal) {
       resolve();
       return;
     }
 
     const script = document.createElement("script");
-    script.id = "paypal-sdk";
-    script.src =
-      "https://www.paypal.com/sdk/js?client-id=AW4MvAt5Q003Hf0opseAiliz0s0HLJZwV-9ni8KiaaoIYCHsYsnRVU1BxpJ6LHqWtFipgKDZUFNrka5t&currency=USD";
+    script.src = `https://www.paypal.com/sdk/js?client-id=AW4MvAt5Q003Hf0opseAiliz0s0HLJZwV-9ni8KiaaoIYCHsYsnRVU1BxpJ6LHqWtFipgKDZUFNrka5t&currency=USD`;
     script.onload = () => resolve();
-    script.onerror = () => reject("Error al cargar el SDK de PayPal");
+    script.onerror = () => reject(new Error("Failed to load PayPal SDK"));
     document.head.appendChild(script);
   });
 };
 
 const fetchExchangeRate = async () => {
   try {
-    const res = await fetch(
-      "https://v6.exchangerate-api.com/v6/ee2b23888520b147bcfb0c05/latest/COP"
-    );
-    const data = await res.json();
-    console.log("Respuesta de la API:", data);
-
-    if (data && data.conversion_rates && data.conversion_rates.USD) {
-      return data.conversion_rates.USD;
-    } else {
-      console.warn("No se encontró la tasa USD en la respuesta:", data);
-      return 0.00025;
-    }
+    const response = await fetch("https://v6.exchangerate-api.com/v6/ee2b23888520b147bcfb0c05/latest/COP");
+    const data = await response.json();
+    return data.conversion_rates?.USD || 0.00025;
   } catch (error) {
-    console.error("Error al obtener la tasa de cambio:", error);
+    console.error("Error fetching exchange rate:", error);
     return 0.00025;
   }
 };
 
-// Validar datos de envío
-const validateShippingData = () => {
-  const requiredFields = [
-    { field: firstName.value, name: "Nombre" },
-    { field: lastName.value, name: "Apellidos" },
-    { field: phone.value, name: "Teléfono" },
-    { field: address.value, name: "Dirección" },
-    { field: city.value, name: "Ciudad" },
-    { field: country.value, name: "País" },
-    { field: state.value, name: getStateLabel() },
-  ];
-
-  for (const { field, name } of requiredFields) {
-    if (!field || field.trim() === "") {
-      return false;
-    }
-  }
-  return true;
-};
-
-// Mostrar alerta de agradecimiento con el botón "Ver factura"
 const mostrarFactura = () => {
-  import("../utils/notifications").then(({ showNotification }) => {
-    showNotification(
-      "success",
-      "¡Gracias por tu compra!",
-      "Haz clic en el botón para ver tu factura."
-    );
-    mostrarFacturaModal();
-    
-  });
-  
-};
-
-// Mostrar el modal con la información de la factura
-const mostrarFacturaModal = () => {
-  const selectedCountryName = country.value
-    ? document.querySelector(`#country option[value="${country.value}"]`)
-        .textContent
-    : "";
-  const selectedStateName =
-    state.value && availableStates.value.length > 0
-      ? availableStates.value.find((s) => s.code === state.value)?.name || ""
-      : "";
-
   Swal.fire({
-    title: "Factura de pago",
+    title: "¡Gracias por tu compra!",
     html: `
-      <div style="text-align: left; padding: 10px;">
-        <p><strong>Nombre:</strong> ${payerName.value}</p>
+      <div style="text-align: left;">
+        <p><strong>Cliente:</strong> ${payerName.value}</p>
         <p><strong>Email:</strong> ${payerEmail.value}</p>
-        <p><strong>Teléfono:</strong> ${phone.value}</p>
-        <p><strong>Dirección:</strong> ${address.value}</p>
-        <p><strong>Ciudad:</strong> ${city.value}</p>
-        <p><strong>${getStateLabel()}:</strong> ${selectedStateName}</p>
-        <p><strong>Código Postal:</strong> ${postalCode.value}</p>
-        <p><strong>País:</strong> ${selectedCountryName}</p>
-        ${notes.value ? `<p><strong>Notas:</strong> ${notes.value}</p>` : ""}
-        <hr style="margin: 15px 0;">
-        <p style="font-size: 18px;"><strong>Total Pagado:</strong> $${
-          amountPaid.value
-        }</p>
+        <p><strong>Total:</strong> $${amountPaid.value} USD</p>
+        <p><strong>ID de Orden:</strong> ${currentOrderId.value}</p>
       </div>
     `,
     icon: "success",
-    confirmButtonText: "Aceptar",
-    confirmButtonColor: "#068FFF",
-    width: "500px",
+    confirmButtonText: "Aceptar"
   });
 };
 
-// Renderizar el botón de PayPal
-const renderPayPalButtons = () => {
-  if (window.paypal) {
-    window.paypal
-      .Buttons({
-        createOrder: (data, actions) => {
-          // Validar datos antes de crear la orden
-          if (!validateShippingData()) {
-            return Promise.reject("Datos de envío incompletos");
-          }
+const createBackendOrder = async () => {
+  try {
+    console.log('=== CREANDO ORDEN EN BACKEND ===');
+    
+    // Validate auth and user
+    if (!authStore.token) {
+      throw new Error('No se encontró el token de autenticación. Por favor inicia sesión nuevamente.');
+    }
 
-          return actions.order.create({
-            purchase_units: [
-              {
-                amount: { value: totalUSD.value },
-              },
-            ],
-          });
-        },
-        onApprove: (data, actions) => {
-          return actions.order.capture().then((details) => {
-            payerName.value = `${details.payer.name.given_name} ${details.payer.name.surname}`;
-            payerEmail.value = details.payer.email_address;
-            amountPaid.value = details.purchase_units[0].amount.value;
-            mostrarFactura();
-            console.log("Datos del pago:", data);
-          });
-        },
-        onError: (err) => {
-          import("../utils/notifications").then(({ showNotification }) => {
-            showNotification(
-              "error",
-              "Error en el pago",
-              "Hubo un problema al procesar tu pago. Por favor intenta nuevamente."
-            );
-          });
-          console.error("Error en PayPal:", err);
-        },
-      })
-      .render("#paypal-button-container");
+    if (!authStore.user) {
+      throw new Error('No se pudo obtener la información del usuario. Por favor recarga la página e inicia sesión nuevamente.');
+    }
+
+    const userId = authStore.user.id || authStore.user._id;
+    if (!userId) {
+      throw new Error('La información del usuario no es válida. Falta el ID del usuario.');
+    }
+
+    // Validate and format shipping info
+    const shippingInfo = {
+      firstName: String(firstName.value || '').trim(),
+      lastName: String(lastName.value || '').trim(),
+      phone: `${phonePrefix.value}${String(phone.value || '').trim()}`,
+      address: String(address.value || '').trim(),
+      city: String(city.value || '').trim(),
+      state: String(state.value || '').trim(),
+      country: String(country.value || '').trim(),
+      postalCode: String(postalCode.value || '').trim(),
+      notes: String(deliveryNotes.value || '').trim()
+    };
+
+    // Validar que los campos requeridos no estén vacíos
+    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'city'];
+    const missingFields = requiredFields.filter(field => !shippingInfo[field] || shippingInfo[field].length === 0);
+
+    if (missingFields.length > 0) {
+      throw new Error(`Los siguientes campos son requeridos: ${missingFields.join(', ')}`);
+    }
+
+    // Validate products
+    if (!authStore.cartItems || authStore.cartItems.length === 0) {
+      throw new Error('El carrito está vacío');
+    }
+
+    // Calcular total real basado en precios con descuento
+    const products = authStore.cartItems.map(item => {
+      const productId = item.id || item._id;
+      if (!productId) {
+        throw new Error('Uno o más productos no tienen un ID válido');
+      }
+      
+      // Asegurarse de que los precios sean números y tengan exactamente 2 decimales
+      const price = Math.round(Number(item.discountedPrice || item.price || 0) * 100) / 100;
+      const originalPrice = Math.round(Number(item.price || 0) * 100) / 100;
+      const quantity = parseInt(item.quantity) || 1;
+      const discountApplied = originalPrice > price ? Math.round((originalPrice - price) * 100) / 100 : 0;
+      const subtotal = Math.round((price * quantity) * 100) / 100;
+      
+      return {
+        productId: productId,
+        quantity: quantity,
+        price: price,
+        originalPrice: originalPrice,
+        discountApplied: discountApplied,
+        subtotal: subtotal
+      };
+    });
+
+    // Calcular el total basado en los precios con descuento
+    const total = Math.round(products.reduce((sum, product) => {
+      return sum + (product.price * product.quantity);
+    }, 0) * 100) / 100;
+
+    // Si no hay tasa de cambio, usar un valor por defecto
+    const currentExchangeRate = exchangeRate.value || 4000;
+    
+    // Actualizar el total en COP y USD
+    totalCOP.value = total;
+    totalUSD.value = Math.round((total / currentExchangeRate) * 100) / 100;
+    
+    console.log('=== DETALLES DE LA ORDEN ===');
+    console.log('Productos procesados:', JSON.stringify(products, null, 2));
+    console.log('Total calculado (COP):', total);
+    console.log('Total calculado (USD):', totalUSD.value);
+    console.log('Tipo de total:', typeof total);
+    console.log('Tipo de totalUSD:', typeof totalUSD.value);
+    console.log('Tipo de precio de primer producto:', typeof products[0]?.price);
+    console.log('Tipo de cantidad de primer producto:', typeof products[0]?.quantity);
+
+    // ESTRUCTURA CORRECTA DE DATOS
+    const orderData = {
+      usuarioId: userId,
+      products: products.map(p => ({
+        productId: p.productId,
+        quantity: p.quantity,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        discountApplied: p.discountApplied,
+        subtotal: p.subtotal
+      })),
+      total: total,
+      totalUSD: totalUSD.value,
+      shippingInfo: shippingInfo,
+      exchangeRate: currentExchangeRate,
+      currency: 'COP',
+      status: 'pending'
+    };
+    
+    // Validar que la suma de los subtotales sea igual al total
+    const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
+    if (Math.abs(calculatedTotal - total) > 0.01) {
+      throw new Error(`La suma de los subtotales (${calculatedTotal}) no coincide con el total (${total})`);
+    }
+
+    console.log('Order data to send:', JSON.stringify(orderData, null, 2));
+    console.log('Shipping info specifically:', JSON.stringify(orderData.shippingInfo, null, 2));
+
+    const response = await fetch('http://localhost:3000/api/ordenes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify(orderData)
+    });
+
+    const responseText = await response.text();
+    console.log('Server response status:', response.status);
+    console.log('Server response text:', responseText);
+
+    if (!response.ok) {
+      let errorMessage = `Server error: ${response.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.message || errorMessage;
+        if (errorData.errors) {
+          errorMessage += ` - Errores: ${errorData.errors.join(', ')}`;
+        }
+      } catch (parseError) {
+        errorMessage += ` - ${responseText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error('Error in createBackendOrder:', error);
+    throw error;
   }
 };
+
+
+// PayPal buttons corregidos
+const renderPayPalButtons = () => {
+  if (!window.paypal) {
+    console.error('PayPal SDK no está cargado');
+    return;
+  }
+
+  console.log('Renderizando botones de PayPal...');
+
+  window.paypal.Buttons({
+    createOrder: async (data, actions) => {
+      try {
+        console.log('=== INICIANDO CREATEORDER ===');
+        
+        if (!authStore.token || !authStore.user) {
+          throw new Error("Debes iniciar sesión para realizar el pago");
+        }
+
+        console.log('Validando datos de envío...');
+        if (!validateShippingData()) {
+          throw new Error("Por favor completa todos los campos requeridos del formulario de envío");
+        }
+
+        if (!authStore.cartItems?.length) {
+          throw new Error("El carrito está vacío");
+        }
+
+        console.log('Validaciones pasadas, creando orden...');
+
+        // 1. Crear orden en el backend
+        const orderData = await createBackendOrder();
+        currentOrderId.value = orderData._id;
+
+        console.log('Orden backend creada:', orderData);
+        
+        // Calcular total en USD con exactitud
+        const paypalTotal = Math.round(totalUSD.value * 100) / 100;
+        
+        // Preparar ítems para PayPal
+        const paypalItems = [];
+        let paypalItemsTotal = 0;
+        
+        authStore.cartItems.forEach(item => {
+          const unitAmount = Math.round(Number(item.discountedPrice || item.price) * 100) / 100;
+          const quantity = parseInt(item.quantity) || 1;
+          const itemTotal = Math.round((unitAmount * quantity) * 100) / 100;
+          
+          paypalItemsTotal = Math.round((paypalItemsTotal + itemTotal) * 100) / 100;
+          
+          paypalItems.push({
+            name: String(item.name || 'Producto').substring(0, 127),
+            description: String(item.description || '').substring(0, 126) || undefined,
+            quantity: quantity,
+            unit_amount: {
+              currency_code: 'USD',
+              value: unitAmount.toFixed(2)
+            }
+          });
+        });
+        
+        // Asegurar que los totales coincidan exactamente
+        const paypalTotalRounded = Math.round(paypalTotal * 100) / 100;
+        const paypalItemsTotalRounded = Math.round(paypalItemsTotal * 100) / 100;
+        
+        console.log('=== VALIDACIÓN DE TOTALES PAYPAL ===');
+        console.log('Total USD calculado:', paypalTotalRounded);
+        console.log('Suma de ítems USD:', paypalItemsTotalRounded);
+        
+        if (Math.abs(paypalTotalRounded - paypalItemsTotalRounded) > 0.01) {
+          throw new Error(`La suma de los ítems (${paypalItemsTotalRounded} USD) no coincide con el total de la orden (${paypalTotalRounded} USD)`);
+        }
+        
+        // Crear orden en PayPal
+        const paypalOrder = await actions.order.create({
+          purchase_units: [{
+            amount: {
+              value: paypalTotalRounded.toFixed(2),
+              currency_code: "USD",
+              breakdown: {
+                item_total: {
+                  value: paypalItemsTotalRounded.toFixed(2),
+                  currency_code: "USD"
+                }
+              }
+            },
+            items: paypalItems,
+            reference_id: orderData._id,
+            description: `Compra de ${authStore.cartItems.length} producto(s)`
+          }]
+        });
+
+        console.log('Orden PayPal creada:', paypalOrder);
+        return paypalOrder;
+
+      } catch (error) {
+        console.error("Error completo en createOrder:", error);
+        Swal.fire({
+          title: "Error",
+          text: error.message,
+          icon: "error",
+          confirmButtonText: "Aceptar"
+        });
+        throw error;
+      }
+    },
+
+    onApprove: async (data, actions) => {
+      try {
+        console.log('=== INICIANDO ONAPPROVE ===');
+        console.log('Data recibida:', data);
+        
+        // 1. Primero capturamos el pago en PayPal
+        const details = await actions.order.capture();
+        console.log('Detalles del pago capturado:', details);
+        
+        // Guardar datos del pago
+        payerName.value = `${details.payer.name.given_name} ${details.payer.name.surname}`;
+        payerEmail.value = details.payer.email_address;
+        amountPaid.value = details.purchase_units[0].amount.value;
+        
+        console.log('Confirmando pago en backend...');
+        
+        // 2. Luego confirmamos en nuestro backend
+        const response = await fetch('http://localhost:3000/api/payments/paypal/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authStore.token}`
+          },
+          body: JSON.stringify({
+            orderId: currentOrderId.value,
+            paymentDetails: details
+          })
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Error al procesar el pago';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            const errorText = await response.text();
+            console.error('Error en confirmación:', errorText);
+            errorMessage = errorText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+
+        const confirmationResult = await response.json();
+        console.log('Pago confirmado exitosamente:', confirmationResult);
+        
+        // 3. Limpiar carrito
+        authStore.clearCart();
+        
+        // 4. Mostrar factura
+        mostrarFactura();
+        
+        // 5. Mostrar mensaje de éxito al usuario
+        await Swal.fire({
+          icon: 'success',
+          title: '¡Pago exitoso!',
+          text: 'Tu pago ha sido procesado correctamente.',
+          confirmButtonText: 'Entendido'
+        });
+        
+        // 6. Redirigir a la página de confirmación
+        router.push('/order-confirmation');
+        
+        // 7. Retornar los detalles de PayPal para cerrar el diálogo
+        return details;
+        
+      } catch (error) {
+        console.error('Error en la confirmación del pago:', error);
+        
+        // Mostrar mensaje de error al usuario
+        let errorMessage = 'No se pudo completar el pago. Por favor intente nuevamente.';
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Si es un error de conexión, mostrar mensaje más específico
+        if (error.message && error.message.includes('Failed to fetch')) {
+          errorMessage = 'No se pudo conectar con el servidor. Por favor verifica que el servidor esté en ejecución y tu conexión a internet.';
+        }
+        
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error en el pago',
+          text: errorMessage,
+          confirmButtonText: 'Entendido'
+        });
+        
+        // Re-lanzar el error para que PayPal lo maneje
+        throw error;
+      }
+    },
+
+    onError: (err) => {
+      console.error("Error completo en PayPal:", err);
+      Swal.fire({
+        title: "Error de PayPal",
+        text: "Hubo un problema al procesar tu pago. Por favor intenta nuevamente.",
+        icon: "error",
+        confirmButtonText: "Aceptar"
+      });
+    },
+
+    onCancel: (data) => {
+      console.log("Pago cancelado:", data);
+      Swal.fire({
+        title: "Pago Cancelado",
+        text: "Has cancelado el proceso de pago",
+        icon: "info",
+        confirmButtonText: "Aceptar"
+      });
+    }
+  }).render("#paypal-button-container");
+};
+
+
+
 
 const getCartTotalInCOP = () => {
   return authStore.cartItems.reduce((total, item) => {
-    return total + item.price * item.quantity;
+    return total + (item.price * item.quantity);
   }, 0);
 };
 
-function validateForm() {
-  let isValid = true;
-
-  // Resetear errores
-  Object.keys(errors).forEach((key) => (errors[key] = ""));
-
-  if (!firstName.value) {
-    errors.firstName = "El nombre es obligatorio.";
-    isValid = false;
-  }
-  if (!lastName.value) {
-    errors.lastName = "Los apellidos son obligatorios.";
-    isValid = false;
-  }
-  if (!phone.value || !/^\+?\d{7,15}$/.test(phone.value)) {
-    errors.phone = "Teléfono inválido.";
-    isValid = false;
-  }
-  if (!address.value) {
-    errors.address = "La dirección es obligatoria.";
-    isValid = false;
-  }
-  if (!city.value) {
-    errors.city = "La ciudad es obligatoria.";
-    isValid = false;
-  }
-  if (!country.value) {
-    errors.country = "El país es obligatorio.";
-    isValid = false;
-  }
-  if (!state.value) {
-    errors.state = "La región es obligatoria.";
-    isValid = false;
-  }
-
-  return isValid;
-}
-
+// Lifecycle Hooks
 onMounted(async () => {
-  await loadPayPalScript();
-  renderPayPalButtons();
-  totalCOP.value = getCartTotalInCOP();
-  const exchangeRate = await fetchExchangeRate();
-  totalUSD.value = (totalCOP.value * exchangeRate).toFixed(2);
+  if (!authStore.token || !authStore.user) {
+    Swal.fire("Advertencia", "Debes iniciar sesión para realizar el pago", "warning");
+    router.push('/login');
+    return;
+  }
+
+  try {
+    await loadPayPalScript();
+    totalCOP.value = getCartTotalInCOP();
+    const exchangeRate = await fetchExchangeRate();
+    totalUSD.value = (totalCOP.value * exchangeRate).toFixed(2);
+    renderPayPalButtons();
+  } catch (error) {
+    console.error("Error inicializando PayPal:", error);
+    Swal.fire("Error", "No se pudo cargar el sistema de pagos", "error");
+  }
 });
 </script>
-
 
 <style scoped>
 .shipping-container {
