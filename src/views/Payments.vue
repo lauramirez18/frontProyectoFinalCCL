@@ -281,7 +281,7 @@ const countries = ref(countriesData.countries);
 const states = ref(statesData.states);
 const cities = ref(citiesData.cities);
 // Asegúrate de que tu JSON de prefijos tenga una clave 'countries' o ajusta esta línea
-const phoneCodes = ref(phoneCodesData.countries); 
+const phoneCodes = ref(phoneCodesData);
 
 // Computed para obtener los estados disponibles según el país seleccionado
 const availableStates = computed(() => {
