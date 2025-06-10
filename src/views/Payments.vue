@@ -608,78 +608,113 @@ const createBackendOrder = async () => {
       throw new Error('El carrito está vacío');
     }
 
-    // Calcular total real basado en precios con descuento
+    // Obtener la tasa de cambio actual o usar un valor por defecto
+    const currentExchangeRate = exchangeRate.value || 4000;
+    console.log('Tasa de cambio actual (COP/USD):', currentExchangeRate);
+
+    // Procesar productos para la orden con cálculo correcto de descuentos
     const products = authStore.cartItems.map(item => {
       const productId = item.id || item._id;
       if (!productId) {
         throw new Error('Uno o más productos no tienen un ID válido');
       }
       
-      // Asegurarse de que los precios sean números y tengan exactamente 2 decimales
-      const price = Math.round(Number(item.discountedPrice || item.price || 0) * 100) / 100;
-      const originalPrice = Math.round(Number(item.price || 0) * 100) / 100;
+      // Obtener precios correctamente
+      const originalPrice = Number(item.originalPrice || item.price || 0);
+      const discountedPrice = item.discountedPrice ? Number(item.discountedPrice) : null;
+      
+      // Verificar si realmente hay descuento
+      const hasDiscount = discountedPrice && discountedPrice > 0 && discountedPrice < originalPrice;
+      
+      // Precio a usar para el cálculo
+      const priceToUse = hasDiscount ? discountedPrice : originalPrice;
       const quantity = parseInt(item.quantity) || 1;
-      const discountApplied = originalPrice > price ? Math.round((originalPrice - price) * 100) / 100 : 0;
-      const subtotal = Math.round((price * quantity) * 100) / 100;
+      const subtotal = Math.round((priceToUse * quantity) * 100) / 100;
+      const discountApplied = hasDiscount ? Math.round((originalPrice - discountedPrice) * 100) / 100 : 0;
+      
+      console.log(`=== PROCESANDO PRODUCTO: ${item.name || 'sin nombre'} ===`);
+      console.log(`- ID: ${productId}`);
+      console.log(`- Precio original: ${originalPrice} COP`);
+      console.log(`- Precio con descuento: ${discountedPrice || 'N/A'} COP`);
+      console.log(`- Tiene descuento: ${hasDiscount}`);
+      console.log(`- Precio a usar: ${priceToUse} COP`);
+      console.log(`- Cantidad: ${quantity}`);
+      console.log(`- Subtotal: ${subtotal} COP`);
+      console.log(`- Descuento aplicado: ${discountApplied} COP`);
+      console.log('---');
       
       return {
         productId: productId,
         quantity: quantity,
-        price: price,
-        originalPrice: originalPrice,
-        discountApplied: discountApplied,
-        subtotal: subtotal
+        price: priceToUse, // Precio unitario final (con descuento si aplica)
+        originalPrice: originalPrice, // Precio original sin descuento
+        discountApplied: discountApplied, // Descuento aplicado por unidad
+        subtotal: subtotal // Subtotal del producto
       };
     });
 
-    // Calcular el total basado en los precios con descuento
-    const total = Math.round(products.reduce((sum, product) => {
-      return sum + (product.price * product.quantity);
-    }, 0) * 100) / 100;
-
-    // Si no hay tasa de cambio, usar un valor por defecto
-    const currentExchangeRate = exchangeRate.value || 4000;
+    // Calcular el total basado en precios originales (sin descuentos)
+    const totalSinDescuento = products.reduce((sum, product) => {
+      return sum + (product.originalPrice * product.quantity);
+    }, 0);
     
-    // Actualizar el total en COP y USD
+    // Calcular el total con descuentos aplicados
+    const totalConDescuento = products.reduce((sum, product) => {
+      return sum + product.subtotal;
+    }, 0);
+    
+    const descuentoTotal = totalSinDescuento - totalConDescuento;
+    
+    console.log('=== VALIDACIÓN DE TOTALES ===');
+    console.log(`Total sin descuentos: ${totalSinDescuento} COP`);
+    console.log(`Total con descuentos: ${totalConDescuento} COP`);
+    console.log(`Descuento total aplicado: ${descuentoTotal} COP`);
+    
+    // Usar el total con descuentos
+    const total = Math.round(totalConDescuento * 100) / 100;
+    
+    // Validar que no haya discrepancias en los cálculos
+    const sumOfSubtotals = products.reduce((sum, product) => sum + product.subtotal, 0);
+    if (Math.abs(sumOfSubtotals - total) > 0.01) {
+      console.error(`ERROR: La suma de los subtotales (${sumOfSubtotals}) no coincide con el total (${total})`);
+      console.error('Productos procesados:', products);
+      throw new Error(`Error de cálculo: La suma de los subtotales (${sumOfSubtotals}) no coincide con el total (${total})`);
+    }
+    
+    // Calcular el total en USD
+    const totalUSDValue = currentExchangeRate > 0 ? Math.round((total / currentExchangeRate) * 100) / 100 : 0;
+    
+    // Actualizar las referencias reactivas
     totalCOP.value = total;
-    totalUSD.value = Math.round((total / currentExchangeRate) * 100) / 100;
+    totalUSD.value = totalUSDValue;
     
-    console.log('=== DETALLES DE LA ORDEN ===');
-    console.log('Productos procesados:', JSON.stringify(products, null, 2));
-    console.log('Total calculado (COP):', total);
-    console.log('Total calculado (USD):', totalUSD.value);
-    console.log('Tipo de total:', typeof total);
-    console.log('Tipo de totalUSD:', typeof totalUSD.value);
-    console.log('Tipo de precio de primer producto:', typeof products[0]?.price);
-    console.log('Tipo de cantidad de primer producto:', typeof products[0]?.quantity);
+    console.log('=== RESUMEN FINAL ===');
+    console.log(`Total en COP: ${total}`);
+    console.log(`Total en USD: ${totalUSDValue}`);
+    console.log(`Tasa de cambio: ${currentExchangeRate}`);
+    console.log(`Número de productos: ${products.length}`);
 
-    // ESTRUCTURA CORRECTA DE DATOS
+    // Estructura de datos para enviar al backend
     const orderData = {
       usuarioId: userId,
       products: products.map(p => ({
         productId: p.productId,
         quantity: p.quantity,
-        price: p.price,
+        price: p.price, // Precio final con descuento aplicado
         originalPrice: p.originalPrice,
         discountApplied: p.discountApplied,
         subtotal: p.subtotal
       })),
       total: total,
-      totalUSD: totalUSD.value,
+      totalUSD: totalUSDValue,
       shippingInfo: shippingInfo,
       exchangeRate: currentExchangeRate,
       currency: 'COP',
       status: 'pending'
     };
-    
-    // Validar que la suma de los subtotales sea igual al total
-    const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
-    if (Math.abs(calculatedTotal - total) > 0.01) {
-      throw new Error(`La suma de los subtotales (${calculatedTotal}) no coincide con el total (${total})`);
-    }
 
-    console.log('Order data to send:', JSON.stringify(orderData, null, 2));
-    console.log('Shipping info specifically:', JSON.stringify(orderData.shippingInfo, null, 2));
+    console.log('=== DATOS A ENVIAR AL BACKEND ===');
+    console.log(JSON.stringify(orderData, null, 2));
 
     const response = await fetch('http://localhost:3000/api/ordenes', {
       method: 'POST',
@@ -711,6 +746,118 @@ const createBackendOrder = async () => {
     return JSON.parse(responseText);
   } catch (error) {
     console.error('Error in createBackendOrder:', error);
+    throw error;
+  }
+};
+
+// Función corregida para PayPal createOrder
+const createOrderPayPal = async (data, actions) => {
+  try {
+    console.log('=== INICIANDO CREATEORDER PAYPAL ===');
+    
+    if (!authStore.token || !authStore.user) {
+      throw new Error("Debes iniciar sesión para realizar el pago");
+    }
+
+    console.log('Validando datos de envío...');
+    if (!validateShippingData()) {
+      throw new Error("Por favor completa todos los campos requeridos del formulario de envío");
+    }
+
+    if (!authStore.cartItems?.length) {
+      throw new Error("El carrito está vacío");
+    }
+
+    console.log('Validaciones pasadas, creando orden...');
+
+    // 1. Crear orden en el backend
+    const orderData = await createBackendOrder();
+    currentOrderId.value = orderData._id;
+
+    console.log('Orden backend creada:', orderData);
+    
+    // Obtener la tasa de cambio actual
+    const currentExchangeRate = exchangeRate.value || 4000;
+    
+    // Usar el total ya calculado correctamente
+    const paypalTotal = Math.round((totalCOP.value / currentExchangeRate) * 100) / 100;
+    
+    // Preparar ítems para PayPal con cálculo correcto
+    const paypalItems = [];
+    let paypalItemsTotal = 0;
+    
+    authStore.cartItems.forEach(item => {
+      // Obtener el precio correcto (con descuento si aplica)
+      const originalPrice = Number(item.originalPrice || item.price || 0);
+      const discountedPrice = item.discountedPrice ? Number(item.discountedPrice) : null;
+      const hasDiscount = discountedPrice && discountedPrice > 0 && discountedPrice < originalPrice;
+      const unitAmountCOP = hasDiscount ? discountedPrice : originalPrice;
+      
+      // Convertir a USD
+      const unitAmountUSD = Math.round((unitAmountCOP / currentExchangeRate) * 100) / 100;
+      
+      const quantity = parseInt(item.quantity) || 1;
+      const itemTotal = Math.round((unitAmountUSD * quantity) * 100) / 100;
+      
+      paypalItemsTotal = Math.round((paypalItemsTotal + itemTotal) * 100) / 100;
+      
+      console.log(`PayPal Item: ${item.name}`);
+      console.log(`- Precio COP: ${unitAmountCOP}`);
+      console.log(`- Precio USD: ${unitAmountUSD}`);
+      console.log(`- Cantidad: ${quantity}`);
+      console.log(`- Total item USD: ${itemTotal}`);
+      
+      paypalItems.push({
+        name: String(item.name || 'Producto').substring(0, 127),
+        description: String(item.description || '').substring(0, 126) || undefined,
+        quantity: quantity,
+        unit_amount: {
+          currency_code: 'USD',
+          value: unitAmountUSD.toFixed(2)
+        }
+      });
+    });
+    
+    console.log('=== VALIDACIÓN FINAL PAYPAL ===');
+    console.log(`Total PayPal: ${paypalTotal} USD`);
+    console.log(`Suma items PayPal: ${paypalItemsTotal} USD`);
+    console.log(`Diferencia: ${Math.abs(paypalTotal - paypalItemsTotal)}`);
+    
+    // Validar que los totales coincidan
+    if (Math.abs(paypalTotal - paypalItemsTotal) > 0.01) {
+      throw new Error(`La suma de los ítems PayPal (${paypalItemsTotal} USD) no coincide con el total (${paypalTotal} USD)`);
+    }
+    
+    // Crear orden en PayPal
+    const paypalOrder = await actions.order.create({
+      purchase_units: [{
+        amount: {
+          value: paypalTotal.toFixed(2),
+          currency_code: "USD",
+          breakdown: {
+            item_total: {
+              value: paypalItemsTotal.toFixed(2),
+              currency_code: "USD"
+            }
+          }
+        },
+        items: paypalItems,
+        reference_id: orderData._id,
+        description: `Compra de ${authStore.cartItems.length} producto(s)`
+      }]
+    });
+
+    console.log('Orden PayPal creada exitosamente:', paypalOrder);
+    return paypalOrder;
+
+  } catch (error) {
+    console.error("Error completo en createOrder:", error);
+    Swal.fire({
+      title: "Error",
+      text: error.message,
+      icon: "error",
+      confirmButtonText: "Aceptar"
+    });
     throw error;
   }
 };
@@ -751,17 +898,23 @@ const renderPayPalButtons = () => {
 
         console.log('Orden backend creada:', orderData);
         
+        // Obtener la tasa de cambio actual (usando el valor del ref)
+        const currentExchangeRate = exchangeRate.value || 4000; // Usar 4000 como valor por defecto si no hay tasa
+        
         // Calcular total en USD con exactitud
-        const paypalTotal = Math.round(totalUSD.value * 100) / 100;
+        const paypalTotal = Math.round((getCartTotalInCOP() / currentExchangeRate) * 100) / 100;
         
         // Preparar ítems para PayPal
         const paypalItems = [];
         let paypalItemsTotal = 0;
         
         authStore.cartItems.forEach(item => {
-          const unitAmount = Math.round(Number(item.discountedPrice || item.price) * 100) / 100;
+          // Convertir el precio unitario de COP a USD
+          const unitAmountCOP = Number(item.discountedPrice || item.price);
+          const unitAmountUSD = Math.round((unitAmountCOP / currentExchangeRate) * 100) / 100;
+          
           const quantity = parseInt(item.quantity) || 1;
-          const itemTotal = Math.round((unitAmount * quantity) * 100) / 100;
+          const itemTotal = Math.round((unitAmountUSD * quantity) * 100) / 100;
           
           paypalItemsTotal = Math.round((paypalItemsTotal + itemTotal) * 100) / 100;
           
@@ -771,7 +924,7 @@ const renderPayPalButtons = () => {
             quantity: quantity,
             unit_amount: {
               currency_code: 'USD',
-              value: unitAmount.toFixed(2)
+              value: unitAmountUSD.toFixed(2)
             }
           });
         });
@@ -936,13 +1089,45 @@ const renderPayPalButtons = () => {
 };
 
 
-
-
 const getCartTotalInCOP = () => {
-  return authStore.cartItems.reduce((total, item) => {
-    return total + (item.price * item.quantity);
+  console.log('=== CALCULANDO TOTAL DEL CARRITO ===');
+  
+  // Primero calcular el total sin descuentos
+  const totalSinDescuento = authStore.cartItems.reduce((sum, item) => {
+    const originalPrice = Number(item.originalPrice || item.price || 0);
+    const quantity = parseInt(item.quantity) || 1;
+    return sum + (originalPrice * quantity);
   }, 0);
+  
+  // Luego calcular el total con descuentos
+  const totalConDescuento = authStore.cartItems.reduce((sum, item) => {
+    const originalPrice = Number(item.originalPrice || item.price || 0);
+    const hasDiscount = item.discountedPrice && 
+                       Number(item.discountedPrice) > 0 && 
+                       Number(item.discountedPrice) < originalPrice;
+    
+    const priceToUse = hasDiscount ? Number(item.discountedPrice) : originalPrice;
+    const quantity = parseInt(item.quantity) || 1;
+    
+    console.log(`Producto: ${item.name || 'sin nombre'}`);
+    console.log(`- Precio original: ${originalPrice}`);
+    console.log(`- Precio con descuento: ${hasDiscount ? item.discountedPrice : 'N/A'}`);
+    console.log(`- Precio a usar: ${priceToUse}`);
+    console.log(`- Cantidad: ${quantity}`);
+    console.log(`- Subtotal: ${priceToUse * quantity}`);
+    console.log('---');
+    
+    return sum + (priceToUse * quantity);
+  }, 0);
+  
+  console.log('=== RESUMEN DE TOTALES ===');
+  console.log('Total sin descuentos:', totalSinDescuento);
+  console.log('Total con descuentos:', totalConDescuento);
+  console.log('Ahorro total:', totalSinDescuento - totalConDescuento);
+  
+  return Math.round(totalConDescuento * 100) / 100;
 };
+
 
 // Lifecycle Hooks
 onMounted(async () => {
@@ -954,9 +1139,11 @@ onMounted(async () => {
 
   try {
     await loadPayPalScript();
+    // Usar la función corregida que considera descuentos
     totalCOP.value = getCartTotalInCOP();
-    const exchangeRate = await fetchExchangeRate();
-    totalUSD.value = (totalCOP.value * exchangeRate).toFixed(2);
+    const currentExchangeRate = await fetchExchangeRate();
+    exchangeRate.value = currentExchangeRate;
+    totalUSD.value = Math.round((totalCOP.value * currentExchangeRate) * 100) / 100;
     renderPayPalButtons();
   } catch (error) {
     console.error("Error inicializando PayPal:", error);
