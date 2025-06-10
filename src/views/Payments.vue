@@ -246,7 +246,11 @@
         </div>
       </div>
 
-      <div class="paypal-container">
+      <button @click="attemptPayment" class="validate-button">
+        Validar y Continuar al Pago
+      </button>
+
+      <div class="paypal-container" v-if="showPayPalButton">
         <div id="paypal-button-container"></div>
       </div>
     </div>
@@ -282,12 +286,16 @@ const selectedCountry = ref(null);
 const selectedState = ref(null);
 const selectedCity = ref(null);
 
+// Controlar la visibilidad del botón de PayPal
+const showPayPalButton = ref(false);
+
 // Variables para PayPal
 const totalCOP = ref(0);
 const totalUSD = ref(0);
 const payerName = ref("");
 const payerEmail = ref("");
 const amountPaid = ref("");
+const exchangeRate = ref(0); // Add exchangeRate ref
 
 const errors = reactive({
   firstName: "",
@@ -458,6 +466,21 @@ const validateShippingData = () => {
   return isValid;
 };
 
+// New function to handle the validation button click
+const attemptPayment = async () => {
+  if (validateShippingData()) {
+    showPayPalButton.value = true;
+    await loadPayPalScript();
+    renderPayPalButtons();
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error de validación',
+      text: 'Por favor, completa todos los campos obligatorios para continuar.',
+    });
+  }
+};
+
 // Cargar PayPal SDK
 const loadPayPalScript = () => {
   return new Promise((resolve, reject) => {
@@ -468,8 +491,9 @@ const loadPayPalScript = () => {
 
     const script = document.createElement("script");
     script.id = "paypal-sdk";
+    // Modified client-id to include 'disable-funding=credit,card'
     script.src =
-      "https://www.paypal.com/sdk/js?client-id=AXTeuO5867KsNBOGZ30IHq1U6aK0v3DDfFTd5p9Po4EZGdABEkk17SLAHVXRERVnbM350rUqmg8sbtR5&currency=USD";
+      "https://www.paypal.com/sdk/js?client-id=AXTeuO5867KsNBOGZ30IHq1U6aK0v3DDfFTd5p9Po4EZGdABEkk17SLAHVXRERVnbM350rUqmg8sbtR5&currency=USD&disable-funding=credit,card";
     script.onload = () => resolve();
     script.onerror = () => reject("Error al cargar el SDK de PayPal");
     document.head.appendChild(script);
@@ -484,13 +508,16 @@ const fetchExchangeRate = async () => {
     const data = await res.json();
 
     if (data && data.conversion_rates && data.conversion_rates.USD) {
+      exchangeRate.value = data.conversion_rates.USD; // Store exchange rate
       return data.conversion_rates.USD;
     } else {
       console.warn("No se encontró la tasa USD en la respuesta:", data);
+      exchangeRate.value = 0.00025; // Fallback
       return 0.00025; // Tasa de respaldo
     }
   } catch (error) {
     console.error("Error al obtener la tasa de cambio:", error);
+    exchangeRate.value = 0.00025; // Fallback
     return 0.00025; // Tasa de respaldo en caso de error de red
   }
 };
@@ -544,7 +571,7 @@ const mostrarFacturaModal = () => {
   });
 };
 
-const createBackendOrder = async () => {
+const createBackendOrder = async (paypalOrderId) => {
   try {
     console.log('=== CREANDO ORDEN EN BACKEND ===');
     
@@ -563,24 +590,29 @@ const createBackendOrder = async () => {
     }
 
     // Validate and format shipping info
+    // Ensure selectedCity, selectedState, selectedCountry are names, not IDs
+    const currentCityName = cities.value.find(c => c.id === selectedCity.value)?.name;
+    const currentStateName = states.value.find(s => s.id === selectedState.value)?.name;
+    const currentCountryName = countries.value.find(c => c.id === selectedCountry.value)?.name;
+
     const shippingInfo = {
       firstName: String(firstName.value || '').trim(),
       lastName: String(lastName.value || '').trim(),
       phone: `${phonePrefix.value}${String(phone.value || '').trim()}`,
       address: String(address.value || '').trim(),
-      city: String(city.value || '').trim(),
-      state: String(state.value || '').trim(),
-      country: String(country.value || '').trim(),
+      city: currentCityName, // Use the name here
+      state: currentStateName, // Use the name here
+      country: currentCountryName, // Use the name here
       postalCode: String(postalCode.value || '').trim(),
       notes: String(deliveryNotes.value || '').trim()
     };
 
     // Validar que los campos requeridos no estén vacíos
-    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'city'];
+    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'city', 'state', 'country'];
     const missingFields = requiredFields.filter(field => !shippingInfo[field] || shippingInfo[field].length === 0);
 
     if (missingFields.length > 0) {
-      throw new Error(`Los siguientes campos son requeridos: ${missingFields.join(', ')}`);
+      throw new Error(`Los siguientes campos de envío son requeridos: ${missingFields.join(', ')}`);
     }
 
     // Validate products
@@ -595,7 +627,6 @@ const createBackendOrder = async () => {
         throw new Error('Uno o más productos no tienen un ID válido');
       }
       
-      // Asegurarse de que los precios sean números y tengan exactamente 2 decimales
       const price = Math.round(Number(item.discountedPrice || item.price || 0) * 100) / 100;
       const originalPrice = Math.round(Number(item.price || 0) * 100) / 100;
       const quantity = parseInt(item.quantity) || 1;
@@ -612,54 +643,34 @@ const createBackendOrder = async () => {
       };
     });
 
-    // Calcular el total basado en los precios con descuento
     const total = Math.round(products.reduce((sum, product) => {
       return sum + (product.price * product.quantity);
     }, 0) * 100) / 100;
 
-    // Si no hay tasa de cambio, usar un valor por defecto
     const currentExchangeRate = exchangeRate.value || 4000;
     
-    // Actualizar el total en COP y USD
     totalCOP.value = total;
     totalUSD.value = Math.round((total / currentExchangeRate) * 100) / 100;
     
-    console.log('=== DETALLES DE LA ORDEN ===');
-    console.log('Productos procesados:', JSON.stringify(products, null, 2));
-    console.log('Total calculado (COP):', total);
-    console.log('Total calculado (USD):', totalUSD.value);
-    console.log('Tipo de total:', typeof total);
-    console.log('Tipo de totalUSD:', typeof totalUSD.value);
-    console.log('Tipo de precio de primer producto:', typeof products[0]?.price);
-    console.log('Tipo de cantidad de primer producto:', typeof products[0]?.quantity);
-
-    // ESTRUCTURA CORRECTA DE DATOS
     const orderData = {
       usuarioId: userId,
-      products: products.map(p => ({
-        productId: p.productId,
-        quantity: p.quantity,
-        price: p.price,
-        originalPrice: p.originalPrice,
-        discountApplied: p.discountApplied,
-        subtotal: p.subtotal
-      })),
+      products: products,
       total: total,
       totalUSD: totalUSD.value,
       shippingInfo: shippingInfo,
       exchangeRate: currentExchangeRate,
       currency: 'COP',
-      status: 'pending'
+      status: 'completed', // Assuming PayPal success means completed
+      paymentId: paypalOrderId, // Store PayPal order ID
+      paymentMethod: 'PayPal'
     };
     
-    // Validar que la suma de los subtotales sea igual al total
     const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
     if (Math.abs(calculatedTotal - total) > 0.01) {
-      throw new Error(`La suma de los subtotales (${calculatedTotal}) no coincide con el total (${total})`);
+      console.warn(`La suma de los subtotales (${calculatedTotal}) no coincide con el total (${total}). Esto puede indicar un problema de redondeo.`);
     }
 
     console.log('Order data to send:', JSON.stringify(orderData, null, 2));
-    console.log('Shipping info specifically:', JSON.stringify(orderData.shippingInfo, null, 2));
 
     const response = await fetch('http://localhost:3000/api/ordenes', {
       method: 'POST',
@@ -680,17 +691,22 @@ const createBackendOrder = async () => {
         const errorData = JSON.parse(responseText);
         errorMessage = errorData.message || errorMessage;
         if (errorData.errors) {
-          errorMessage += ` - Errores: ${errorData.errors.join(', ')}`;
+          errorMessage += ` - Errores: ${errorData.errors.map(e => e.msg || e.message || e.param).join(', ')}`;
         }
       } catch (parseError) {
         errorMessage += ` - ${responseText}`;
       }
       throw new Error(errorMessage);
     }
-
+    authStore.clearCart(); // Clear the cart after successful order creation
     return JSON.parse(responseText);
   } catch (error) {
     console.error('Error in createBackendOrder:', error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error al crear la orden',
+      text: error.message || 'Hubo un problema al registrar tu pedido en el sistema. Por favor contacta a soporte.'
+    });
     throw error;
   }
 };
@@ -699,19 +715,18 @@ const createBackendOrder = async () => {
 // PayPal buttons corregidos
 const renderPayPalButtons = () => {
   if (window.paypal) {
+    // Clear existing buttons to prevent duplicates if rendered multiple times
+    const paypalButtonContainer = document.getElementById("paypal-button-container");
+    if (paypalButtonContainer) {
+      paypalButtonContainer.innerHTML = '';
+    }
+
     window.paypal
       .Buttons({
+        // Set funding source to PayPal only, disabling credit/debit cards
+        fundingSource: window.paypal.FUNDING.PAYPAL,
         createOrder: (data, actions) => {
-          // Validar datos antes de crear la orden
-          if (!validateShippingData()) {
-            Swal.fire({
-              icon: 'error',
-              title: 'Error de validación',
-              text: 'Por favor, completa todos los campos obligatorios.',
-            });
-            return Promise.reject("Datos de envío incompletos");
-          }
-
+          // Validation is already done by attemptPayment before showing the button
           return actions.order.create({
             purchase_units: [
               {
@@ -725,8 +740,23 @@ const renderPayPalButtons = () => {
             payerName.value = `${details.payer.name.given_name} ${details.payer.name.surname}`;
             payerEmail.value = details.payer.email_address;
             amountPaid.value = details.purchase_units[0].amount.value;
-            mostrarFactura();
-            console.log("Datos del pago:", data);
+            
+            // Call backend order creation
+            createBackendOrder(details.id) // Pass PayPal order ID
+              .then(() => {
+                mostrarFactura();
+                console.log("Datos del pago:", data);
+              })
+              .catch((error) => {
+                console.error("Error al guardar la orden en el backend:", error);
+                import("../utils/notifications").then(({ showNotification }) => {
+                  showNotification(
+                    "error",
+                    "Error al guardar la orden",
+                    "Tu pago con PayPal fue exitoso, pero hubo un problema al registrar la orden. Por favor, contacta a soporte con tu ID de pago de PayPal: " + details.id
+                  );
+                });
+              });
           });
         },
         onError: (err) => {
@@ -744,55 +774,29 @@ const renderPayPalButtons = () => {
   }
 };
 
-
-
-
 const getCartTotalInCOP = () => {
-  return authStore.cartItems.reduce((total, item) => {
-    return total + (item.price * item.quantity);
-  }, 0);
-  
-  // Luego calcular el total con descuentos
+  // Use discountedPrice if available, otherwise use price
   const totalConDescuento = authStore.cartItems.reduce((sum, item) => {
-    const originalPrice = Number(item.originalPrice || item.price || 0);
-    const hasDiscount = item.discountedPrice && 
-                       Number(item.discountedPrice) > 0 && 
-                       Number(item.discountedPrice) < originalPrice;
-    
-    const priceToUse = hasDiscount ? Number(item.discountedPrice) : originalPrice;
+    const priceToUse = Number(item.discountedPrice) > 0 && Number(item.discountedPrice) < Number(item.price)
+      ? Number(item.discountedPrice)
+      : Number(item.price || 0);
     const quantity = parseInt(item.quantity) || 1;
-    
-    console.log(`Producto: ${item.name || 'sin nombre'}`);
-    console.log(`- Precio original: ${originalPrice}`);
-    console.log(`- Precio con descuento: ${hasDiscount ? item.discountedPrice : 'N/A'}`);
-    console.log(`- Precio a usar: ${priceToUse}`);
-    console.log(`- Cantidad: ${quantity}`);
-    console.log(`- Subtotal: ${priceToUse * quantity}`);
-    console.log('---');
-    
     return sum + (priceToUse * quantity);
   }, 0);
-  
-  console.log('=== RESUMEN DE TOTALES ===');
-  console.log('Total sin descuentos:', totalSinDescuento);
-  console.log('Total con descuentos:', totalConDescuento);
-  console.log('Ahorro total:', totalSinDescuento - totalConDescuento);
   
   return Math.round(totalConDescuento * 100) / 100;
 };
 
 
 onMounted(async () => {
-  await loadPayPalScript();
-  renderPayPalButtons();
   totalCOP.value = getCartTotalInCOP();
-  const exchangeRateValue = await fetchExchangeRate(); // Renombrar la constante
+  const exchangeRateValue = await fetchExchangeRate();
   totalUSD.value = (totalCOP.value * exchangeRateValue).toFixed(2);
 });
 </script>
 
 <style scoped>
-/* Tu estilo CSS se mantiene igual */
+/* Your existing CSS styles go here */
 .shipping-container {
   max-width: 900px;
   margin: 0 auto;
@@ -1030,6 +1034,7 @@ textarea {
   overflow: hidden;
   background: #f8f9fa;
   padding: 20px;
+  margin-top: 20px; /* Add some space above the PayPal button */
 }
 
 #paypal-button-container {
@@ -1040,6 +1045,31 @@ textarea {
   color: #dc3545;
   font-size: 12px;
   margin-top: 5px;
+}
+
+.validate-button {
+  display: block;
+  width: 100%;
+  padding: 15px 25px;
+  background-color: #068fff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(6, 143, 255, 0.3);
+}
+
+.validate-button:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.validate-button:active {
+  transform: translateY(0);
 }
 
 @keyframes shine {
@@ -1102,6 +1132,11 @@ textarea {
   textarea {
     padding: 12px;
     font-size: 14px;
+  }
+
+  .validate-button {
+    font-size: 16px;
+    padding: 12px 20px;
   }
 }
 </style>
