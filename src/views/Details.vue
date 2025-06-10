@@ -264,13 +264,14 @@
         </button>
       </div>
     </div>
+    <LoginDialog v-model="showLoginDialog" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { useQuasar, Dialog } from 'quasar'
 import { useAuthStore } from '../store/store.js'
 import api from '../plugins/axios'
 import { showNotification } from '../utils/notifications'
@@ -278,6 +279,7 @@ import { useThousandsFormat } from '../composables/useThousandFormat' // Importa
 import FavoriteButton from '../components/FavoriteButton.vue'
 import { storeToRefs } from 'pinia'
 import RatingStars from '../components/RatingStars.vue'
+import LoginDialog from '../components/LoginDialog.vue'
 
 const route = useRoute() 
 const router = useRouter() 
@@ -525,10 +527,24 @@ const getInitial = (name) => {
 
 const addToCart = () => {
   if (!authStore.token) {
-    showNotification('warning', 'Debes iniciar sesión para agregar productos al carrito.')
+    $q.dialog({
+      title: 'Iniciar sesión',
+      message: '¿Deseas iniciar sesión para agregar productos al carrito?',
+      cancel: true,
+      persistent: true,
+      ok: {
+        label: 'Sí, iniciar sesión',
+        color: 'primary'
+      },
+      cancel: {
+        label: 'No, continuar sin sesión',
+        color: 'grey'
+      }
+    }).onOk(() => {
+      showLoginDialog.value = true;
+    });
     return;
   }
-
 
   const price = producto.value.enOferta ? producto.value.precioOferta : producto.value.precio
   
@@ -654,6 +670,8 @@ const toggleFavorite = async () => {
     console.error('Error al modificar favoritos:', err);
   }
 };
+
+const showLoginDialog = ref(false)
 </script>
 
 <style scoped>

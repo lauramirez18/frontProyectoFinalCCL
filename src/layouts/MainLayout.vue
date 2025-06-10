@@ -482,10 +482,7 @@ const getUserInitials = computed(() => {
 <style>
 /* HEADER STYLES */
 .header-main {
-  background: linear-gradient(180deg,
-    rgba(6, 143, 255, 0.70) 0%,
-    rgba(0, 0, 0, 1) 35%
-  );
+  background: linear-gradient(135deg, #068FFF, #0052a3);
   position: relative;
   color: white;
   overflow: hidden;
@@ -499,7 +496,7 @@ const getUserInitials = computed(() => {
     height: 1px;
     background: linear-gradient(to right,
       transparent 0%,
-      rgba(6, 143, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0.3) 50%,
       transparent 100%
     );
   }
@@ -511,12 +508,11 @@ const getUserInitials = computed(() => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
-      linear-gradient(
-        to bottom,
-        rgba(6, 143, 255, 0.05) 0%,
-        transparent 100%
-      );
+    background: linear-gradient(45deg, 
+      transparent 30%, 
+      rgba(255, 255, 255, 0.1) 50%, 
+      transparent 70%
+    );
     pointer-events: none;
   }
 }
@@ -558,15 +554,9 @@ const getUserInitials = computed(() => {
 
 .logo {
   transition: all 0.3s ease;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  
 
   &:hover {
     transform: scale(1.05);
-    border-color: rgba(6, 143, 255, 0.5);
-    box-shadow: 0 4px 20px rgba(6, 143, 255, 0.3);
   }
 }
 
@@ -786,25 +776,56 @@ const getUserInitials = computed(() => {
 
 /* FOOTER STYLES */
 .footer-dark {
-  background: linear-gradient(to bottom, black 90%, #068FFF 100%);
+  background: linear-gradient(135deg, #068FFF, #0052a3);
   color: white;
-  padding-top: 30px;
-  padding-bottom: 10px;
+  padding-top: 40px;
+  padding-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+      transparent 30%, 
+      rgba(255, 255, 255, 0.1) 50%, 
+      transparent 70%
+    );
+    pointer-events: none;
+  }
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Social Icons */
 .social-icons .q-btn {
   font-size: 28px;
-  /* Slightly larger icons */
   width: 55px;
   height: 55px;
-  
   border-radius: 50%;
   display: flex;
   flex-wrap: nowrap;
@@ -812,12 +833,14 @@ const getUserInitials = computed(() => {
   align-items: center;
   transition: all 0.3s ease;
   color: white;
-  /* Default color */
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .social-icons .q-btn:hover {
   transform: translateY(-5px) scale(1.1);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .social-icons .q-btn.facebook:hover {
@@ -838,140 +861,65 @@ const getUserInitials = computed(() => {
 /* Contact Info */
 .contact-link,
 .contact-text {
-  color: #068FFF;
-  /* Use the primary blue color for links */
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.3s ease, text-decoration 0.3s ease;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
 }
 
 .contact-link:hover {
-  color: #056ee0;
-  /* Darker blue on hover */
-  text-decoration: underline;
+  color: white;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  transform: translateX(5px);
 }
 
 .contact-item {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
-  /* Space between items */
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
 }
 
 .contact-item .q-icon {
-  margin-right: 10px;
+  margin-right: 12px;
+  font-size: 1.2em;
 }
 
 /* Copyright Section */
 .copyright-section {
-  background: rgba(0, 0, 0, 0.4);
-  /* Slightly darker background */
-  padding: 15px 0;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 20px 0;
+  margin-top: 30px;
+  position: relative;
+  backdrop-filter: blur(5px);
 }
 
 .copyright-section .text-caption {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  opacity: 0.9;
 }
 
-.hover-underline:hover {
-  text-decoration: underline !important;
-}
-
-/* RESPONSIVENESS */
-@media (max-width: 1024px) {
-  .search-bar-wrapper {
-    max-width: 400px;
-    /* Adjust search bar width */
+.hover-underline {
+  position: relative;
+  text-decoration: none !important;
+  color: white !important;
+  font-weight: 600;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: white;
+    transition: width 0.3s ease;
   }
-}
-
-@media (max-width: 768px) {
-  .q-toolbar {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .search-bar-wrapper {
-    order: 3;
-    /* Move search icon/input to the bottom in mobile */
-    flex-basis: 100%;
-    /* Take full width */
-    margin-top: 10px;
-    text-align: center;
-  }
-
-  .search-container {
-    display: none;
-    /* Hide desktop search bar */
-  }
-
-  .action-icons {
-    order: 2;
-    /* Keep action icons next to logo/menu */
-    width: auto;
-   
-  }
-
-  .user-btn {
-    font-size: 14px !important;
-    /* Smaller font for user button */
-    padding: 0 8px;
-  }
-
-  .logo {
-    margin: 0 10px;
-    /* Adjust logo margin */
-  }
-
-  .footer-dark .container {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .footer-dark .q-col-gutter-lg {
-    gap: 40px 0;
-    /* Increase vertical gap between columns */
-  }
-
-  .footer-dark .col-sm-4 {
-    text-align: center;
-    /* Center text in mobile */
+  
+  &:hover::after {
     width: 100%;
-  }
-
-  .contact-item {
-    justify-content: center;
-    /* Center contact items */
-  }
-
-  .social-icons {
-    justify-content: center;
-    /* Center social icons */
-  }
-}
-
-@media (max-width: 480px) {
-  .q-avatar {
-    size: 60px !important;
-    /* Smaller logo on very small screens */
-  }
-
-  .menu-toggle-btn {
-    font-size: 20px;
-    padding: 6px;
-  }
-
-  .action-icons .q-btn {
-    font-size: 20px;
-    padding: 6px;
-  }
-
-  .user-btn {
-    padding: 0 5px;
-    min-width: unset;
   }
 }
 

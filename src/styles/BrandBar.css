@@ -1,15 +1,46 @@
 .banner-brand {
-  padding: 2rem 0;
-  background: linear-gradient(to right, #000000, #18426c, #111111);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 3rem 0;
+  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(6, 143, 255, 0.1);
+  border-bottom: 1px solid rgba(6, 143, 255, 0.1);
+}
+
+.banner-brand::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+}
+
+.banner-brand::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    transparent 30%, 
+    rgba(255, 255, 255, 0.1) 50%, 
+    transparent 70%
+  );
+  pointer-events: none;
 }
 
 .banner-brand h6 {
-  color: #ffffff;
+  color: #068FFF;
   font-size: 2.5em;
   font-weight: 700;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
   font-family: 'Montserrat', sans-serif;
   text-align: center;
   position: relative;
@@ -31,15 +62,15 @@
 }
 
 .brand-card {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0.6rem;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1rem;
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  height: 60px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -52,15 +83,19 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background: linear-gradient(45deg, 
+    transparent, 
+    rgba(6, 143, 255, 0.05), 
+    transparent
+  );
   transform: translateX(-100%);
   transition: transform 0.6s ease;
 }
 
 .brand-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(6, 143, 255, 0.3);
-  box-shadow: 0 5px 15px rgba(6, 143, 255, 0.1);
+  transform: translateY(-5px);
+  border-color: #068FFF;
+  box-shadow: 0 10px 20px rgba(6, 143, 255, 0.1);
 }
 
 .brand-card:hover::before {
@@ -70,14 +105,15 @@
 .brand-logo {
   width: 100%;
   height: 100%;
-  max-width: 60px !important;
-  max-height: 30px !important;
+  max-width: 80px !important;
+  max-height: 40px !important;
   object-fit: contain !important;
   padding: 0.3rem;
+  transition: all 0.3s ease;
 }
 
 .brand-card:hover .brand-logo {
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 .brand-name {
@@ -87,12 +123,14 @@
   width: 100%;
   text-align: center;
   color: #ffffff;
-  font-size: 0.8rem;
-  padding: 5px;
-  background: rgba(6, 143, 255, 0.9);
+  font-size: 0.9rem;
+  padding: 8px;
+  background: linear-gradient(135deg, #068FFF, #0052a3);
   transition: all 0.3s ease;
   opacity: 0;
   font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 .brand-card:hover .brand-name {
@@ -113,11 +151,13 @@
 
 .brand-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 2rem;
   padding: 0 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .brand-item {
@@ -127,56 +167,54 @@
 
 @media (max-width: 768px) {
   .banner-brand {
-    padding: 1.5rem 0;
+    padding: 2rem 0;
   }
 
   .banner-brand h6 {
     font-size: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .brand-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 0.8rem;
-    padding: 0 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1.5rem;
+    padding: 0 1.5rem;
   }
 
   .brand-card {
-    height: 50px;
-    padding: 0.5rem;
+    height: 70px;
+    padding: 0.8rem;
   }
 
   .brand-logo {
-    max-width: 50px !important;
-    max-height: 25px !important;
-    padding: 0.2rem;
+    max-width: 70px !important;
+    max-height: 35px !important;
   }
 }
 
 @media (max-width: 480px) {
   .banner-brand {
-    padding: 1.2rem 0;
+    padding: 1.5rem 0;
   }
 
   .banner-brand h6 {
     font-size: 1.5rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.5rem;
   }
 
   .brand-grid {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 0.6rem;
-    padding: 0 0.8rem;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 1rem;
+    padding: 0 1rem;
   }
 
   .brand-card {
-    height: 45px;
-    padding: 0.4rem;
+    height: 60px;
+    padding: 0.6rem;
   }
 
   .brand-logo {
-    max-width: 45px !important;
-    max-height: 22px !important;
-    padding: 0.15rem;
+    max-width: 60px !important;
+    max-height: 30px !important;
   }
 } 

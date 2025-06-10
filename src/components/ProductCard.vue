@@ -123,16 +123,19 @@
         class="favorite-btn"
       />
     </q-card-actions>
+    <LoginDialog v-model="showLoginDialog" />
   </q-card>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useQuasar, Dialog } from 'quasar'
 import { useAuthStore } from '../store/store.js'
 import { showNotification } from '../utils/notifications'
 import FavoriteButton from './FavoriteButton.vue'
 import RatingStars from './RatingStars.vue'
+import LoginDialog from './LoginDialog.vue'
 
 const props = defineProps({
   product: {
@@ -142,8 +145,10 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const $q = useQuasar()
 const currentImage = ref(0)
 const loading = ref(false)
+const showLoginDialog = ref(false)
 
 const mainImage = computed(() => {
   return props.product.imagenes[currentImage.value] || '/placeholder-product.png'
@@ -168,6 +173,26 @@ const formatPrice = (price) => {
 }
 
 const addToCart = async () => {
+  if (!authStore.token) {
+    $q.dialog({
+      title: 'Iniciar sesión',
+      message: '¿Deseas iniciar sesión para agregar productos al carrito?',
+      cancel: true,
+      persistent: true,
+      ok: {
+        label: 'Sí, iniciar sesión',
+        color: 'primary'
+      },
+      cancel: {
+        label: 'No, continuar sin sesión',
+        color: 'grey'
+      }
+    }).onOk(() => {
+      showLoginDialog.value = true;
+    });
+    return;
+  }
+
   try {
     loading.value = true
     const cartItem = {

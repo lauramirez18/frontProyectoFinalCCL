@@ -5,6 +5,11 @@
       <BannerSlider />
     </div>
 
+     <!-- Categorías -->
+     <div class="section-container q-py-md">
+      <CategorySlider />
+    </div>
+
     <!-- Sección de ofertas -->
     <div class="section-container q-py-md">
       <OfertasSection />
@@ -15,10 +20,7 @@
       <BrandsBar />
     </div>
 
-    <!-- Categorías -->
-    <div class="section-container q-py-md">
-      <CategorySlider />
-    </div>
+  
 
     <LoginDialog v-model="showLoginDialog" />
 

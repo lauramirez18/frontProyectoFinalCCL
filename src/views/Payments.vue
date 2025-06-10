@@ -80,6 +80,7 @@
             </option>
           </select>
           <p class="error" v-if="errors.country">{{ errors.country }}</p>
+          <p class="error" v-if="errors.country">{{ errors.country }}</p>
         </div>
         <div class="form-group half">
           <label for="state">{{ getStateLabel() }} *</label>
@@ -99,6 +100,7 @@
               {{ stateOption.name }}
             </option>
           </select>
+          <p class="error" v-if="errors.state">{{ errors.state }}</p>
           <p class="error" v-if="errors.state">{{ errors.state }}</p>
         </div>
       </div>
@@ -131,6 +133,7 @@
             v-model="postalCode"
             placeholder="Código postal"
           />
+          <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
           <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
         </div>
       </div>
@@ -238,10 +241,8 @@ import statesData from '../utils/states.json';
 import citiesData from '../utils/cities.json';
 import phoneCodesData from '../utils/CountryCodes.json'; // Importa el nuevo archivo
 
-const router = useRouter()
+const router = useRouter();
 const authStore = useAuthStore();
-const totalCOP = ref(0);
-const totalUSD = ref(0);
 
 // Datos de envío
 const firstName = ref("");
@@ -257,7 +258,10 @@ const selectedCountry = ref(null);
 const selectedState = ref(null);
 const selectedCity = ref(null);
 
-// Variables para mostrar en el modal de factura
+// Variables para PayPal
+const totalCOP = ref(0);
+const totalUSD = ref(0);
+const exchangeRate = ref(4000); // Tasa de cambio por defecto (1 USD = 4000 COP)
 const payerName = ref("");
 const payerEmail = ref("");
 const amountPaid = ref("");
@@ -279,7 +283,6 @@ const states = ref(statesData.states);
 const cities = ref(citiesData.cities);
 const phoneCodes = ref(phoneCodesData.countries); // Asume que el JSON tiene una clave 'countries'
 
-// Computed para obtener los estados disponibles según el país seleccionado
 const availableStates = computed(() => {
   if (!selectedCountry.value) {
     return [];
@@ -295,7 +298,6 @@ const availableCities = computed(() => {
   return cities.value.filter(city => city.id_state === selectedState.value);
 });
 
-// Función para obtener la etiqueta del campo de estado/departamento
 const getStateLabel = () => {
   const countryObject = countries.value.find(c => c.id === selectedCountry.value);
   if (countryObject && countryObject.name === "Colombia") {
@@ -340,20 +342,77 @@ const onStateChange = () => {
   selectedCity.value = null; // Resetear la selección de ciudad
 };
 
-// Cargar PayPal SDK
+// Función de validación mejorada
+const validateShippingData = () => {
+  console.log('=== VALIDANDO DATOS DE ENVÍO ===');
+  console.log('firstName:', firstName.value);
+  console.log('lastName:', lastName.value);
+  console.log('phone:', phone.value);
+  console.log('address:', address.value);
+  console.log('city:', city.value);
+  console.log('country:', country.value);
+  console.log('state:', state.value);
+
+  // Limpiar errores previos
+  Object.keys(errors).forEach(key => {
+    errors[key] = "";
+  });
+
+  let isValid = true;
+
+  // Validar campos requeridos
+  if (!firstName.value || firstName.value.trim() === "") {
+    errors.firstName = "Nombre es requerido";
+    isValid = false;
+  }
+
+  if (!lastName.value || lastName.value.trim() === "") {
+    errors.lastName = "Apellidos son requeridos";
+    isValid = false;
+  }
+
+  if (!phone.value || phone.value.trim() === "") {
+    errors.phone = "Teléfono es requerido";
+    isValid = false;
+  }
+
+  if (!address.value || address.value.trim() === "") {
+    errors.address = "Dirección es requerida";
+    isValid = false;
+  }
+
+  if (!city.value || city.value.trim() === "") {
+    errors.city = "Ciudad es requerida";
+    isValid = false;
+  }
+
+  if (!country.value || country.value.trim() === "") {
+    errors.country = "País es requerido";
+    isValid = false;
+  }
+
+  if (!state.value || state.value.trim() === "") {
+    errors.state = `${getStateLabel()} es requerido`;
+    isValid = false;
+  }
+
+  console.log('Validación completada. Es válido:', isValid);
+  console.log('Errores:', errors);
+
+  return isValid;
+};
+
 const loadPayPalScript = () => {
   return new Promise((resolve, reject) => {
-    if (document.getElementById("paypal-sdk")) {
+    if (window.paypal) {
       resolve();
       return;
     }
 
     const script = document.createElement("script");
-    script.id = "paypal-sdk";
-    script.src =
-      "https://www.paypal.com/sdk/js?client-id=AW4MvAt5Q003Hf0opseAiliz0s0HLJZwV-9ni8KiaaoIYCHsYsnRVU1BxpJ6LHqWtFipgKDZUFNrka5t&currency=USD";
+    script.src = `https://www.paypal.com/sdk/js?client-id=AW4MvAt5Q003Hf0opseAiliz0s0HLJZwV-9ni8KiaaoIYCHsYsnRVU1BxpJ6LHqWtFipgKDZUFNrka5t&currency=USD`;
     script.onload = () => resolve();
-    script.onerror = () => reject("Error al cargar el SDK de PayPal");
+    script.onerror = () => reject(new Error("Failed to load PayPal SDK"));
     document.head.appendChild(script);
   });
 };
@@ -372,7 +431,7 @@ const fetchExchangeRate = async () => {
       return 0.00025;
     }
   } catch (error) {
-    console.error("Error al obtener la tasa de cambio:", error);
+    console.error("Error fetching exchange rate:", error);
     return 0.00025;
   }
 };
@@ -512,9 +571,12 @@ const renderPayPalButtons = () => {
   }
 };
 
+
+
+
 const getCartTotalInCOP = () => {
   return authStore.cartItems.reduce((total, item) => {
-    return total + item.price * item.quantity;
+    return total + (item.price * item.quantity);
   }, 0);
 };
 
