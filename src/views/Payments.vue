@@ -4,6 +4,7 @@
     <p class="shipping-subtitle">
       Completa la información para el envío de tu pedido
     </p>
+
     <div class="shipping-form">
       <div class="form-row">
         <div class="form-group half">
@@ -80,7 +81,6 @@
             </option>
           </select>
           <p class="error" v-if="errors.country">{{ errors.country }}</p>
-          <p class="error" v-if="errors.country">{{ errors.country }}</p>
         </div>
         <div class="form-group half">
           <label for="state">{{ getStateLabel() }} *</label>
@@ -100,7 +100,6 @@
               {{ stateOption.name }}
             </option>
           </select>
-          <p class="error" v-if="errors.state">{{ errors.state }}</p>
           <p class="error" v-if="errors.state">{{ errors.state }}</p>
         </div>
       </div>
@@ -133,7 +132,6 @@
             v-model="postalCode"
             placeholder="Código postal"
           />
-          <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
           <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
         </div>
       </div>
@@ -248,7 +246,7 @@ const authStore = useAuthStore();
 const firstName = ref("");
 const lastName = ref("");
 const phone = ref("");
-const phonePrefix = ref('+57'); // Valor inicial si lo deseas, o cámbialo a null o ''
+const phonePrefix = ref('+57'); // Valor inicial para Colombia
 const address = ref("");
 const postalCode = ref("");
 const deliveryNotes = ref("");
@@ -261,7 +259,8 @@ const selectedCity = ref(null);
 // Variables para PayPal
 const totalCOP = ref(0);
 const totalUSD = ref(0);
-const exchangeRate = ref(4000); // Tasa de cambio por defecto (1 USD = 4000 COP)
+// No necesitas exchangeRate como ref si lo vas a buscar cada vez en onMounted
+// const exchangeRate = ref(4000); 
 const payerName = ref("");
 const payerEmail = ref("");
 const amountPaid = ref("");
@@ -281,8 +280,10 @@ const errors = reactive({
 const countries = ref(countriesData.countries);
 const states = ref(statesData.states);
 const cities = ref(citiesData.cities);
-const phoneCodes = ref(phoneCodesData.countries); // Asume que el JSON tiene una clave 'countries'
+// Asegúrate de que tu JSON de prefijos tenga una clave 'countries' o ajusta esta línea
+const phoneCodes = ref(phoneCodesData.countries); 
 
+// Computed para obtener los estados disponibles según el país seleccionado
 const availableStates = computed(() => {
   if (!selectedCountry.value) {
     return [];
@@ -298,6 +299,7 @@ const availableCities = computed(() => {
   return cities.value.filter(city => city.id_state === selectedState.value);
 });
 
+// Función para obtener la etiqueta del campo de estado/departamento
 const getStateLabel = () => {
   const countryObject = countries.value.find(c => c.id === selectedCountry.value);
   if (countryObject && countryObject.name === "Colombia") {
@@ -326,6 +328,7 @@ const onCountryChange = () => {
   // Establecer el prefijo telefónico basado en el país seleccionado
   const selectedCountryObject = countries.value.find(c => c.id === selectedCountry.value);
   if (selectedCountryObject) {
+    // Busca el prefijo por el nombre del país para que coincida con tus datos de países
     const phoneCodeEntry = phoneCodes.value.find(pc => pc.name === selectedCountryObject.name);
     if (phoneCodeEntry) {
       phonePrefix.value = phoneCodeEntry.dial_code;
@@ -342,120 +345,33 @@ const onStateChange = () => {
   selectedCity.value = null; // Resetear la selección de ciudad
 };
 
-// Función de validación mejorada
-const validateShippingData = () => {
-  console.log('=== VALIDANDO DATOS DE ENVÍO ===');
-  console.log('firstName:', firstName.value);
-  console.log('lastName:', lastName.value);
-  console.log('phone:', phone.value);
-  console.log('address:', address.value);
-  console.log('city:', city.value);
-  console.log('country:', country.value);
-  console.log('state:', state.value);
+// --- Validaciones y Lógica de Pago ---
 
-  // Limpiar errores previos
-  Object.keys(errors).forEach(key => {
-    errors[key] = "";
-  });
-
-  let isValid = true;
-
-  // Validar campos requeridos
-  if (!firstName.value || firstName.value.trim() === "") {
-    errors.firstName = "Nombre es requerido";
-    isValid = false;
-  }
-
-  if (!lastName.value || lastName.value.trim() === "") {
-    errors.lastName = "Apellidos son requeridos";
-    isValid = false;
-  }
-
-  if (!phone.value || phone.value.trim() === "") {
-    errors.phone = "Teléfono es requerido";
-    isValid = false;
-  }
-
-  if (!address.value || address.value.trim() === "") {
-    errors.address = "Dirección es requerida";
-    isValid = false;
-  }
-
-  if (!city.value || city.value.trim() === "") {
-    errors.city = "Ciudad es requerida";
-    isValid = false;
-  }
-
-  if (!country.value || country.value.trim() === "") {
-    errors.country = "País es requerido";
-    isValid = false;
-  }
-
-  if (!state.value || state.value.trim() === "") {
-    errors.state = `${getStateLabel()} es requerido`;
-    isValid = false;
-  }
-
-  console.log('Validación completada. Es válido:', isValid);
-  console.log('Errores:', errors);
-
-  return isValid;
-};
-
-const loadPayPalScript = () => {
-  return new Promise((resolve, reject) => {
-    if (window.paypal) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `https://www.paypal.com/sdk/js?client-id=AW4MvAt5Q003Hf0opseAiliz0s0HLJZwV-9ni8KiaaoIYCHsYsnRVU1BxpJ6LHqWtFipgKDZUFNrka5t&currency=USD`;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load PayPal SDK"));
-    document.head.appendChild(script);
-  });
-};
-
-const fetchExchangeRate = async () => {
-  try {
-    const res = await fetch(
-      "https://v6.exchangerate-api.com/v6/ee2b23888520b147bcfb0c05/latest/COP"
-    );
-    const data = await res.json();
-
-    if (data && data.conversion_rates && data.conversion_rates.USD) {
-      return data.conversion_rates.USD;
-    } else {
-      console.warn("No se encontró la tasa USD en la respuesta:", data);
-      return 0.00025;
-    }
-  } catch (error) {
-    console.error("Error fetching exchange rate:", error);
-    return 0.00025;
-  }
-};
-
-// Validar datos de envío
+// **ÚNICA** Función de validación de datos de envío
 const validateShippingData = () => {
   // Limpiar errores previos
   Object.keys(errors).forEach((key) => (errors[key] = ""));
 
   let isValid = true;
 
-  if (!firstName.value) {
+  if (!firstName.value || firstName.value.trim() === "") {
     errors.firstName = "El nombre es obligatorio.";
     isValid = false;
   }
-  if (!lastName.value) {
+  if (!lastName.value || lastName.value.trim() === "") {
     errors.lastName = "Los apellidos son obligatorios.";
     isValid = false;
   }
-  if (!phone.value || !/^\+?\d{7,15}$/.test(phone.value)) {
-    errors.phone = "Teléfono inválido.";
+  // Combina prefijo y número para validar el teléfono completo
+  if (!phone.value || !/^\d{7,15}$/.test(phone.value)) { // Ajusta el regex si necesitas el prefijo incluido
+    errors.phone = "Número de teléfono inválido (7-15 dígitos).";
     isValid = false;
   }
-  if (!address.value) {
+  if (!phonePrefix.value) {
+    errors.phone = "El prefijo telefónico es obligatorio.";
+    isValid = false;
+  }
+  if (!address.value || address.value.trim() === "") {
     errors.address = "La dirección es obligatoria.";
     isValid = false;
   }
@@ -471,14 +387,51 @@ const validateShippingData = () => {
     errors.city = "La ciudad es obligatoria.";
     isValid = false;
   }
-  if (!phonePrefix.value) { // Asegurarse de que se haya seleccionado un prefijo
-    errors.phone = "El prefijo telefónico es obligatorio.";
-    isValid = false;
-  }
+  // Puedes añadir validación para postalCode si es requerido o tiene un formato específico
+  // if (postalCode.value && !/^\d{5}$/.test(postalCode.value)) {
+  //   errors.postalCode = "Código postal inválido.";
+  //   isValid = false;
+  // }
 
   return isValid;
 };
 
+// Cargar PayPal SDK
+const loadPayPalScript = () => {
+  return new Promise((resolve, reject) => {
+    if (document.getElementById("paypal-sdk") || window.paypal) { // Check both global window and existing script
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = "paypal-sdk";
+    script.src =
+      "https://www.paypal.com/sdk/js?client-id=AXTeuO5867KsNBOGZ30IHq1U6aK0v3DDfFTd5p9Po4EZGdABEkk17SLAHVXRERVnbM350rUqmg8sbtR5&currency=USD";
+    script.onload = () => resolve();
+    script.onerror = () => reject("Error al cargar el SDK de PayPal");
+    document.head.appendChild(script);
+  });
+};
+
+const fetchExchangeRate = async () => {
+  try {
+    const res = await fetch(
+      "https://v6.exchangerate-api.com/v6/ee2b23888520b147bcfb0c05/latest/COP"
+    );
+    const data = await res.json();
+
+    if (data && data.conversion_rates && data.conversion_rates.USD) {
+      return data.conversion_rates.USD;
+    } else {
+      console.warn("No se encontró la tasa USD en la respuesta:", data);
+      return 0.00025; // Tasa de respaldo
+    }
+  } catch (error) {
+    console.error("Error al obtener la tasa de cambio:", error);
+    return 0.00025; // Tasa de respaldo en caso de error de red
+  }
+};
 
 // Mostrar alerta de agradecimiento con el botón "Ver factura"
 const mostrarFactura = () => {
@@ -571,9 +524,6 @@ const renderPayPalButtons = () => {
   }
 };
 
-
-
-
 const getCartTotalInCOP = () => {
   return authStore.cartItems.reduce((total, item) => {
     return total + (item.price * item.quantity);
@@ -584,12 +534,13 @@ onMounted(async () => {
   await loadPayPalScript();
   renderPayPalButtons();
   totalCOP.value = getCartTotalInCOP();
-  const exchangeRate = await fetchExchangeRate();
-  totalUSD.value = (totalCOP.value * exchangeRate).toFixed(2);
+  const exchangeRateValue = await fetchExchangeRate(); // Renombrar la constante
+  totalUSD.value = (totalCOP.value * exchangeRateValue).toFixed(2);
 });
 </script>
 
 <style scoped>
+/* Tu estilo CSS se mantiene igual */
 .shipping-container {
   max-width: 900px;
   margin: 0 auto;
