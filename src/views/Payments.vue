@@ -15,6 +15,7 @@
             v-model="firstName"
             required
             placeholder="Tu nombre"
+            @blur="validateField('firstName')"
           />
           <p class="error" v-if="errors.firstName">{{ errors.firstName }}</p>
         </div>
@@ -26,6 +27,7 @@
             v-model="lastName"
             required
             placeholder="Tus apellidos"
+            @blur="validateField('lastName')"
           />
           <p class="error" v-if="errors.lastName">{{ errors.lastName }}</p>
         </div>
@@ -34,7 +36,11 @@
       <div class="form-group">
         <label for="phone">Teléfono *</label>
         <div class="phone-input-group">
-          <select v-model="phonePrefix" class="phone-prefix">
+          <select
+            v-model="phonePrefix"
+            class="phone-prefix"
+            @change="validateField('phonePrefix')"
+          >
             <option
               v-for="prefixOption in phoneCodes"
               :key="prefixOption.code"
@@ -50,6 +56,7 @@
             required
             placeholder="Ej: 320 123 4567"
             class="phone-input"
+            @blur="validateField('phone')"
           />
         </div>
         <p class="error" v-if="errors.phone">{{ errors.phone }}</p>
@@ -63,6 +70,7 @@
           v-model="address"
           required
           placeholder="Calle, número, apartamento, etc."
+          @blur="validateField('address')"
         />
         <p class="error" v-if="errors.address">{{ errors.address }}</p>
       </div>
@@ -70,7 +78,12 @@
       <div class="form-row">
         <div class="form-group half">
           <label for="country">País *</label>
-          <select id="country" v-model="selectedCountry" @change="onCountryChange">
+          <select
+            id="country"
+            v-model="selectedCountry"
+            @change="onCountryChange"
+            @blur="validateField('country')"
+          >
             <option value="">Selecciona un país</option>
             <option
               v-for="countryOption in countries"
@@ -84,7 +97,13 @@
         </div>
         <div class="form-group half">
           <label for="state">{{ getStateLabel() }} *</label>
-          <select id="state" v-model="selectedState" :disabled="!selectedCountry" @change="onStateChange">
+          <select
+            id="state"
+            v-model="selectedState"
+            :disabled="!selectedCountry"
+            @change="onStateChange"
+            @blur="validateField('state')"
+          >
             <option value="">
               {{
                 selectedCountry
@@ -106,7 +125,13 @@
       <div class="form-row">
         <div class="form-group half">
           <label for="city">Ciudad *</label>
-          <select id="city" v-model="selectedCity" :disabled="!selectedState">
+          <select
+            id="city"
+            v-model="selectedCity"
+            :disabled="!selectedState"
+            @change="validateField('city')"
+            @blur="validateField('city')"
+          >
             <option value="">
               {{
                 selectedState
@@ -131,6 +156,7 @@
             id="postalCode"
             v-model="postalCode"
             placeholder="Código postal"
+            @blur="validateField('postalCode')"
           />
           <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
         </div>
@@ -220,7 +246,11 @@
         </div>
       </div>
 
-      <div class="paypal-container">
+      <button @click="attemptPayment" class="validate-button">
+        Validar y Continuar al Pago
+      </button>
+
+      <div class="paypal-container" v-if="showPayPalButton">
         <div id="paypal-button-container"></div>
       </div>
     </div>
@@ -231,13 +261,13 @@
 import { ref, onMounted, computed, reactive } from "vue";
 import Swal from "sweetalert2";
 import { useAuthStore } from "../store/store.js";
-import { useRouter } from 'vue-router'
+import { useRouter } from "vue-router";
 
 // Importa tus archivos JSON
-import countriesData from '../utils/countries.json';
-import statesData from '../utils/states.json';
-import citiesData from '../utils/cities.json';
-import phoneCodesData from '../utils/CountryCodes.json'; // Importa el nuevo archivo
+import countriesData from "../utils/countries.json";
+import statesData from "../utils/states.json";
+import citiesData from "../utils/cities.json";
+import phoneCodesData from "../utils/CountryCodes.json"; // Importa el nuevo archivo
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -246,7 +276,7 @@ const authStore = useAuthStore();
 const firstName = ref("");
 const lastName = ref("");
 const phone = ref("");
-const phonePrefix = ref('+57'); // Valor inicial para Colombia
+const phonePrefix = ref("+57"); // Valor inicial para Colombia
 const address = ref("");
 const postalCode = ref("");
 const deliveryNotes = ref("");
@@ -256,16 +286,18 @@ const selectedCountry = ref(null);
 const selectedState = ref(null);
 const selectedCity = ref(null);
 
+// Controlar la visibilidad del botón de PayPal
+const showPayPalButton = ref(false);
+
 // Variables para PayPal
 const totalCOP = ref(0);
 const totalUSD = ref(0);
 // No necesitas exchangeRate como ref si lo vas a buscar cada vez en onMounted
-const exchangeRate = ref(4000); 
+// const exchangeRate = ref(4000); 
 const payerName = ref("");
 const payerEmail = ref("");
 
 const amountPaid = ref("");
-const currentOrderId = ref(null);
 
 const errors = reactive({
   firstName: "",
@@ -282,7 +314,6 @@ const errors = reactive({
 const countries = ref(countriesData.countries);
 const states = ref(statesData.states);
 const cities = ref(citiesData.cities);
-// Asegúrate de que tu JSON de prefijos tenga una clave 'countries' o ajusta esta línea
 const phoneCodes = ref(phoneCodesData);
 
 // Computed para obtener los estados disponibles según el país seleccionado
@@ -290,7 +321,9 @@ const availableStates = computed(() => {
   if (!selectedCountry.value) {
     return [];
   }
-  return states.value.filter(state => state.id_country === selectedCountry.value);
+  return states.value.filter(
+    (state) => state.id_country === selectedCountry.value
+  );
 });
 
 // Computed para obtener las ciudades disponibles según el estado seleccionado
@@ -298,12 +331,12 @@ const availableCities = computed(() => {
   if (!selectedState.value) {
     return [];
   }
-  return cities.value.filter(city => city.id_state === selectedState.value);
+  return cities.value.filter((city) => city.id_state === selectedState.value);
 });
 
 // Función para obtener la etiqueta del campo de estado/departamento
 const getStateLabel = () => {
-  const countryObject = countries.value.find(c => c.id === selectedCountry.value);
+  const countryObject = countries.value.find((c) => c.id === selectedCountry.value);
   if (countryObject && countryObject.name === "Colombia") {
     return "Departamento";
   }
@@ -325,91 +358,144 @@ const getStateLabel = () => {
 // Función que se ejecuta cuando cambia el país
 const onCountryChange = () => {
   selectedState.value = null; // Resetear la selección de estado
-  selectedCity.value = null;  // Resetear la selección de ciudad
+  selectedCity.value = null; // Resetear la selección de ciudad
+  validateField("country"); // Validar país al cambiar
 
   // Establecer el prefijo telefónico basado en el país seleccionado
-  const selectedCountryObject = countries.value.find(c => c.id === selectedCountry.value);
+  const selectedCountryObject = countries.value.find(
+    (c) => c.id === selectedCountry.value
+  );
   if (selectedCountryObject) {
-    // Busca el prefijo por el nombre del país para que coincida con tus datos de países
-    const phoneCodeEntry = phoneCodes.value.find(pc => pc.name === selectedCountryObject.name);
+    const phoneCodeEntry = phoneCodes.value.find(
+      (pc) => pc.name === selectedCountryObject.name
+    );
     if (phoneCodeEntry) {
       phonePrefix.value = phoneCodeEntry.dial_code;
     } else {
-      phonePrefix.value = ''; // O un valor por defecto si no se encuentra
+      phonePrefix.value = ""; // O un valor por defecto si no se encuentra
     }
   } else {
-    phonePrefix.value = ''; // O un valor por defecto si no hay país seleccionado
+    phonePrefix.value = ""; // O un valor por defecto si no hay país seleccionado
   }
 };
 
 // Función que se ejecuta cuando cambia el estado
 const onStateChange = () => {
   selectedCity.value = null; // Resetear la selección de ciudad
+  validateField("state"); // Validar estado al cambiar
 };
 
 // --- Validaciones y Lógica de Pago ---
 
-// **ÚNICA** Función de validación de datos de envío
+// Función de validación individual de campos
+const validateField = (field) => {
+  errors[field] = ""; // Limpiar error previo para el campo específico
+
+  switch (field) {
+    case "firstName":
+      if (!firstName.value || firstName.value.trim() === "") {
+        errors.firstName = "El nombre es obligatorio.";
+      }
+      break;
+    case "lastName":
+      if (!lastName.value || lastName.value.trim() === "") {
+        errors.lastName = "Los apellidos son obligatorios.";
+      }
+      break;
+    case "phone":
+      if (!phone.value || !/^\d{7,15}$/.test(phone.value)) {
+        errors.phone = "Número de teléfono inválido (7-15 dígitos).";
+      }
+      break;
+    case "phonePrefix":
+      if (!phonePrefix.value) {
+        errors.phone = "El prefijo telefónico es obligatorio.";
+      }
+      break;
+    case "address":
+      if (!address.value || address.value.trim() === "") {
+        errors.address = "La dirección es obligatoria.";
+      }
+      break;
+    case "country":
+      if (!selectedCountry.value) {
+        errors.country = "El país es obligatorio.";
+      }
+      break;
+    case "state":
+      if (!selectedState.value) {
+        errors.state = `El ${getStateLabel().toLowerCase()} es obligatorio.`;
+      }
+      break;
+    case "city":
+      if (!selectedCity.value) {
+        errors.city = "La ciudad es obligatoria.";
+      }
+      break;
+    case "postalCode":
+      // Puedes añadir validación para postalCode si es requerido o tiene un formato específico
+      // if (postalCode.value && !/^\d{5}$/.test(postalCode.value)) {
+      //   errors.postalCode = "Código postal inválido.";
+      // }
+      break;
+    default:
+      break;
+  }
+};
+
+// Función para validar todos los datos de envío
 const validateShippingData = () => {
-  // Limpiar errores previos
-  Object.keys(errors).forEach((key) => (errors[key] = ""));
-
   let isValid = true;
+  const fieldsToValidate = [
+    "firstName",
+    "lastName",
+    "phone",
+    "phonePrefix",
+    "address",
+    "country",
+    "state",
+    "city",
+    // "postalCode" // Descomentar si es obligatorio
+  ];
 
-  if (!firstName.value || firstName.value.trim() === "") {
-    errors.firstName = "El nombre es obligatorio.";
-    isValid = false;
-  }
-  if (!lastName.value || lastName.value.trim() === "") {
-    errors.lastName = "Los apellidos son obligatorios.";
-    isValid = false;
-  }
-  // Combina prefijo y número para validar el teléfono completo
-  if (!phone.value || !/^\d{7,15}$/.test(phone.value)) { // Ajusta el regex si necesitas el prefijo incluido
-    errors.phone = "Número de teléfono inválido (7-15 dígitos).";
-    isValid = false;
-  }
-  if (!phonePrefix.value) {
-    errors.phone = "El prefijo telefónico es obligatorio.";
-    isValid = false;
-  }
-  if (!address.value || address.value.trim() === "") {
-    errors.address = "La dirección es obligatoria.";
-    isValid = false;
-  }
-  if (!selectedCountry.value) {
-    errors.country = "El país es obligatorio.";
-    isValid = false;
-  }
-  if (!selectedState.value) {
-    errors.state = `El ${getStateLabel().toLowerCase()} es obligatorio.`;
-    isValid = false;
-  }
-  if (!selectedCity.value) {
-    errors.city = "La ciudad es obligatoria.";
-    isValid = false;
-  }
-  // Puedes añadir validación para postalCode si es requerido o tiene un formato específico
-  // if (postalCode.value && !/^\d{5}$/.test(postalCode.value)) {
-  //   errors.postalCode = "Código postal inválido.";
-  //   isValid = false;
-  // }
+  fieldsToValidate.forEach((field) => {
+    validateField(field);
+    if (errors[field]) {
+      isValid = false;
+    }
+  });
 
   return isValid;
+};
+
+// New function to handle the validation button click
+const attemptPayment = async () => {
+  if (validateShippingData()) {
+    showPayPalButton.value = true;
+    await loadPayPalScript();
+    renderPayPalButtons();
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error de validación',
+      text: 'Por favor, completa todos los campos obligatorios para continuar.',
+    });
+  }
 };
 
 // Cargar PayPal SDK
 const loadPayPalScript = () => {
   return new Promise((resolve, reject) => {
-    if (document.getElementById("paypal-sdk") || window.paypal) { // Check both global window and existing script
+    if (document.getElementById("paypal-sdk") || window.paypal) {
       resolve();
       return;
     }
 
     const script = document.createElement("script");
     script.id = "paypal-sdk";
+    // Modified client-id to include 'disable-funding=credit,card'
     script.src =
-      "https://www.paypal.com/sdk/js?client-id=AXTeuO5867KsNBOGZ30IHq1U6aK0v3DDfFTd5p9Po4EZGdABEkk17SLAHVXRERVnbM350rUqmg8sbtR5&currency=USD";
+      "https://www.paypal.com/sdk/js?client-id=AXTeuO5867KsNBOGZ30IHq1U6aK0v3DDfFTd5p9Po4EZGdABEkk17SLAHVXRERVnbM350rUqmg8sbtR5&currency=USD&disable-funding=credit,card";
     script.onload = () => resolve();
     script.onerror = () => reject("Error al cargar el SDK de PayPal");
     document.head.appendChild(script);
@@ -424,13 +510,16 @@ const fetchExchangeRate = async () => {
     const data = await res.json();
 
     if (data && data.conversion_rates && data.conversion_rates.USD) {
+      exchangeRate.value = data.conversion_rates.USD; // Store exchange rate
       return data.conversion_rates.USD;
     } else {
       console.warn("No se encontró la tasa USD en la respuesta:", data);
+      exchangeRate.value = 0.00025; // Fallback
       return 0.00025; // Tasa de respaldo
     }
   } catch (error) {
     console.error("Error al obtener la tasa de cambio:", error);
+    exchangeRate.value = 0.00025; // Fallback
     return 0.00025; // Tasa de respaldo en caso de error de red
   }
 };
@@ -449,10 +538,16 @@ const mostrarFactura = () => {
 
 // Mostrar el modal con la información de la factura
 const mostrarFacturaModal = () => {
-  const selectedCountryObject = countries.value.find(c => c.id === selectedCountry.value);
-  const selectedCountryName = selectedCountryObject ? selectedCountryObject.name : "";
-  const selectedStateName = states.value.find(s => s.id === selectedState.value)?.name || "";
-  const selectedCityName = cities.value.find(c => c.id === selectedCity.value)?.name || "";
+  const selectedCountryObject = countries.value.find(
+    (c) => c.id === selectedCountry.value
+  );
+  const selectedCountryName = selectedCountryObject
+    ? selectedCountryObject.name
+    : "";
+  const selectedStateName =
+    states.value.find((s) => s.id === selectedState.value)?.name || "";
+  const selectedCityName =
+    cities.value.find((c) => c.id === selectedCity.value)?.name || "";
 
   Swal.fire({
     title: "Factura de pago",
@@ -479,105 +574,121 @@ const mostrarFacturaModal = () => {
 };
 
 const createBackendOrder = async () => {
-  try {
-    console.log('=== CREANDO ORDEN EN BACKEND ===');
-    
-    if (!authStore.token || !authStore.user) {
-      throw new Error('No se encontró el token de autenticación. Por favor inicia sesión nuevamente.');
-    }
+  try {
+    console.log('=== CREANDO ORDEN EN BACKEND ===');
+    
+    // Validate auth and user
+    if (!authStore.token) {
+      throw new Error('No se encontró el token de autenticación. Por favor inicia sesión nuevamente.');
+    }
+
+    if (!authStore.user) {
+      throw new Error('No se pudo obtener la información del usuario. Por favor recarga la página e inicia sesión nuevamente.');
+    }
 
     const userId = authStore.user.id || authStore.user._id;
     if (!userId) {
       throw new Error('La información del usuario no es válida. Falta el ID del usuario.');
     }
 
-    // --- CORRECCIÓN DE BUG ADICIONAL ---
-    // Estabas usando `city.value`, `state.value`, etc., pero tus refs se llaman `selectedCity`, `selectedState`.
-    // Además, el backend probablemente espera los nombres, no los IDs.
-    const selectedCountryName = countries.value.find(c => c.id === selectedCountry.value)?.name || "";
-    const selectedStateName = states.value.find(s => s.id === selectedState.value)?.name || "";
-    const selectedCityName = cities.value.find(c => c.id === selectedCity.value)?.name || "";
+    // Validate and format shipping info
+    const shippingInfo = {
+      firstName: String(firstName.value || '').trim(),
+      lastName: String(lastName.value || '').trim(),
+      phone: `${phonePrefix.value}${String(phone.value || '').trim()}`,
+      address: String(address.value || '').trim(),
+      city: String(city.value || '').trim(),
+      state: String(state.value || '').trim(),
+      country: String(country.value || '').trim(),
+      postalCode: String(postalCode.value || '').trim(),
+      notes: String(deliveryNotes.value || '').trim()
+    };
 
-    const shippingInfo = {
-      firstName: String(firstName.value || '').trim(),
-      lastName: String(lastName.value || '').trim(),
-      phone: `${phonePrefix.value}${String(phone.value || '').trim()}`,
-      address: String(address.value || '').trim(),
-      // CORRECCIÓN: Usar los nombres de las ubicaciones, no los IDs.
-      city: selectedCityName,
-      state: selectedStateName,
-      country: selectedCountryName,
-      postalCode: String(postalCode.value || '').trim(),
-      notes: String(deliveryNotes.value || '').trim()
-    };
+    // Validar que los campos requeridos no estén vacíos
+    const requiredFields = ['firstName', 'lastName', 'phone', 'address', 'city'];
+    const missingFields = requiredFields.filter(field => !shippingInfo[field] || shippingInfo[field].length === 0);
 
-    if (!authStore.cartItems || authStore.cartItems.length === 0) {
-      throw new Error('El carrito está vacío');
-    }
+    if (missingFields.length > 0) {
+      throw new Error(`Los siguientes campos son requeridos: ${missingFields.join(', ')}`);
+    }
 
-    // 1. CONSTRUIR LA LISTA DE PRODUCTOS CON PRECIOS FINALES (CON DESCUENTO)
-    const products = authStore.cartItems.map(item => {
-      const productId = item.id || item._id;
-      if (!productId) {
-        throw new Error('Uno o más productos no tienen un ID válido');
-      }
-      
-      // Usar el precio con descuento si existe y es válido
-      const originalPrice = Number(item.price || 0);
-      const discountedPrice = Number(item.discountedPrice);
-      const price = (discountedPrice > 0 && discountedPrice < originalPrice) ? discountedPrice : originalPrice;
+    // Validate products
+    if (!authStore.cartItems || authStore.cartItems.length === 0) {
+      throw new Error('El carrito está vacío');
+    }
+
+    // Calcular total real basado en precios con descuento
+    const products = authStore.cartItems.map(item => {
+      const productId = item.id || item._id;
+      if (!productId) {
+        throw new Error('Uno o más productos no tienen un ID válido');
+      }
       
-      const quantity = parseInt(item.quantity) || 1;
-      const discountApplied = originalPrice > price ? Math.round((originalPrice - price) * 100) / 100 : 0;
-      // El subtotal debe basarse en el precio final (con descuento)
-      const subtotal = Math.round((price * quantity) * 100) / 100;
-      
-      return {
-        productId: productId,
-        quantity: quantity,
-        price: price, // El precio unitario final
-        originalPrice: originalPrice,
-        discountApplied: discountApplied,
-        subtotal: subtotal // El subtotal de la línea
-      };
-    });
+      // Asegurarse de que los precios sean números y tengan exactamente 2 decimales
+      const price = Math.round(Number(item.discountedPrice || item.price || 0) * 100) / 100;
+      const originalPrice = Math.round(Number(item.price || 0) * 100) / 100;
+      const quantity = parseInt(item.quantity) || 1;
+      const discountApplied = originalPrice > price ? Math.round((originalPrice - price) * 100) / 100 : 0;
+      const subtotal = Math.round((price * quantity) * 100) / 100;
+      
+      return {
+        productId: productId,
+        quantity: quantity,
+        price: price,
+        originalPrice: originalPrice,
+        discountApplied: discountApplied,
+        subtotal: subtotal
+      };
+    });
 
-    // 2. CAMBIO CLAVE: CALCULAR EL TOTAL SUMANDO LOS SUBTOTALES DEL ARRAY QUE ACABAMOS DE CREAR.
-    // Esto GARANTIZA que el total coincida siempre con la suma de los productos.
-    const total = products.reduce((sum, product) => sum + product.subtotal, 0);
+    // Calcular el total basado en los precios con descuento
+    const total = Math.round(products.reduce((sum, product) => {
+      return sum + (product.price * product.quantity);
+    }, 0) * 100) / 100;
 
-    // Es buena práctica redondear al final para evitar errores de punto flotante acumulados.
-    const finalTotalCOP = Math.round(total * 100) / 100;
- 
-    const currentExchangeRate = exchangeRate.value || 4000;
-    
-    // 3. ACTUALIZAR LOS VALORES GLOBALES Y LA ORDEN CON EL TOTAL CORRECTO
-    totalCOP.value = finalTotalCOP;
-    totalUSD.value = Math.round((finalTotalCOP / currentExchangeRate) * 100) / 100;
-    
-    console.log('=== DETALLES DE LA ORDEN CORREGIDOS ===');
-    console.log('Productos procesados:', JSON.stringify(products, null, 2));
-    console.log('Total calculado (COP):', finalTotalCOP);
-    console.log('Total calculado (USD):', totalUSD.value);
+    // Si no hay tasa de cambio, usar un valor por defecto
+    const currentExchangeRate = exchangeRate.value || 4000;
+    
+    // Actualizar el total en COP y USD
+    totalCOP.value = total;
+    totalUSD.value = Math.round((total / currentExchangeRate) * 100) / 100;
+    
+    console.log('=== DETALLES DE LA ORDEN ===');
+    console.log('Productos procesados:', JSON.stringify(products, null, 2));
+    console.log('Total calculado (COP):', total);
+    console.log('Total calculado (USD):', totalUSD.value);
+    console.log('Tipo de total:', typeof total);
+    console.log('Tipo de totalUSD:', typeof totalUSD.value);
+    console.log('Tipo de precio de primer producto:', typeof products[0]?.price);
+    console.log('Tipo de cantidad de primer producto:', typeof products[0]?.quantity);
 
-    const orderData = {
-      usuarioId: userId,
-      products: products, // El array con precios de descuento
-      total: finalTotalCOP, // El total que coincide con la suma de los productos
-      totalUSD: totalUSD.value,
-      shippingInfo: shippingInfo,
-      exchangeRate: currentExchangeRate,
-      currency: 'COP',
-      status: 'pendiente'
-    };
+    // ESTRUCTURA CORRECTA DE DATOS
+    const orderData = {
+      usuarioId: userId,
+      products: products.map(p => ({
+        productId: p.productId,
+        quantity: p.quantity,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        discountApplied: p.discountApplied,
+        subtotal: p.subtotal
+      })),
+      total: total,
+      totalUSD: totalUSD.value,
+      shippingInfo: shippingInfo,
+      exchangeRate: currentExchangeRate,
+      currency: 'COP',
+      status: 'pending'
+    };
+    
+    // Validar que la suma de los subtotales sea igual al total
+    const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
+    if (Math.abs(calculatedTotal - total) > 0.01) {
+      throw new Error(`La suma de los subtotales (${calculatedTotal}) no coincide con el total (${total})`);
+    }
 
-    // Esta validación ahora siempre debería pasar
-    const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
-    if (Math.abs(calculatedTotal - finalTotalCOP) > 0.01) {
-      throw new Error(`Error de consistencia interna. La suma de los subtotales (${calculatedTotal}) no coincide con el total (${finalTotalCOP})`);
-    }
-
-    console.log('Order data to send:', JSON.stringify(orderData, null, 2));
+    console.log('Order data to send:', JSON.stringify(orderData, null, 2));
+    console.log('Shipping info specifically:', JSON.stringify(orderData.shippingInfo, null, 2));
 
     const response = await fetch('http://localhost:3000/api/ordenes', {
       method: 'POST',
@@ -593,22 +704,25 @@ const createBackendOrder = async () => {
     console.log('Server response status:', response.status);
     console.log('Server response text:', responseText);
 
-    if (!response.ok) {
-      let errorMessage = `Server error: ${response.status}`;
-      try {
-        const errorData = JSON.parse(responseText);
-        errorMessage = errorData.message || errorMessage;
-      } catch (parseError) {
-        errorMessage += ` - ${responseText}`;
-      }
-      throw new Error(errorMessage);
-    }
+    if (!response.ok) {
+      let errorMessage = `Server error: ${response.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.message || errorMessage;
+        if (errorData.errors) {
+          errorMessage += ` - Errores: ${errorData.errors.join(', ')}`;
+        }
+      } catch (parseError) {
+        errorMessage += ` - ${responseText}`;
+      }
+      throw new Error(errorMessage);
+    }
 
-    return JSON.parse(responseText);
-  } catch (error) {
-    console.error('Error in createBackendOrder:', error);
-    throw error;
-  }
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error('Error in createBackendOrder:', error);
+    throw error;
+  }
 };
 
 
@@ -641,89 +755,58 @@ const renderPayPalButtons = () => {
 
         console.log('Validaciones pasadas, creando orden...');
 
-        // 1. Asegurarse de que tenemos la tasa de cambio
-        if (!exchangeRate.value) {
-          console.log('Obteniendo tasa de cambio...');
-          await fetchExchangeRate();
-        }
-        
-        // Usar la tasa de cambio o un valor por defecto si no está disponible
-        const currentExchangeRate = exchangeRate.value || 4000;
-        console.log('Tasa de cambio a utilizar:', currentExchangeRate);
-
-        // 2. Crear orden en el backend
+        // 1. Crear orden en el backend
         const orderData = await createBackendOrder();
         currentOrderId.value = orderData._id;
 
         console.log('Orden backend creada:', orderData);
-        console.log('ID de orden actual:', currentOrderId.value);
         
-        // Usar la tasa de cambio ya obtenida
-        const exchangeRateToUse = currentExchangeRate;
+        // Calcular total en USD con exactitud
+        const paypalTotal = Math.round(totalUSD.value * 100) / 100;
         
-        // Preparar ítems para PayPal y calcular totales
+        // Preparar ítems para PayPal
         const paypalItems = [];
         let paypalItemsTotal = 0;
         
-        // Primero calcular todos los ítems y sus totales
         authStore.cartItems.forEach(item => {
-          // Obtener precio en COP (usar precio con descuento si está disponible)
-          const unitAmountCOP = Number(item.discountedPrice || item.price || 0);
+          const unitAmount = Math.round(Number(item.discountedPrice || item.price) * 100) / 100;
           const quantity = parseInt(item.quantity) || 1;
+          const itemTotal = Math.round((unitAmount * quantity) * 100) / 100;
           
-          // Convertir a USD y redondear a 2 decimales
-          const unitAmountUSD = parseFloat((unitAmountCOP / exchangeRateToUse).toFixed(2));
-          const itemTotal = parseFloat((unitAmountUSD * quantity).toFixed(2));
+          paypalItemsTotal = Math.round((paypalItemsTotal + itemTotal) * 100) / 100;
           
-          // Acumular al total de ítems
-          paypalItemsTotal = parseFloat((paypalItemsTotal + itemTotal).toFixed(2));
-          
-          // Agregar ítem a la lista de PayPal
           paypalItems.push({
             name: String(item.name || 'Producto').substring(0, 127),
             description: String(item.description || '').substring(0, 126) || undefined,
             quantity: quantity,
             unit_amount: {
               currency_code: 'USD',
-              value: unitAmountUSD.toFixed(2)
+              value: unitAmount.toFixed(2)
             }
           });
         });
         
-        // Calcular el total de la orden en USD
-        const paypalTotal = parseFloat((totalCOP.value / exchangeRateToUse).toFixed(2));
-        
         // Asegurar que los totales coincidan exactamente
-        console.log('=== VALIDACIÓN DE TOTALES PAYPAL ===');
-        console.log('Total COP:', totalCOP.value);
-        console.log('Tasa de cambio:', exchangeRateToUse);
-        console.log('Total USD calculado:', paypalTotal);
-        console.log('Suma de ítems USD:', paypalItemsTotal);
+        const paypalTotalRounded = Math.round(paypalTotal * 100) / 100;
+        const paypalItemsTotalRounded = Math.round(paypalItemsTotal * 100) / 100;
         
-        // Ajustar el total de ítems para que coincida exactamente con el total de la orden
-        // Esto es necesario porque PayPal requiere que los montos coincidan exactamente
-        if (paypalItems.length > 0 && Math.abs(paypalTotal - paypalItemsTotal) > 0.01) {
-          console.log('Ajustando diferencia en el primer ítem...');
-          // Ajustar la diferencia en el primer ítem
-          const difference = parseFloat((paypalTotal - (paypalItemsTotal - parseFloat(paypalItems[0].unit_amount.value) * paypalItems[0].quantity)).toFixed(2));
-          const newFirstItemPrice = parseFloat((difference / paypalItems[0].quantity).toFixed(2));
-          
-          paypalItems[0].unit_amount.value = newFirstItemPrice.toFixed(2);
-          paypalItemsTotal = parseFloat((paypalItemsTotal - (parseFloat(paypalItems[0].unit_amount.value) * paypalItems[0].quantity) + (newFirstItemPrice * paypalItems[0].quantity)).toFixed(2));
-          
-          console.log('Nuevo precio del primer ítem:', newFirstItemPrice);
-          console.log('Nueva suma de ítems:', paypalItemsTotal);
+        console.log('=== VALIDACIÓN DE TOTALES PAYPAL ===');
+        console.log('Total USD calculado:', paypalTotalRounded);
+        console.log('Suma de ítems USD:', paypalItemsTotalRounded);
+        
+        if (Math.abs(paypalTotalRounded - paypalItemsTotalRounded) > 0.01) {
+          throw new Error(`La suma de los ítems (${paypalItemsTotalRounded} USD) no coincide con el total de la orden (${paypalTotalRounded} USD)`);
         }
         
-        // Crear orden en PayPal con los montos exactos
-        const paypalOrderRequest = {
+        // Crear orden en PayPal
+        const paypalOrder = await actions.order.create({
           purchase_units: [{
             amount: {
-              value: paypalTotal.toFixed(2),
+              value: paypalTotalRounded.toFixed(2),
               currency_code: "USD",
               breakdown: {
                 item_total: {
-                  value: paypalItemsTotal.toFixed(2),
+                  value: paypalItemsTotalRounded.toFixed(2),
                   currency_code: "USD"
                 }
               }
@@ -732,12 +815,7 @@ const renderPayPalButtons = () => {
             reference_id: orderData._id,
             description: `Compra de ${authStore.cartItems.length} producto(s)`
           }]
-        };
-        
-        console.log('Solicitud de orden PayPal:', JSON.stringify(paypalOrderRequest, null, 2));
-        
-        // Crear la orden de PayPal
-        const paypalOrder = await actions.order.create(paypalOrderRequest);
+        });
 
         console.log('Orden PayPal creada:', paypalOrder);
         return paypalOrder;
@@ -867,71 +945,29 @@ const renderPayPalButtons = () => {
   }).render("#paypal-button-container");
 };
 
-
-
-
 const getCartTotalInCOP = () => {
-  console.log('=== CALCULANDO TOTAL DEL CARRITO ===');
-  
-  // Primero calcular el total sin descuentos
-  const totalSinDescuento = authStore.cartItems.reduce((sum, item) => {
-    const originalPrice = Number(item.originalPrice || item.price || 0);
-    const quantity = parseInt(item.quantity) || 1;
-    return sum + (originalPrice * quantity);
-  }, 0);
-  
-  // Luego calcular el total con descuentos
+  // Use discountedPrice if available, otherwise use price
   const totalConDescuento = authStore.cartItems.reduce((sum, item) => {
-    const originalPrice = Number(item.originalPrice || item.price || 0);
-    const hasDiscount = item.discountedPrice && 
-                       Number(item.discountedPrice) > 0 && 
-                       Number(item.discountedPrice) < originalPrice;
-    
-    const priceToUse = hasDiscount ? Number(item.discountedPrice) : originalPrice;
+    const priceToUse = Number(item.discountedPrice) > 0 && Number(item.discountedPrice) < Number(item.price)
+      ? Number(item.discountedPrice)
+      : Number(item.price || 0);
     const quantity = parseInt(item.quantity) || 1;
-    
-    console.log(`Producto: ${item.name || 'sin nombre'}`);
-    console.log(`- Precio original: ${originalPrice}`);
-    console.log(`- Precio con descuento: ${hasDiscount ? item.discountedPrice : 'N/A'}`);
-    console.log(`- Precio a usar: ${priceToUse}`);
-    console.log(`- Cantidad: ${quantity}`);
-    console.log(`- Subtotal: ${priceToUse * quantity}`);
-    console.log('---');
-    
     return sum + (priceToUse * quantity);
   }, 0);
-  
-  console.log('=== RESUMEN DE TOTALES ===');
-  console.log('Total sin descuentos:', totalSinDescuento);
-  console.log('Total con descuentos:', totalConDescuento);
-  console.log('Ahorro total:', totalSinDescuento - totalConDescuento);
   
   return Math.round(totalConDescuento * 100) / 100;
 };
 
 
 onMounted(async () => {
-  if (!authStore.token || !authStore.user) {
-    Swal.fire("Advertencia", "Debes iniciar sesión para realizar el pago", "warning");
-    router.push('/login');
-    return;
-  }
-
-  try {
-    await loadPayPalScript();
-    totalCOP.value = getCartTotalInCOP();
-    const exchangeRate = await fetchExchangeRate();
-    totalUSD.value = (totalCOP.value * exchangeRate).toFixed(2);
-    renderPayPalButtons();
-  } catch (error) {
-    console.error("Error inicializando PayPal:", error);
-    Swal.fire("Error", "No se pudo cargar el sistema de pagos", "error");
-  }
+  totalCOP.value = getCartTotalInCOP();
+  const exchangeRateValue = await fetchExchangeRate();
+  totalUSD.value = (totalCOP.value * exchangeRateValue).toFixed(2);
 });
 </script>
 
 <style scoped>
-/* Tu estilo CSS se mantiene igual */
+/* Your existing CSS styles go here */
 .shipping-container {
   max-width: 900px;
   margin: 0 auto;
@@ -1169,10 +1205,42 @@ textarea {
   overflow: hidden;
   background: #f8f9fa;
   padding: 20px;
+  margin-top: 20px; /* Add some space above the PayPal button */
 }
 
 #paypal-button-container {
   min-height: 50px;
+}
+
+.error {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.validate-button {
+  display: block;
+  width: 100%;
+  padding: 15px 25px;
+  background-color: #068fff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(6, 143, 255, 0.3);
+}
+
+.validate-button:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+}
+
+.validate-button:active {
+  transform: translateY(0);
 }
 
 @keyframes shine {
@@ -1235,6 +1303,11 @@ textarea {
   textarea {
     padding: 12px;
     font-size: 14px;
+  }
+
+  .validate-button {
+    font-size: 16px;
+    padding: 12px 20px;
   }
 }
 </style>
