@@ -1,9 +1,7 @@
 <template>
   <q-layout view="hHh Lpr fff">
     <q-header elevated class="header-main">
-      <!-- Barra principal -->
       <q-toolbar class="header-toolbar">
-        <!-- Sección izquierda: Menú y Logo -->
         <div class="header-left">
           <q-btn
             flat
@@ -22,7 +20,6 @@
           </router-link>
         </div>
 
-        <!-- Sección central: Barra de búsqueda -->
         <div class="header-center" v-if="$q.screen.gt.sm">
           <div class="search-wrapper">
             <q-input
@@ -53,9 +50,7 @@
           </div>
         </div>
 
-        <!-- Sección derecha: Acciones de usuario -->
         <div class="header-right">
-          <!-- Botón de usuario con avatar -->
           <q-btn flat no-caps class="user-btn">
             <q-avatar
               v-if="authStore.userName"
@@ -72,7 +67,6 @@
             </div>
             <q-icon name="arrow_drop_down" class="q-ml-xs" />
 
-            <!-- Menú desplegable de usuario -->
             <q-menu
               v-model="showMenu"
               transition-show="jump-down"
@@ -115,7 +109,6 @@
             </q-menu>
           </q-btn>
 
-          <!-- Botón de favoritos -->
           <q-btn
             flat
             round
@@ -129,20 +122,17 @@
               floating
               color="red"
               text-color="white"
-              
             >
               {{ authStore.favorites.length }}
             </q-badge>
             <q-tooltip>Mis Favoritos</q-tooltip>
           </q-btn>
 
-          <!-- Botón de carrito -->
           <router-link to="/car" class="cart-link">
             <q-btn flat round icon="shopping_cart" class="action-btn cart-btn" color="white">
               <q-badge
                 v-if="authStore.cartItems.length > 0"
                 floating
-                
                 color="secondary"
                 text-color="white"
               >
@@ -154,7 +144,6 @@
         </div>
       </q-toolbar>
 
-      <!-- Barra de búsqueda móvil -->
       <q-toolbar v-if="$q.screen.lt.md" class="mobile-search-toolbar">
         <div class="mobile-search-wrapper">
           <q-input
@@ -185,7 +174,6 @@
     </q-header>
 
     <q-drawer v-model="sideMenuOpen" side="left" overlay behavior="mobile" :width="320" class="bg-white">
-      <!-- Encabezado del menú -->
       <div class="drawer-header">
         <div class="row items-center justify-between">
           <div class="col">
@@ -195,10 +183,8 @@
         </div>
       </div>
 
-      <!-- Lista de categorías -->
       <q-scroll-area style="height: calc(100vh - 120px);">
         <q-list padding>
-          <!-- Todas las categorías -->
           <div class="category-item">
             <q-item clickable @click="selectCategory({label: 'Todas las categorías', value: 'all'})" class="category-main-item">
               <q-item-section>
@@ -207,7 +193,6 @@
             </q-item>
           </div>
 
-          <!-- Ofertas -->
           <div class="category-item">
             <q-item clickable @click="goTo('/ofertas')" class="category-main-item special-offer">
               <q-item-section>
@@ -218,7 +203,6 @@
 
           <q-separator class="q-my-md" />
 
-          <!-- Categorías dinámicas -->
           <div v-for="category in categories" :key="category.value" class="category-item">
             <q-item 
               clickable
@@ -288,23 +272,22 @@
             <div class="text-h6 text-white q-mt-lg q-mb-md">Síguenos</div>
             <div class="row justify-center justify-sm-start q-gutter-md social-icons">
               <q-btn
-      round
-      size="lg"
-      flat
-      icon="facebook"
-      color="white"
-      class="social-btn facebook"
-     
-      @click="openSocialLink('https://www.facebook.com/share/1ZM5Djhuo5/')"
-    />
+                  round
+                  size="lg"
+                  flat
+                  icon="facebook"
+                  color="white"
+                  class="social-btn facebook"
+                  @click="openSocialLink('https://www.facebook.com/share/1ZM5Djhuo5/')"
+              />
 
               <q-btn flat size="md" class="social-btn instagram" round @click="openSocialLink('https://www.instagram.com/laura_av0?igsh=d3NoNWFpZTVxMG91')" color="white">
-  <img src="https://img.icons8.com/win10/512/FFFFFF/instagram-new.png" style="width: 44px; height: 44px;" />
-</q-btn>
+                <img src="https://img.icons8.com/win10/512/FFFFFF/instagram-new.png" style="width: 44px; height: 44px;" />
+              </q-btn>
 
-              <q-btn flat round size="md" class="social-btn whatsapp" @click="openLink('https://wa.me/573164110047')" color="white">
-  <img src="https://img.icons8.com/ios11/512/FFFFFF/whatsapp.png" alt="WhatsApp" style="width: 34px; height: 34px;" />
-</q-btn>
+              <q-btn flat round size="md" class="social-btn whatsapp" @click="openSocialLink('https://wa.me/573164110047')" color="white">
+                <img src="https://img.icons8.com/ios11/512/FFFFFF/whatsapp.png" alt="WhatsApp" style="width: 34px; height: 34px;" />
+              </q-btn>
             </div>
           </div>
         </div>
@@ -322,7 +305,7 @@
 
   </q-layout>
 
- <auth-dialog v-model="showAuth" />
+  <auth-dialog v-model="showAuth" />
 </template>
 
 <script setup>
@@ -501,6 +484,7 @@ const getUserInitials = computed(() => {
     );
   }
 
+  /* Shine effect for the header */
   &::after {
     content: '';
     position: absolute;
@@ -514,11 +498,12 @@ const getUserInitials = computed(() => {
       transparent 70%
     );
     pointer-events: none;
+    animation: shine 3s infinite linear; /* Apply animation */
   }
 }
 
 .header-toolbar {
-  max-width: 1400px;
+  
   margin: 0 auto;
   padding: 0.5rem 1rem;
   display: flex;
@@ -560,10 +545,16 @@ const getUserInitials = computed(() => {
   }
 }
 
+.header-left{
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 /* Sección central */
 .header-center {
-  flex: 1;
-  max-width: 600px;
+  flex-grow: 1;
+  max-width: 700px;
   margin: 0 2rem;
 }
 
@@ -572,6 +563,7 @@ const getUserInitials = computed(() => {
 }
 
 .search-input {
+  width: 100%;
   .q-field__control {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 8px;
@@ -797,6 +789,7 @@ const getUserInitials = computed(() => {
     );
   }
 
+  /* Shine effect for the footer */
   &::after {
     content: '';
     position: absolute;
@@ -806,10 +799,11 @@ const getUserInitials = computed(() => {
     bottom: 0;
     background: linear-gradient(45deg, 
       transparent 30%, 
-      rgba(255, 255, 255, 0.1) 50%, 
+      rgba(255, 255, 255, 0.08) 50%, 
       transparent 70%
-    );
+    ); /* Slightly less opaque for footer */
     pointer-events: none;
+    animation: shine 3s infinite linear; /* Apply animation */
   }
 }
 
@@ -1071,6 +1065,7 @@ const getUserInitials = computed(() => {
   }
 }
 
+/* Keyframes for the shine animation (reused for header, footer, and drawer) */
 @keyframes shine {
   0% {
     transform: translateX(-100%);

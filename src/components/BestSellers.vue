@@ -74,18 +74,7 @@
               </div>
 
               <div class="actions-container">
-                <q-btn
-                  round
-                  flat
-                  class="action-btn favorite-btn"
-                  :icon="product.isFavorite ? 'favorite' : 'favorite_border'"
-                  :color="product.isFavorite ? 'red-5' : 'grey-5'"
-                >
-                  <q-tooltip>
-                    {{ product.isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos' }}
-                  </q-tooltip>
-                </q-btn>
-
+                
                 <q-btn
                   round
                   flat
@@ -206,7 +195,7 @@ onMounted(() => {
 
 .bestsellers-section {
   padding: 2rem;
-  background: #f0f2f5;
+  
 }
 
 .section-header {
@@ -216,20 +205,31 @@ onMounted(() => {
 }
 
 .title {
-  font-size: 2.5rem;
+ font-size: 3em;
   font-weight: 800;
-  color: #2c3e50;
-  margin: 0;
+  text-align: center;
+  margin-bottom: 50px;
+  color: #0056b3; 
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  position: relative;
+  padding-bottom: 20px;
   font-family: 'Montserrat', sans-serif;
-  letter-spacing: -0.5px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  z-index: 1; 
 }
 
-.title-underline {
-  width: 80px;
-  height: 4px;
-  background: linear-gradient(90deg, #3498db, #2ecc71);
-  margin: 1rem auto;
-  border-radius: 2px;
+.title::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 150px; 
+  height: 5px;
+  background: linear-gradient(90deg, #068FFF, #0052a3);
+  border-radius: 3px;
+  animation: underlineGrow 1s ease-out forwards;
 }
 
 .products-grid {
@@ -348,17 +348,18 @@ onMounted(() => {
 }
 
 .product-title {
-  font-size: 0.9rem;
-  line-height: 1.4;
-  height: 2.8em;
+font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  line-height: 1.3;
+  height: 2.6em;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   color: var(--q-color-text-dark);
-  font-weight: 500;
+  font-weight: 600; 
   transition: color 0.3s ease;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
 }
 
 .product-card:hover .product-title {

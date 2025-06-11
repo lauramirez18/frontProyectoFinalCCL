@@ -184,7 +184,6 @@ watch(currentScrollPos, (newPos) => {
 
 .category-section {
   padding: 30px 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(245, 245, 245, 0.5) 100%);
   border-radius: 12px;
   margin: 20px auto;
   position: relative;
@@ -200,8 +199,8 @@ watch(currentScrollPos, (newPos) => {
   width: 100%;
   height: 100%;
   background: 
-    radial-gradient(circle at 20% 30%, rgba(6, 143, 255, 0.05) 0%, transparent 35%),
-    radial-gradient(circle at 80% 70%, rgba(6, 143, 255, 0.05) 0%, transparent 35%);
+    radial-gradient(circle at 20% 30%, rgba(6, 143, 255, 0.587) 0%, transparent 35%),
+    radial-gradient(circle at 80% 70%, rgb(6, 143, 255) 0%, transparent 35%);
   animation: circuitPulse 6s ease-in-out infinite;
   z-index: 0;
 }
@@ -213,17 +212,20 @@ watch(currentScrollPos, (newPos) => {
 }
 
 h6 {
-  font-size: 2.5em;
-  font-weight: 700;
+  font-size: 3em;
+  font-weight: 800;
   text-align: center;
-  margin-bottom: 40px;
-  color: #068FFF;
+  margin-bottom: 50px;
+  color: #0056b3;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   position: relative;
-  padding-bottom: 15px;
+  padding-bottom: 20px;
   font-family: 'Montserrat', sans-serif;
+   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  z-index: 1;
 }
+
 
 h6::after {
   content: '';
@@ -231,17 +233,18 @@ h6::after {
   left: 50%;
   bottom: 0;
   transform: translateX(-50%);
-  width: 100px;
-  height: 4px;
+  width: 150px;
+  height: 5px;
   background: linear-gradient(90deg, #068FFF, #0052a3);
-  border-radius: 2px;
+  border-radius: 3px;
+  animation: underlineGrow 1s ease-out forwards;
 }
 
 .carousel-container {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 60px;
   z-index: 1;
 }
 
