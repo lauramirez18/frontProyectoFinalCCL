@@ -376,7 +376,7 @@ const themeOptions = [
 onMounted(async () => {
   try {
     // Obtener datos del usuario desde el backend
-    const response = await getData('account/profile');
+    const response = await getData('usuarios/profile');
     const user = response;
 
     if (user) {
@@ -440,7 +440,7 @@ const onFileSelected = async (event) => {
     formData.append('photo', file);
 
     // Aquí harías la petición a tu API para subir la foto
-    const response = await postData('account/upload-photo', formData);
+    const response = await postData('usuarios/upload-photo', formData);
     photoUrl.value = response.photoUrl;
 
     showSuccess('Foto de perfil actualizada');
@@ -473,7 +473,7 @@ const onSubmit = async () => {
     };
 
     // Actualizar datos en el backend
-    const response = await putData('account/update-profile', updateData);
+    const response = await putData('usuarios/update-profile', updateData);
 
     // Actualizar store con los nuevos datos
     authStore.setUser({
@@ -534,7 +534,7 @@ const onChangePassword = async () => {
 const deleteAccount = async () => {
   try {
     loading.value = true;
-    await postData('account/delete-account');
+    await postData('usuarios/delete-account');
     
     // Cerrar sesión y redirigir
     authStore.logout();
