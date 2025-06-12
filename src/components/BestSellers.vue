@@ -18,7 +18,7 @@
       <router-link
         v-for="product in bestSellers"
         :key="product._id"
-        :to="`/Details/${product._id}`"
+        :to="getDetailsPath(product.slug)"
         class="product-link"
       >
         <q-card class="product-card tech-card" flat>
@@ -183,6 +183,14 @@ const fetchBestSellers = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const getDetailsPath = (slug) => {
+  if (!slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return '/'
+  }
+  return `/Details/${encodeURIComponent(slug.trim())}`
 }
 
 onMounted(() => {

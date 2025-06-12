@@ -54,7 +54,7 @@
             <q-card
               class="product-card tech-card"
               flat
-              @click="goToProduct(product._id)"
+              @click="goToProduct(product)"
             >
               <div class="img-wrapper">
                 <q-img
@@ -357,11 +357,30 @@ const getProductImage = (product) => {
   return '/placeholder.png' // Ensure you have a generic placeholder image in your public folder
 }
 
-const goToProduct = (productId) => {
-  if (productId) {
-    router.push(`/Details/${productId}`)
+const goToProduct = (product) => {
+  if (!product.slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return
   }
+  router.push(`/Details/${encodeURIComponent(product.slug.trim())}`)
 }
+
+const getDetailsPath = (slug) => {
+  if (!slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return '/'
+  }
+  return `/Details/${encodeURIComponent(slug.trim())}`
+}
+
+const generateSlug = (name) => {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
 
 const fetchBestSellers = async () => {
   loading.value = true
@@ -393,9 +412,8 @@ const fetchBestSellers = async () => {
         }
 
         try {
-          // console.log(`Bestsellers: Procesando producto para rating: ${product._id}`)
           const ratings = await reviewsService.getProductRatings(product._id)
-          // console.log(`Bestsellers: Calificaciones obtenidas para ${product._id}:`, ratings)
+          const slug = product.slug || generateSlug(product.nombre)
 
           return {
             _id: product._id,
@@ -407,11 +425,13 @@ const fetchBestSellers = async () => {
             marca: product.marca || null,
             imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
             promedioCalificacion: ratings?.promedioTotal || 0,
-            totalResenas: ratings?.totalReseñas || 0
+            totalResenas: ratings?.totalReseñas || 0,
+            slug: slug
           }
         } catch (error) {
           console.error(`Bestsellers: Error al obtener calificaciones para producto ${product._id}:`, error)
-          return { // Return product with default ratings to avoid breaking the list
+          const slug = product.slug || generateSlug(product.nombre)
+          return {
             _id: product._id,
             nombre: product.nombre || 'Producto sin nombre',
             descripcion: product.descripcion || 'Sin descripción',
@@ -421,7 +441,8 @@ const fetchBestSellers = async () => {
             marca: product.marca || null,
             imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
             promedioCalificacion: 0,
-            totalResenas: 0
+            totalResenas: 0,
+            slug: slug
           }
         }
       })

@@ -1,9 +1,5 @@
 <template>
-  <q-layout view="hHh Lpr fff">
-    <!-- Breadcrumbs -->
-    <div v-if="showBreadcrumbs" class="breadcrumbs-container q-px-md">
-      <Breadcrumbs />
-    </div>
+  <q-layout view="hHh Lpr fff" style="background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%);">
     <q-header elevated class="header-main">
       <q-toolbar class="header-toolbar">
         <div class="header-left">
@@ -34,6 +30,7 @@
               class="search-input"
               bg-color="white"
               @keyup.enter="performSearch"
+              @blur="setTimeout(() => showSuggestions = false, 200)"
             >
               <template v-slot:prepend>
                 <q-icon name="search" color="grey-7" />
@@ -51,6 +48,11 @@
                 </q-btn>
               </template>
             </q-input>
+            <SearchSuggestions
+              v-if="showSuggestions"
+              :suggestions="searchSuggestions"
+              @select="selectSuggestion"
+            />
           </div>
         </div>
 
@@ -176,6 +178,11 @@
         </div>
       </q-toolbar>
     </q-header>
+
+    <!-- Breadcrumbs -->
+    <div v-if="showBreadcrumbs" class="breadcrumbs-container q-px-md" style="margin-top: 56px; background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%);">
+      <Breadcrumbs :custom-items="customBreadcrumbsInjected ? customBreadcrumbsInjected : undefined" />
+    </div>
 
     <q-drawer v-model="sideMenuOpen" side="left" overlay behavior="mobile" :width="320" class="bg-white">
       <div class="drawer-header">
@@ -313,17 +320,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, inject, watch } from 'vue';
 import { useAuthStore } from '../store/store.js';
 import { useRouter, useRoute } from 'vue-router';
 import AuthDialog from '../components/AuthDialog.vue';
 import { getData } from '../services/apiClient.js';
-
+import Breadcrumbs from '../components/ui/Breadcrumbs.vue';
+import SearchSuggestions from '../components/SearchSuggestions.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 const search = ref('');
+const searchSuggestions = ref([]);
+const showSuggestions = ref(false);
+const searchTimeout = ref(null);
 
 // Ocultar breadcrumbs en rutas específicas
 const hideBreadcrumbsOn = ['login', 'register', 'home'];
@@ -344,7 +355,7 @@ let hideTimer = null;
 const categories = ref([]);
 const loading = ref(false);
 
-
+const customBreadcrumbsInjected = inject('customBreadcrumbs', null);
 
 onMounted(async () => {
   loading.value = true;
@@ -441,19 +452,54 @@ function hideMenuDelayed() {
   }, 1000);
 }
 
-function performSearch() {
-  const queryParams = {
-    search: search.value
-  };
+// Función para obtener sugerencias de búsqueda
+const getSearchSuggestions = async (query) => {
+  if (!query || query.length < 2) {
+    searchSuggestions.value = []
+    return
+  }
 
-  
-
-  router.push({ path: '/search-results', query: queryParams });
-  showMobileSearchInput.value = false; // Oculta la barra de búsqueda móvil después de buscar
+  try {
+    const response = await getData('productos/sugerencias-busqueda', { query })
+    searchSuggestions.value = response || []
+  } catch (error) {
+    console.error('Error al obtener sugerencias:', error)
+    searchSuggestions.value = []
+  }
 }
 
-function toggleSearchInput() {
-  showMobileSearchInput.value = !showMobileSearchInput.value;
+// Observar cambios en el término de búsqueda
+watch(search, (newValue) => {
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
+
+  if (newValue && newValue.length >= 2) {
+    searchTimeout.value = setTimeout(() => {
+      getSearchSuggestions(newValue)
+      showSuggestions.value = true
+    }, 300)
+  } else {
+    searchSuggestions.value = []
+    showSuggestions.value = false
+  }
+})
+
+// Función para realizar la búsqueda
+const performSearch = () => {
+  if (search.value.trim()) {
+    router.push({
+      name: 'SearchResults',
+      query: { q: search.value.trim() }
+    })
+    showSuggestions.value = false
+  }
+}
+
+// Función para seleccionar una sugerencia
+const selectSuggestion = (suggestion) => {
+  search.value = suggestion.nombre
+  showSuggestions.value = false
 }
 
 // Función para abrir enlaces sociales
@@ -477,9 +523,7 @@ const getUserInitials = computed(() => {
 <style>
 /* Estilos del breadcrumbs */
 .breadcrumbs-container {
-  background: var(--q-primary);
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%) !important;
 }
 
 .breadcrumbs-container .q-breadcrumbs {
@@ -593,7 +637,9 @@ const getUserInitials = computed(() => {
 }
 
 .search-wrapper {
+  position: relative;
   width: 100%;
+  max-width: 600px;
 }
 
 .search-input {
@@ -692,7 +738,7 @@ const getUserInitials = computed(() => {
 
 /* Estilos para los breadcrumbs */
 .breadcrumbs-container {
-  background: var(--q-primary);
+  background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%);
   padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }

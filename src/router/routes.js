@@ -54,7 +54,7 @@ const routes = [
         component: Products
       },
       {
-        path: '/marcas/:id', 
+        path: '/marcas/:slug', 
         name: 'BrandProducts',
         component: Products
       },
@@ -81,7 +81,7 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'Details/:id',
+        path: 'Details/:slug',
         name: 'Details',
         component: Details
       },
@@ -111,7 +111,10 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    return { top: 0 }
+  }
 });
 
 export { router };

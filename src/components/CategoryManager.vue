@@ -1,12 +1,6 @@
 <template>
+  <!-- Eliminado breadcrumb local, ahora es global -->
   <div>
-    <!-- Breadcrumbs personalizados -->
-    <Breadcrumbs 
-      :items="breadcrumbs"
-      class="q-mb-md"
-      @navigate="handleBreadcrumbNavigate"
-    />
-    
     <div class="q-mb-md row justify-between items-center">
       <h5 class="q-my-none text-primary">
         <q-icon name="category" size="md" class="q-mr-sm" />
@@ -240,24 +234,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
-import Breadcrumbs from './ui/Breadcrumbs.vue';
-import useBreadcrumbs from '../composables/useBreadcrumbs';
+
 import api from '../plugins/axios';
 import { showNotification } from '../utils/notifications';
 
 const router = useRouter();
 const $q = useQuasar();
-
-const { breadcrumbs } = useBreadcrumbs([
-  { label: 'Administración', to: '/admin', icon: 'admin_panel_settings' },
-  { label: 'Categorías', to: '/admin/categorias', icon: 'category', disabled: true }
-]);
-
-const handleBreadcrumbNavigate = (to) => {
-  if (to) {
-    router.push(to);
-  }
-};
 
 // Estado
 const listaCategorias = ref([]);

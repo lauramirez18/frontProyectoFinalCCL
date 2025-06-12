@@ -348,6 +348,8 @@
           </q-list>
         </q-card-section>
       </q-card>
+
+      <PayPalTransactions class="q-mt-lg" />
     </div>
 
     <q-dialog v-model="showChangePasswordDialog" class="tech-dialog">
@@ -475,6 +477,7 @@ import { useQuasar } from 'quasar';
 import { useAuthStore } from '../store/store';
 import { postData, putData, getData } from '../services/apiClient';
 import { useRouter } from 'vue-router';
+import PayPalTransactions from '../components/PayPalTransactions.vue';
 
 // Import local JSON files
 import countriesData from '../utils/countries.json'; // Adjust path as needed
@@ -600,13 +603,22 @@ onMounted(async () => {
       formData.email = user.email || '';
       formData.address = user.address || '';
       
-      // Load stored location data
+      // Load stored location data - usando los datos del frontend
       if (user.countryId) {
-        selectedCountry.value = user.countryId;
-        if (user.stateId) {
-          selectedState.value = user.stateId;
-          if (user.cityId) {
-            selectedCity.value = user.cityId;
+        const country = allCountries.find(c => c.id === user.countryId);
+        if (country) {
+          selectedCountry.value = country.id;
+          if (user.stateId) {
+            const state = allStates.find(s => s.id === user.stateId && s.id_country === country.id);
+            if (state) {
+              selectedState.value = state.id;
+              if (user.cityId) {
+                const city = allCities.find(c => c.id === user.cityId && c.id_state === state.id);
+                if (city) {
+                  selectedCity.value = city.id;
+                }
+              }
+            }
           }
         }
       }
@@ -642,8 +654,12 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('Error al cargar datos del usuario:', error);
-    showError('Error al cargar los datos del usuario. Por favor, intenta de nuevo.');
-    if (error.response && error.response.status === 401) {
+    const errorMessage = error.response?.data?.error || 'Error al cargar los datos del usuario';
+    const errorDetails = error.response?.data?.details || '';
+    
+    showError(`${errorMessage}. ${errorDetails ? `Detalles: ${errorDetails}` : ''}`);
+    
+    if (error.response?.status === 401) {
       authStore.logout();
       router.push('/login');
     }
@@ -712,7 +728,7 @@ const onSubmit = async () => {
       email: formData.email,
       phone: fullPhoneNumber,
       address: formData.address,
-      countryId: selectedCountry.value, // Send IDs to backend
+      countryId: selectedCountry.value,
       stateId: selectedState.value,
       cityId: selectedCity.value,
       preferences: {
@@ -724,19 +740,23 @@ const onSubmit = async () => {
     };
 
     const response = await putData('usuarios/update-profile', updateData);
+    
+    if (response) {
+      userData.name = response.name;
+      userData.email = response.email;
 
-    userData.name = response.name;
-    userData.email = response.email;
+      authStore.setUser({
+        ...authStore.user,
+        ...response
+      });
 
-    authStore.setUser({
-      ...authStore.user,
-      ...response
-    });
-
-    showSuccess('¡Tus datos han sido actualizados correctamente!');
+      showSuccess('¡Tus datos han sido actualizados correctamente!');
+    } else {
+      throw new Error('No se recibió respuesta del servidor');
+    }
   } catch (error) {
     console.error('Error al actualizar datos:', error);
-    const errorMessage = error.response?.data?.message || 'Hubo un problema al actualizar tus datos. Por favor, verifica la información e intenta de nuevo.';
+    const errorMessage = error.response?.data?.error || error.message || 'Hubo un problema al actualizar tus datos. Por favor, verifica la información e intenta de nuevo.';
     showError(errorMessage);
   } finally {
     loading.value = false;
@@ -816,20 +836,24 @@ const onChangePassword = async () => {
 
   try {
     loading.value = true;
-    await putData('account/change-password', {
+    const response = await putData('usuarios/change-password', {
       currentPassword: passwordForm.current,
       newPassword: passwordForm.new
     });
 
-    showSuccess('¡Contraseña actualizada correctamente! Por favor, inicia sesión con tu nueva contraseña.');
-    showChangePasswordDialog.value = false;
+    if (response) {
+      showSuccess('¡Contraseña actualizada correctamente! Por favor, inicia sesión con tu nueva contraseña.');
+      showChangePasswordDialog.value = false;
 
-    passwordForm.current = '';
-    passwordForm.new = '';
-    passwordForm.confirm = '';
+      passwordForm.current = '';
+      passwordForm.new = '';
+      passwordForm.confirm = '';
+    } else {
+      throw new Error('No se recibió respuesta del servidor');
+    }
   } catch (error) {
     console.error('Error al cambiar contraseña:', error);
-    const errorMessage = error.response?.data?.message || 'Error al cambiar la contraseña. Asegúrate de que tu contraseña actual sea correcta.';
+    const errorMessage = error.response?.data?.error || error.message || 'Error al cambiar la contraseña. Asegúrate de que tu contraseña actual sea correcta.';
     showError(errorMessage);
   } finally {
     loading.value = false;
@@ -845,17 +869,20 @@ const deleteAccount = async () => {
 
   try {
     loading.value = true;
-    await postData('usuarios/delete-account', {});
+    const response = await postData('usuarios/delete-account', {});
 
-    showSuccess('Tu cuenta ha sido eliminada exitosamente. ¡Te extrañaremos!');
-    showDeleteAccountDialog.value = false;
+    if (response) {
+      showSuccess('Tu cuenta ha sido eliminada exitosamente. ¡Te extrañaremos!');
+      showDeleteAccountDialog.value = false;
 
-    authStore.logout();
-    router.push('/login');
-
+      authStore.logout();
+      router.push('/login');
+    } else {
+      throw new Error('No se recibió respuesta del servidor');
+    }
   } catch (error) {
     console.error('Error al eliminar cuenta:', error);
-    const errorMessage = error.response?.data?.message || 'No se pudo eliminar la cuenta. Por favor, intenta de nuevo.';
+    const errorMessage = error.response?.data?.error || error.message || 'No se pudo eliminar la cuenta. Por favor, intenta de nuevo.';
     showError(errorMessage);
   } finally {
     loading.value = false;

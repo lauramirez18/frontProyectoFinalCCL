@@ -82,7 +82,7 @@ const getBrands = async () => {
 }
 
 const goToBrandProducts = (brand) => {
-  if (!brand || !brand._id) {
+  if (!brand || !brand.slug) {
     console.error('BrandsBar: Intento de navegación con marca inválida:', brand);
     return;
   }
@@ -90,7 +90,7 @@ const goToBrandProducts = (brand) => {
   console.log('BrandsBar: Navegando a productos de marca:', brand.nombre);
   router.push({
     name: 'BrandProducts',
-    params: { id: brand._id }
+    params: { slug: brand.slug }
   });
 }
 

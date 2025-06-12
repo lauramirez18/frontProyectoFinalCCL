@@ -85,7 +85,7 @@
             <q-btn
               flat
               class="tech-details-btn"
-              :to="`/Details/${product._id}`"
+              :to="`/Details/${product.slug}`"
             >
               <q-icon name="visibility" size="sm" />
               <span>Ver detalles</span>
@@ -181,42 +181,26 @@ const handleAddToCart = (product) => {
 const fetchProducts = async () => {
   loading.value = true;
   try {
-    const { search, category, page } = route.query;
+    const { q, category, page } = route.query;
 
     const params = {
       page: page || 1,
-      ...(search && { search }),
+      ...(q && { query: q }),
       ...(category && { category }),
     };
 
-    const response = await getData('productos', params);
-    console.log('Response from API:', response); // Debug log
+    const response = await getData('productos/busqueda', params);
+    console.log('Response from API:', response);
 
-    // Handle array response
-    if (Array.isArray(response)) {
-      products.value = response;
-      console.log('Products array:', products.value); // Debug log
-      
-      // Set default pagination since we're getting an array
-      pagination.value = {
-        total: response.length,
-        page: 1,
-        limit: response.length,
-        totalPages: 1
-      };
-      currentPage.value = 1;
-    } else if (response && response.productos) {
-      // Handle object response with productos property
+    if (response && response.productos) {
       products.value = response.productos;
       pagination.value = {
-        total: response.pagination?.total || response.productos.length,
-        page: response.pagination?.page || 1,
-        limit: response.pagination?.limit || response.productos.length,
-        totalPages: response.pagination?.totalPages || 1
+        total: response.total || 0,
+        page: response.page || 1,
+        limit: response.limit || 10,
+        totalPages: response.totalPages || 1
       };
-      currentPage.value = pagination.value.page;
     } else {
-      console.warn('Unexpected response format:', response);
       products.value = [];
       pagination.value = {
         total: 0,
@@ -224,19 +208,15 @@ const fetchProducts = async () => {
         limit: 10,
         totalPages: 1
       };
-      currentPage.value = 1;
     }
-
   } catch (error) {
-    console.error('Error al obtener productos:', error);
+    console.error('Error fetching products:', error);
     products.value = [];
-    pagination.value = {
-      total: 0,
-      page: 1,
-      limit: 10,
-      totalPages: 1
-    };
-    currentPage.value = 1;
+    $q.notify({
+      type: 'negative',
+      message: 'Error al cargar los productos',
+      position: 'top'
+    });
   } finally {
     loading.value = false;
   }
@@ -244,10 +224,22 @@ const fetchProducts = async () => {
 
 onMounted(fetchProducts);
 
-watch(() => route.query, fetchProducts, { deep: true });
+watch(
+  () => route.query,
+  (newQuery) => {
+    currentPage.value = parseInt(newQuery.page) || 1;
+    fetchProducts();
+  },
+  { immediate: true }
+);
 
-const changePage = (newPage) => {
-  router.push({ query: { ...route.query, page: newPage } });
+const changePage = (page) => {
+  router.push({
+    query: {
+      ...route.query,
+      page
+    }
+  });
 };
 </script>
 

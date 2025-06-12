@@ -1,11 +1,7 @@
 <template>
-  <div class="q-pa-md">
-    <q-breadcrumbs class="q-mb-md" v-if="category">
-      <q-breadcrumbs-el icon="home" to="/" />
-      <q-breadcrumbs-el :label="category.name" />
-      <q-breadcrumbs-el v-if="subcategory" :label="subcategory.name" />
-    </q-breadcrumbs>
+  <!-- Eliminado breadcrumb local, ahora es global -->
 
+  <div class="q-pa-md">
     <div class="row items-center q-mb-md">
       <div class="col">
         <h4 v-if="category" class="text-h4 text-weight-bold">
@@ -270,6 +266,7 @@ import { useQuasar } from 'quasar'
 import api from '../plugins/axios'
 import ProductCard from '../components/ProductCard.vue'
 import ProductCardList from '../components/ProductCardList.vue'
+import { getData } from '../services/apiclient'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -335,6 +332,9 @@ const hasActiveFilters = computed(() => {
 
   return false
 })
+
+// Obtener el slug de la marca de la URL
+const brandSlug = computed(() => route.params.slug)
 
 // Métodos
 const formatPrice = (price) => {
@@ -752,19 +752,31 @@ watch(showOnlyOffers, () => {
   fetchProducts()
 })
 
-// Montaje inicial
-onMounted(async () => {
-  // Verificar si hay un parámetro de ofertas en la URL
-  if (route.query.ofertas === 'true') {
-    showOnlyOffers.value = true
-  }
-  
-  // Inicializar filtros activos
-  for (const key in availableFilters.value) {
-    if (!activeFilters.value[key]) {
-      activeFilters.value[key] = []
+// Cargar la marca por slug
+const loadBrandBySlug = async () => {
+  if (brandSlug.value) {
+    try {
+      const response = await getData(`marcas/slug/${brandSlug.value}`)
+      if (response) {
+        currentBrand.value = response
+        // Aplicar el filtro de marca
+        activeFilters.value.marca = [response._id]
+        await fetchProducts()
+      }
+    } catch (error) {
+      console.error('Error al cargar la marca:', error)
     }
   }
+}
+
+// Observar cambios en el slug de la marca
+watch(brandSlug, () => {
+  loadBrandBySlug()
+})
+
+// Cargar la marca al montar el componente
+onMounted(() => {
+  loadBrandBySlug()
 })
 </script>
 

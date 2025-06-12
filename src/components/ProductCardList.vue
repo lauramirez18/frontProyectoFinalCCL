@@ -8,7 +8,7 @@
           :ratio="1"
           width="120px"
           class="cursor-pointer"
-          @click="$router.push(`/producto/${product._id}`)"
+          @click="navigateToDetails(product.slug)"
         />
       </div>
       
@@ -71,7 +71,7 @@
             color="primary"
             label="Ver detalles"
             class="q-ml-sm"
-            :to="`/producto/${product._id}`"
+            :to="`/Details/${product.slug}`"
           />
         </div>
       </div>
@@ -83,6 +83,7 @@
 <script setup>
 import { computed } from 'vue'
 import RatingStars from './RatingStars.vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   product: {
@@ -90,6 +91,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const router = useRouter()
 
 const highlightedSpecs = computed(() => {
   const specs = []
@@ -109,8 +112,15 @@ const highlightedSpecs = computed(() => {
 })
 
 const addToCart = () => {
-
   console.log('Agregar al carrito:', props.product._id)
+}
+
+const navigateToDetails = (slug) => {
+  if (!slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return
+  }
+  router.push(`/Details/${encodeURIComponent(slug.trim())}`)
 }
 </script>
 

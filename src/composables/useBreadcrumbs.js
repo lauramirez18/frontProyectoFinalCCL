@@ -17,14 +17,14 @@ const routeMappings = {
   'edit': { label: 'Editar', icon: 'edit' },
   'create': { label: 'Crear', icon: 'add' },
   'search': { label: 'Búsqueda', icon: 'search' },
-  'cart': { label: 'Carrito', icon: 'shopping_cart' },
+  'car': { label: 'Carrito', icon: 'shopping_cart' },
+  'favorites': { label: 'Favoritos', icon: 'favorite' },
   'profile': { label: 'Perfil', icon: 'person' },
   'login': { label: 'Iniciar sesión', icon: 'login' },
   'register': { label: 'Registrarse', icon: 'person_add' },
   'checkout': { label: 'Pago', icon: 'shopping_bag' },
   'orders': { label: 'Pedidos', icon: 'receipt_long' },
   'settings': { label: 'Configuración', icon: 'settings' },
-  'favorites': { label: 'Favoritos', icon: 'favorite' },
   'history': { label: 'Historial', icon: 'history' },
   'dashboard': { label: 'Panel', icon: 'dashboard' },
   'account': { label: 'Cuenta', icon: 'account_circle' },
@@ -65,46 +65,36 @@ const formatLabel = (segment) => {
     .join(' ');
 };
 
-export default function useBreadcrumbs(customItems = []) {
+export default function useBreadcrumbs() {
   const route = useRoute();
   const router = useRouter();
-  
+
   const breadcrumbs = computed(() => {
-    // Use custom items if provided
-    if (customItems?.length) return customItems;
-    
     const pathArray = route.path.split('/').filter(Boolean);
-    const breadcrumbs = [];
-    
-    // Always add Home
-    breadcrumbs.push({
+    const crumbs = [];
+    // Home siempre primero
+    crumbs.push({
       label: 'Inicio',
       to: '/',
       icon: 'home',
-      disabled: route.path === '/'
+      disabled: pathArray.length === 0
     });
-    
-    // Build breadcrumbs from route
     let path = '';
     pathArray.forEach((segment, index) => {
       path = `/${pathArray.slice(0, index + 1).join('/')}`;
       const isLast = index === pathArray.length - 1;
-      
-      // Get label and icon from mappings or format the segment
       const routeInfo = routeMappings[segment] || {
         label: formatLabel(segment),
         icon: 'label_important'
       };
-      
-      breadcrumbs.push({
+      crumbs.push({
         label: routeInfo.label,
         to: isLast ? null : path,
         icon: routeInfo.icon,
         disabled: isLast
       });
     });
-    
-    return breadcrumbs;
+    return crumbs;
   });
 
   function navigateTo(path) {
