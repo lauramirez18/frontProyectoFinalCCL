@@ -54,13 +54,13 @@ const routes = [
         component: Products
       },
       {
-        path: '/marcas/:slug', 
-        name: 'BrandProducts',
+        path: '/productos/categoria/:categoryId', 
+        name: 'CategoryProducts',
         component: Products
       },
       {
-        path: '/products/:categoryId', 
-        name: 'CategoryProducts',
+        path: '/marcas/:slug', 
+        name: 'BrandProducts',
         component: Products
       },
       {

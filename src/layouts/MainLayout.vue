@@ -401,9 +401,8 @@ function selectCategory(category) {
     });
   } else {
     router.push({
-      path: '/search-results',
+      path: `/productos/categoria/${category.value}`,
       query: { 
-        category: category.value,
         categoryName: category.label
       }
     });

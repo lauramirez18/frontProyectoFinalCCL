@@ -363,21 +363,19 @@ const showError = (message, caption) => {
 
 // Obtener productos
 const fetchProducts = async () => {
-  loading.value = true
-
+  loading.value = true;
   try {
     const params = {
       page: currentPage.value,
-      limit: pagination.value.limit,
-      sort: sortOption.value
-    }
-
+      limit: pagination.value.limit
+    };
+    
     let response;
     
     // Si estamos en la ruta de marca, usar el endpoint específico
-    if (route.params.id) {
-      console.log('Products: Obteniendo productos de marca:', route.params.id);
-      response = await api.get(`/marcas/${route.params.id}`);
+    if (route.params.slug) {
+      console.log('Products: Obteniendo productos de marca:', route.params.slug);
+      response = await api.get(`/marcas/${route.params.slug}`);
       console.log('Products: Respuesta de marca:', response);
       
       // Transformar la respuesta al formato esperado
@@ -400,50 +398,14 @@ const fetchProducts = async () => {
       }
     } else {
       // Para otras rutas, mantener el comportamiento original
-      if (route.params.categoryId) params.category = route.params.categoryId;
+      if (route.params.categoryId) {
+        params.category = route.params.categoryId;
+      }
       if (subcategory.value) params.subcategory = subcategory.value._id;
       if (searchQuery.value) params.search = searchQuery.value;
 
       if (priceRange.value.min > minPrice.value) params.minPrice = priceRange.value.min;
       if (priceRange.value.max < maxPrice.value) params.maxPrice = priceRange.value.max;
-
-      // Filtros por especificación
-      for (const key in activeFilters.value) {
-        if (activeFilters.value[key] && activeFilters.value[key].length > 0) {
-          // Obtener los valores seleccionados y filtrar valores undefined o null
-          const selectedValues = activeFilters.value[key]
-            .map(opt => {
-              // Si opt es un string, usarlo directamente
-              if (typeof opt === 'string') return opt;
-              // Si opt es un objeto, usar la propiedad value o label
-              return opt.value || opt.label || opt;
-            })
-            .filter(value => value !== undefined && value !== null && value !== 'undefined');
-
-          if (selectedValues.length > 0) {
-            // Si solo hay un valor seleccionado, enviarlo directamente
-            if (selectedValues.length === 1) {
-              params[`especificaciones.${key}`] = selectedValues[0];
-            } else {
-              // Si hay múltiples valores, enviar cada uno como un parámetro separado
-              selectedValues.forEach((value, index) => {
-                params[`especificaciones.${key}[${index}]`] = value;
-              });
-            }
-          }
-        }
-      }
-
-      // Filtro alfabético
-      if (activeAlphaFilter.value.field && activeAlphaFilter.value.letter) {
-        params[`especificaciones.${activeAlphaFilter.value.field}`] = activeAlphaFilter.value.letter;
-      }
-
-      // Filtro de ofertas
-      if (showOnlyOffers.value || route.query.ofertas === 'true') {
-        params.ofertas = true;
-        showOnlyOffers.value = true;
-      }
 
       // Construir la URL con los parámetros
       const queryString = Object.entries(params)
@@ -475,7 +437,7 @@ const fetchProducts = async () => {
   } finally {
     loading.value = false;
   }
-}
+};
 
 // Obtener datos de categoría y marcas
 const fetchCategoryData = async () => {
