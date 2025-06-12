@@ -1,15 +1,23 @@
 <template>
   <div class="admin-container">
-    <!-- Añadir pestaña para gestión de ofertas -->
+    <!-- Breadcrumbs for admin view -->
+    <div class="q-px-md q-pt-md">
+      <Breadcrumbs :items="breadcrumbs" @navigate="handleBreadcrumbNavigate" />
+    </div>
+    
     <q-tabs
       v-model="activeTab"
-      class="text-primary q-mb-md"
+      dense
+      class="bg-grey-2 text-grey-7 q-mt-md"
+      active-color="primary"
       indicator-color="primary"
-      align="left"
+      align="justify"
+      narrow-indicator
     >
       <q-tab name="productos" label="Productos" icon="inventory_2" />
       <q-tab name="marcas" label="Marcas" icon="branding_watermark" />
       <q-tab name="categorias" label="Categorías" icon="category" />
+      <q-tab name="usuarios" label="Usuarios" icon="people" />
       <q-tab name="ofertas" label="Ofertas" icon="local_offer" />
     </q-tabs>
 
@@ -179,7 +187,12 @@
       
       <!-- Panel de categorías -->
       <q-tab-panel name="categorias">
-        <CategoryManager />
+        <category-manager />
+      </q-tab-panel>
+      
+      <!-- Panel de usuarios -->
+      <q-tab-panel name="usuarios">
+        <user-manager />
       </q-tab-panel>
       
       <!-- Panel de ofertas -->
@@ -867,14 +880,66 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import api from '../plugins/axios.js';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import api from '../plugins/axios';
+import Breadcrumbs from '../components/ui/Breadcrumbs.vue';
+import useBreadcrumbs from '../composables/useBreadcrumbs';
+import CategoryManager from '../components/CategoryManager.vue';
+import UserManager from '../components/UserManager.vue';
 import { useQuasar } from 'quasar';
 import { showNotification } from '../utils/notifications';
-import CategoryManager from '../components/CategoryManager.vue';
 
+const route = useRoute();
+const router = useRouter();
 const $q = useQuasar();
 
+// Use breadcrumbs composable
+const { breadcrumbs } = useBreadcrumbs([
+  { label: 'Inicio', to: '/', icon: 'home' },
+  { 
+    label: 'Administración', 
+    to: '/admin', 
+    icon: 'admin_panel_settings',
+    disabled: route.path === '/admin'
+  }
+]);
+
+// Manejar navegación desde los breadcrumbs
+const handleBreadcrumbNavigate = (to) => {
+  if (to) {
+    router.push(to);
+  }
+};
+
+// Sincronizar pestaña activa con la ruta
+const tabToRouteMap = {
+  'productos': 'productos',
+  'marcas': 'marcas',
+  'categorias': 'categorias',
+  'usuarios': 'usuarios',
+  'ofertas': 'ofertas'
+};
+
+// Inicializar activeTab con un valor por defecto
+const activeTab = ref(route.query.tab || 'productos');
+
+// Actualizar la pestaña activa cuando cambia la ruta
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && Object.keys(tabToRouteMap).includes(newTab)) {
+    activeTab.value = newTab;
+  }
+}, { immediate: true });
+
+// Actualizar la ruta cuando cambia la pestaña activa
+watch(activeTab, (newTab) => {
+  if (newTab && route.query.tab !== newTab) {
+    router.replace({ 
+      path: '/admin', 
+      query: { tab: newTab } 
+    });
+  }
+});
 const CLOUDINARY_CLOUD_NAME = 'dwlsakic6';
 const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
@@ -1301,8 +1366,6 @@ onMounted(() => {
   cargarCategorias();
 });
 
-// Añadir estas variables al script
-const activeTab = ref('productos');
 
 // Variables para gestión de marcas
 const listaMarcas = ref([]);
