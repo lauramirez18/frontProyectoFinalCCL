@@ -38,34 +38,35 @@
 <script setup>
 const services = [
   {
-    icon: 'https://cdn-icons-png.freepik.com/512/943/943505.png?ga=GA1.1.2009471626.1731785676', // Icono para soporte en vivo
+    icon: 'support_agent', // ícono válido
     title: 'Soporte Técnico 24/7',
     description: 'Contacta a nuestros expertos vía chat, email o teléfono para asistencia inmediata.',
     link: '#',
     linkText: 'Hablar con un Agente',
   },
   {
-    icon: 'verified', // Icono para garantía
+    icon: 'verified', // ícono válido
     title: 'Política de Garantía Extendida',
     description: 'Protege tu inversión con nuestra política de garantía y servicio post-venta integral.',
     link: '#',
     linkText: 'Conocer las Garantías',
   },
   {
-    icon: 'auto_stories', // Icono para guías
+    icon: 'auto_stories', // ícono válido
     title: 'Guías de Usuario Interactivas',
     description: 'Encuentra y descarga manuales detallados, tutoriales y videos para tu producto.',
     link: '#',
     linkText: 'Explorar Guías',
   },
   {
-    icon: 'quiz', // Icono para FAQ
+    icon: 'quiz', // ícono válido
     title: 'Preguntas Frecuentes (FAQ)',
     description: 'Resuelve tus dudas al instante con nuestra base de datos de preguntas y respuestas.',
     link: '#',
     linkText: 'Ver Preguntas Frecuentes',
   },
 ];
+
 </script>
 
 <style scoped lang="scss">

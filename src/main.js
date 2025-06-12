@@ -17,6 +17,7 @@ app.use(Quasar, {
       Notify,
       Dialog
     },
+    
   })
   
 pinia.use(piniaPluginPersistedState)

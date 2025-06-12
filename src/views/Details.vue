@@ -1,12 +1,13 @@
-<template>  <div class="product-detail-container">
-    <div v-if="loading" class="text-center q-pa-md">
+<template>
+  <div class="product-detail-container">
+    <div v-if="loading" class="loading-state">
       <q-spinner color="primary" size="3em" />
-      <p>Cargando detalles del producto...</p>
+      <p class="loading-text">Cargando la experiencia tecnológica definitiva...</p>
     </div>
 
-    <div v-else-if="error" class="text-center text-negative q-pa-md">
-      <p>Error al cargar los detalles del producto.</p>
-      <q-btn label="Reintentar" color="primary" @click="fetchProduct" />
+    <div v-else-if="error" class="error-state">
+      <p class="error-message">¡Error cósmico! No pudimos cargar los detalles del producto.</p>
+      <q-btn label="Reintentar Misión" color="primary" @click="fetchProduct" />
     </div>
 
     <div v-else class="product-content">
@@ -19,11 +20,11 @@
               class="main-image"
             />
           </div>
-          <div v-if="producto.imagenes && producto.imagenes.length > 1" class="thumbnail-gallery">
-            <button class="gallery-nav prev" @click="prevImage">
-              <i class="fas fa-chevron-left"></i>
+          <div v-if="producto.imagenes && producto.imagenes.length > 1" class="thumbnail-gallery-nav">
+            <button class="gallery-nav-btn prev" @click="prevImage">
+              <q-icon name="chevron_left" size="28px" />
             </button>
-            <div class="thumbnails">
+            <div class="thumbnail-scroller">
               <img
                 v-for="(img, index) in producto.imagenes"
                 :key="index"
@@ -34,78 +35,72 @@
                 @click="changeMainImage(index)"
               />
             </div>
-            <button class="gallery-nav next" @click="nextImage">
-              <i class="fas fa-chevron-right"></i>
+            <button class="gallery-nav-btn next" @click="nextImage">
+              <q-icon name="chevron_right" size="28px" />
             </button>
           </div>
         </div>
 
-        <div class="product-info">
-          <h1 class="product-title">{{ producto.nombre }}</h1>
-          <p class="text-caption text-grey-7">{{ typeof producto.marca === 'object' ? producto.marca.nombre : (producto.marca || 'Sin marca') }}</p>
-          <p class="product-description">{{ producto.descripcion }}</p>
+        <div class="product-info-panel">
+          <p class="product-brand text-caption">{{ typeof producto.marca === 'object' ? producto.marca.nombre : (producto.marca || '') }}</p>
+          <h1 class="product-title glowing-text">{{ producto.nombre }}</h1>
+          <p class="product-short-description">{{ producto.descripcion }}</p>
 
-          <div class="product-pricing">
-            <div class="price-label">PRECIO</div>
-            <div class="product-price q-mt-md">
-              <div v-if="producto.enOferta" class="row items-center">
-                <div class="text-h4 text-negative">
-                  ${{ formatThousands(producto.precioOferta) }}
-                </div>
-                <div class="text-h6 text-grey q-ml-md text-line-through">
-                  ${{ formatThousands(producto.precio) }}
-                </div>
-                <q-badge color="negative" class="q-ml-md oferta-badge">
-                  {{ producto.porcentajeDescuento }}% OFF
-                </q-badge>
-              </div>
-              <div v-else class="text-h4">
-                ${{ formatThousands(producto.precio) }}
-              </div>
-              
-              <!-- Si hay fechas de oferta, mostrarlas -->
-              <div v-if="producto.enOferta && producto.fechaFinOferta" class="text-caption text-grey q-mt-xs">
-                Oferta válida hasta el {{ formatDate(producto.fechaFinOferta) }}
-              </div>
-            </div>
-            <div class="stock-info">Disponibles: {{ producto.stock }} unidades</div>
-            
-            <div class="product-actions flex items-center gap-4 mt-6">
-              <q-btn 
-                @click="addToCart" 
-                class="cart-btn flex-grow-1"
-                color="primary"
-                icon="shopping_cart"
-                label="Agregar al carrito"
-                :loading="loading"
-                :disable="loading"
-              >
-                <q-tooltip>
-                  Agregar al carrito
-                </q-tooltip>
-              </q-btn>
-              
-              <FavoriteButton
-                :product="producto"
-                class="favorite-btn-details"
-                :flat="false"
-                :round="false"
-                @update:favorite="handleFavoriteUpdate"
-              />
-            </div>
-          </div>
-          <div class="product-rating">
+          <div class="product-rating-area">
             <RatingStars
               :rating="averageRating"
               :review-count="reviews.length"
               size="1.4em"
             />
           </div>
+
+          <div class="product-pricing">
+            <div class="price-header">PRECIO FINAL</div>
+            <div class="price-details">
+              <div v-if="producto.enOferta" class="price-offer">
+                <span class="offer-price"> ${{ formatThousands(producto.precioOferta) }}</span>
+                <span class="original-price">$ {{ formatThousands(producto.precio) }}</span>
+                <q-badge color="negative" class="discount-badge">
+                  {{ producto.porcentajeDescuento }}% OFF
+                </q-badge>
+              </div>
+              <div v-else class="current-price">${{ formatThousands(producto.precio) }}</div>
+
+              <div v-if="producto.enOferta && producto.fechaFinOferta" class="offer-validity">
+                Oferta válida hasta el <span class="date-highlight">{{ formatDate(producto.fechaFinOferta) }}</span>
+              </div>
+            </div>
+            <div class="stock-info">
+              <q-icon name="inventory_2" size="18px" class="q-mr-xs" />
+              Disponibles:  <span class="stock-count">   {{ producto.stock  }}  </span>
+              unidades
+            </div>
+          </div>
+
+          <div class="product-actions">
+            <q-btn
+              @click="addToCart"
+              class="add-to-cart-btn"
+              icon="shopping_cart"
+              label="Agregar al carrito"
+              :loading="loading"
+              :disable="loading"
+            >
+            </q-btn>
+
+            <FavoriteButton
+              :product="producto"
+              class="favorite-toggle-btn"
+              :flat="true"
+              :round="true"
+              @update:favorite="handleFavoriteUpdate"
+            />
+          </div>
         </div>
       </div>
 
       <div class="product-specs-section">
-        <h2 class="section-title">DETALLES DEL PRODUCTO</h2>
+        <h2 class="section-title">ESPECIFICACIONES TÉCNICAS</h2>
         <div class="specs-grid">
           <div class="spec-item" v-for="(value, key) in parsedDetails" :key="key">
             <div class="spec-label">{{ formatKey(key) }}</div>
@@ -115,10 +110,10 @@
       </div>
 
       <div class="product-reviews-section">
-        <h2 class="section-title">RESEÑAS</h2>
+        <h2 class="section-title">OPINIONES DE USUARIOS</h2>
 
-        <div class="review-form">
-          <div class="form-header">
+        <div class="review-form-container">
+          <div class="form-header-row">
             <q-avatar
               color="primary"
               text-color="white"
@@ -135,57 +130,59 @@
             >
               ?
             </q-avatar>
-            <div class="form-title">
-              {{ isEditingReview ? 'EDITAR TU RESEÑA' : 'ESCRIBE UNA RESEÑA' }}
+            <div class="form-title-text">
+              {{ isEditingReview ? 'MODIFICA TU RESEÑA' : 'COMPARTE TU EXPERIENCIA' }}
             </div>
           </div>
-          <div class="star-rating">
-            <span
-              v-for="star in 5"
-              :key="star"
-              class="star"
-              :class="{ filled: star <= newReview.rating }"
-              @click="newReview.rating = star"
-            >★</span>
+          <div class="star-rating-input">
+            <q-rating
+              v-model="newReview.rating"
+              size="2em"
+              color="amber"
+              icon="star_border"
+              icon-selected="star"
+              icon-half="star_half"
+            />
           </div>
-          <textarea
+          <q-input
             v-model="newReview.comment"
-            placeholder="Escribe tu opinión"
-            class="review-textarea"
-          ></textarea>
-          <button class="submit-review" @click="submitReview" :disabled="reviewSubmitting">
-            {{ reviewSubmitting ? 'Enviando...' : 'Enviar Reseña' }}
-          </button>
+            type="textarea"
+            placeholder="¡Cuéntanos tu opinión sobre este producto!"
+            outlined
+            dense
+            rows="4"
+            class="review-textarea-input"
+          />
+          <q-btn class="submit-review-btn" @click="submitReview" :loading="reviewSubmitting" :disable="reviewSubmitting">
+            {{ reviewSubmitting ? 'Enviando Datos...' : 'Enviar Reseña' }}
+          </q-btn>
         </div>
 
         <div class="reviews-list">
-          <div v-if="reviews.length === 0" class="no-reviews">
-            No hay reseñas para este producto. ¡Sé el primero en opinar!
+          <div v-if="reviews.length === 0" class="no-reviews-message">
+            <q-icon name="rate_review" size="2em" class="q-mr-sm" />
+            Todavía no hay reseñas para este producto. ¡Sé el primero en dejar una!
           </div>
           <div class="review-item" v-for="review in reviews" :key="review._id">
-            <div class="reviewer-info">
-              <div class="reviewer-avatar">
-                <q-avatar
-                  color="primary"
-                  text-color="white"
-                  font-size="1.2rem"
-                >
-                  {{ getInitial(review.usuario?.name || review.nombreUsuario || 'U') }}
-                </q-avatar>
-              </div>
-              <div class="reviewer-name">
-                {{ review.usuario?.name || review.nombreUsuario || 'Usuario anónimo' }}
-              </div>
+            <div class="reviewer-meta">
+              <q-avatar
+                color="blue-grey-7"
+                text-color="white"
+                font-size="1.2rem"
+              >
+                {{ getInitial(review.usuario?.name || review.nombreUsuario || 'U') }}
+              </q-avatar>
+              <div class="reviewer-name">{{ review.usuario?.name || review.nombreUsuario || 'Usuario Anónimo' }}</div>
             </div>
-            <div class="review-content">
-              <div class="review-header">
+            <div class="review-content-body">
+              <div class="review-header-details">
                 <RatingStars
                   :rating="review.calificacion"
                   :review-count="0"
-                  size="1em"
+                  size="1.1em"
                   :show-count="false"
                 />
-                <div class="review-date">{{ formatDate(review.createdAt || review.fecha) }}</div>
+                <div class="review-date-text">{{ formatDate(review.createdAt || review.fecha) }}</div>
                 <q-btn
                   v-if="authStore.user && review.usuario?._id === authStore.user._id"
                   icon="delete"
@@ -193,18 +190,20 @@
                   round
                   color="negative"
                   size="sm"
+                  class="delete-review-btn"
                   @click="confirmDeleteReview(review._id)"
                 >
-                  <q-tooltip>Eliminar reseña</q-tooltip>
+                  <q-tooltip>Eliminar esta reseña</q-tooltip>
                 </q-btn>
               </div>
-              <p class="review-text">{{ review.comentario }}</p>
+              <p class="review-comment-text">{{ review.comentario }}</p>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <!-- Barra lateral del carrito mejorada -->
+
+     <!-- Barra lateral del carrito mejorada -->
     <div class="cart-sidebar" :class="{ 'visible': showCartSidebar, 'fade-out': isHiding }">
       <div class="sidebar-header">
         <h3> Carrito</h3>
@@ -275,16 +274,16 @@ import { useQuasar, Dialog } from 'quasar'
 import { useAuthStore } from '../store/store.js'
 import api from '../plugins/axios'
 import { showNotification } from '../utils/notifications'
-import { useThousandsFormat } from '../composables/useThousandFormat' // Importar el composable
+import { useThousandsFormat } from '../composables/useThousandFormat'
 import FavoriteButton from '../components/FavoriteButton.vue'
 import { storeToRefs } from 'pinia'
 import RatingStars from '../components/RatingStars.vue'
 import LoginDialog from '../components/LoginDialog.vue'
 
-const route = useRoute() 
-const router = useRouter() 
-const $q = useQuasar() 
-const { formatThousands } = useThousandsFormat() // Extraer la función formatThousands
+const route = useRoute()
+const router = useRouter()
+const $q = useQuasar()
+const { formatThousands } = useThousandsFormat()
 
 const producto = ref({
   _id: '',
@@ -296,7 +295,7 @@ const producto = ref({
   especificaciones: {},
   stock: 0,
   state: '1',
-  promedioCalificacion: 0 // Initialize this for clarity
+  promedioCalificacion: 0
 })
 
 const showCartSidebar = ref(false)
@@ -319,8 +318,8 @@ const averageRating = computed(() => {
   const total = reviews.value.reduce((sum, review) => sum + review.calificacion, 0);
   return total / reviews.value.length;
 });
-const reviewSubmitting = ref(false) // State for review submission button
-const isEditingReview = ref(false) // For future editing functionality
+const reviewSubmitting = ref(false)
+const isEditingReview = ref(false)
 
 const parsedDetails = computed(() => {
   if (producto.value.especificaciones && typeof producto.value.especificaciones === 'object') {
@@ -330,7 +329,6 @@ const parsedDetails = computed(() => {
 })
 
 const formatKey = (key) => {
-  // Convert camelCase to space-separated words and capitalize first letter
   const words = key.replace(/([A-Z])/g, ' $1')
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
@@ -381,7 +379,6 @@ const fetchProduct = async () => {
       producto.value.imagenes = [placeholderImage];
     }
 
-    // Fetch reviews only if we have a valid product
     try {
       const reviewsResponse = await api.get(`/resenas/producto/${productId}`);
       reviews.value = reviewsResponse.data;
@@ -405,7 +402,7 @@ const fetchProduct = async () => {
       state: '1',
       promedioCalificacion: 0
     };
-    
+
     $q.notify({
       type: 'negative',
       message: err.message || 'No se pudo cargar los detalles del producto.',
@@ -465,12 +462,9 @@ const submitReview = async () => {
 
     const response = await api.post('/resenas', requestData);
 
-    
-    const createdReview = response.data.reseña; 
-
+    const createdReview = response.data.reseña;
     reviews.value.unshift(createdReview);
 
- 
     newReview.value = { rating: 0, comment: '' };
 
     $q.notify({
@@ -479,8 +473,7 @@ const submitReview = async () => {
       position: 'top'
     });
 
-  
-    await fetchProduct();
+    await fetchProduct(); // Volver a cargar para actualizar el promedio si es necesario
 
   } catch (error) {
     console.error('Error al enviar reseña:', error.response?.data || error.message);
@@ -511,7 +504,7 @@ const deleteReview = async (reviewId) => {
     await api.delete(`/resenas/${reviewId}`);
     reviews.value = reviews.value.filter(r => r._id !== reviewId);
     showNotification('success', 'Reseña eliminada correctamente.')
-    await fetchProduct();
+    await fetchProduct(); // Volver a cargar para actualizar el promedio si es necesario
   } catch (error) {
     console.error('Error al eliminar reseña:', error.response?.data || error.message);
     showNotification('error', 'Error al eliminar la reseña.', error.response?.data?.msg || error.message)
@@ -528,16 +521,16 @@ const getInitial = (name) => {
 const addToCart = () => {
   if (!authStore.token) {
     $q.dialog({
-      title: 'Iniciar sesión',
-      message: '¿Deseas iniciar sesión para agregar productos al carrito?',
+      title: 'Iniciar sesión para añadir al carrito',
+      message: 'Para añadir productos a tu carrito, por favor inicia sesión o regístrate.',
       cancel: true,
       persistent: true,
       ok: {
-        label: 'Sí, iniciar sesión',
+        label: 'Iniciar sesión',
         color: 'primary'
       },
       cancel: {
-        label: 'No, continuar sin sesión',
+        label: 'Ahora no',
         color: 'grey'
       }
     }).onOk(() => {
@@ -547,64 +540,56 @@ const addToCart = () => {
   }
 
   const price = producto.value.enOferta ? producto.value.precioOferta : producto.value.precio
-  
+
   const cartItem = {
     id: producto.value._id,
     name: producto.value.nombre,
     price: price,
     image: mainImage.value,
     quantity: 1,
-    seller: producto.value.marca || 'Vendedor oficial'
+    seller: typeof producto.value.marca === 'object' ? producto.value.marca.nombre : (producto.value.marca || 'Vendedor oficial')
   };
-  
-  // Verificamos que los datos sean válidos antes de enviarlos
+
   if (!cartItem.id || !cartItem.name || !cartItem.price) {
     console.error('Datos de producto incompletos:', cartItem);
-    showNotification('error', 'Error al agregar el producto al carrito.')
+    showNotification('error', 'Error: Datos del producto incompletos. No se pudo agregar al carrito.')
     return;
   }
-  
-  console.log('Agregando al carrito:', cartItem);
+
   authStore.addToCart(cartItem);
 
   showSidebar();
-  showNotification('positive', `${producto.value.nombre} agregado al carrito.`)
+  showNotification('positive', `"${producto.value.nombre}" agregado al carrito.`)
 }
 
 const goToCart = () => {
-  router.push('/car'); 
+  router.push('/car');
   hideCartSidebar()
 }
 
-
 const isHiding = ref(false)
 const autoHideTimer = ref(null)
-const shippingCost = ref(10) 
-
+const shippingCost = ref(10) // Puedes hacer esto dinámico si lo necesitas
 
 const hideCartSidebar = () => {
   isHiding.value = true
   setTimeout(() => {
     showCartSidebar.value = false
     isHiding.value = false
-  }, 500) 
+  }, 500)
 }
-
 
 const showSidebar = () => {
   showCartSidebar.value = true
-  
-  
+
   if (autoHideTimer.value) {
     clearTimeout(autoHideTimer.value)
   }
-  
 
   autoHideTimer.value = setTimeout(() => {
     hideCartSidebar()
-  }, 5000) 
+  }, 5000)
 }
-
 
 const increaseQuantity = (item) => {
   item.quantity++
@@ -626,17 +611,15 @@ const removeFromCart = (item) => {
   resetAutoHideTimer()
 }
 
-
 const resetAutoHideTimer = () => {
   if (autoHideTimer.value) {
     clearTimeout(autoHideTimer.value)
   }
-  
+
   autoHideTimer.value = setTimeout(() => {
     hideCartSidebar()
-  }, 5000) 
+  }, 5000)
 }
-
 
 const calculateSubtotal = () => {
   return authStore.cartItems.reduce((total, item) => {
@@ -645,7 +628,6 @@ const calculateSubtotal = () => {
 }
 
 const handleFavoriteUpdate = (isFavorite) => {
-  // Opcional: puedes usar este evento para mostrar una notificación o actualizar algo en la UI
   showNotification(
     'success',
     isFavorite ? 'Producto agregado a favoritos' : 'Producto eliminado de favoritos'
@@ -659,7 +641,7 @@ const isFavorite = computed(() => {
 
 const toggleFavorite = async () => {
   if (!producto.value) return;
-  
+
   try {
     if (isFavorite.value) {
       await authStore.removeFromFavorites(producto.value._id);
@@ -674,144 +656,9 @@ const toggleFavorite = async () => {
 const showLoginDialog = ref(false)
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+// Importa tus variables CSS y fuentes aquí
+@import '../styles/Details.css';
+@import '../css/variables.css';
 
-@import url('../styles/Details.css');
-
-.reviewer-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-right: 20px;
-  min-width: 80px;
-}
-
-.reviewer-avatar {
-  margin-bottom: 10px;
-}
-
-.reviewer-name {
-  font-size: 0.9rem;
-  text-align: center;
-  color: #555;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Add some styles for the new elements */
-.q-btn { /* Style for Quasar buttons if not already covered */
-  margin-left: 8px; /* Example spacing */
-}
-
-/* Style for the review form textarea and submit button */
-.review-textarea {
-  width: 100%;
-  min-height: 80px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 15px;
-  font-size: 1rem;
-  box-sizing: border-box; /* Include padding in width */
-}
-
-.submit-review {
-  background-color: #2196f3; /* Quasar primary color */
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-}
-
-.submit-review:hover:not(:disabled) {
-  background-color: #1976d2; /* Darker primary */
-}
-
-.submit-review:disabled {
-  background-color: #9e9e9e; /* Greyed out when disabled */
-  cursor: not-allowed;
-}
-
-.no-reviews {
-  text-align: center;
-  color: #777;
-  padding: 20px;
-  font-style: italic;
-}
-
-.review-item {
-  display: flex;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.review-content {
-  flex-grow: 1;
-}
-
-.review-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.review-stars .star {
-  color: #ccc;
-  font-size: 1.1rem;
-}
-
-.review-stars .star.filled {
-  color: #ffc107; /* Gold star color */
-}
-
-.review-date {
-  font-size: 0.85rem;
-  color: #888;
-}
-
-.review-text {
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #333;
-}
-
-.cart-btn {
-  background: linear-gradient(135deg, #068FFF, #0052a3);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  text-transform: none;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  padding: 12px 24px;
-}
-
-.cart-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 143, 255, 0.3);
-}
-
-.cart-btn:active {
-  transform: translateY(0);
-}
-
-.favorite-btn-details {
-  min-width: 48px;
-  height: 48px;
-}
-
-.product-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
 </style>
