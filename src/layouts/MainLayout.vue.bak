@@ -1,9 +1,5 @@
 <template>
   <q-layout view="hHh Lpr fff">
-    <!-- Breadcrumbs -->
-    <div v-if="showBreadcrumbs" class="breadcrumbs-container q-px-md">
-      <Breadcrumbs />
-    </div>
     <q-header elevated class="header-main">
       <q-toolbar class="header-toolbar">
         <div class="header-left">
@@ -315,22 +311,14 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../store/store.js';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import AuthDialog from '../components/AuthDialog.vue';
 import { getData } from '../services/apiClient.js';
 
 
 const authStore = useAuthStore();
 const router = useRouter();
-const route = useRoute();
 const search = ref('');
-
-// Ocultar breadcrumbs en rutas específicas
-const hideBreadcrumbsOn = ['login', 'register', 'home'];
-
-const showBreadcrumbs = computed(() => {
-  return !hideBreadcrumbsOn.includes(route.name);
-});
 
 const showMenu = ref(false);
 const showAuth = ref(false);
@@ -688,34 +676,6 @@ const getUserInitials = computed(() => {
     font-weight: 600;
     font-size: 0.95rem;
   }
-}
-
-/* Estilos para los breadcrumbs */
-.breadcrumbs-container {
-  background: var(--q-primary);
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.breadcrumbs-container .q-breadcrumbs {
-  background: transparent;
-  padding: 0;
-  color: white;
-}
-
-.breadcrumbs-container .q-breadcrumbs .q-breadcrumbs__el {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-}
-
-.breadcrumbs-container .q-breadcrumbs .q-breadcrumbs__el--disabled {
-  color: white;
-  font-weight: 500;
-}
-
-.breadcrumbs-container .q-breadcrumbs .q-breadcrumbs__separator {
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0 4px;
 }
 
 .action-btn {

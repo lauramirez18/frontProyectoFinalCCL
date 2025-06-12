@@ -577,16 +577,16 @@ const createBackendOrder = async () => {
       throw new Error(`Error de consistencia interna. La suma de los subtotales (${calculatedTotal}) no coincide con el total (${finalTotalCOP})`);
     }
 
-    console.log('Order data to send:', JSON.stringify(orderData, null, 2));
+console.log('Order data to send:', JSON.stringify(orderData, null, 2));
 
-    const response = await fetch('http://localhost:3000/api/ordenes', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(orderData)
-    });
+ const response = await fetch('http://localhost:3000/api/ordenes', {
+ method: 'POST',
+headers: {
+ 'Content-Type': 'application/json',
+ 'Authorization': `Bearer ${authStore.token}`
+ },
+ body: JSON.stringify(orderData)
+ });
 
     // ... el resto de tu lógica para manejar la respuesta ...
     const responseText = await response.text();
