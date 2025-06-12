@@ -203,72 +203,13 @@
       </div>
     </div>
 
-     <!-- Barra lateral del carrito mejorada -->
-    <div class="cart-sidebar" :class="{ 'visible': showCartSidebar, 'fade-out': isHiding }">
-      <div class="sidebar-header">
-        <h3> Carrito</h3>
-        <button class="close-sidebar" @click="hideCartSidebar">&times;</button>
-      </div>
-      
-      <div class="sidebar-content">
-        <div v-if="authStore.cartItems.length === 0" class="empty-cart">
-          <div class="empty-cart-icon">🛒</div>
-          <div class="empty-cart-text">Tu carrito está vacío</div>
-          <button class="btn-continue-shopping" @click="hideCartSidebar">Seguir comprando</button>
-        </div>
-        
-        <div v-else class="cart-items-container">
-          <div v-for="(item, index) in authStore.cartItems" :key="index" class="cart-item">
-            <img :src="item.image" :alt="item.name" class="cart-item-image">
-            
-            <div class="cart-item-details">
-              <div class="cart-item-name" :title="item.name">{{ item.name }}</div>
-              <div class="cart-item-price">$ {{ formatPrice(item.price) }}</div>
-              
-              <div class="cart-item-quantity">
-                <button class="quantity-btn" @click="decreaseQuantity(item)">-</button>
-                <span class="quantity-value">{{ item.quantity }}</span>
-                <button class="quantity-btn" @click="increaseQuantity(item)">+</button>
-              </div>
-            </div>
-            
-            <button class="remove-item" @click="removeFromCart(item)">
-              <q-icon name="close" size="xs" />
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <div v-if="authStore.cartItems.length > 0" class="cart-summary">
-        <div class="summary-row">
-          <span>Subtotal:</span>
-          <span>$ {{ formatPrice(calculateSubtotal()) }}</span>
-        </div>
-        <div class="summary-row">
-          <span>Envío:</span>
-          <span>$ {{ formatPrice(shippingCost) }}</span>
-        </div>
-        <div class="summary-row total">
-          <span>Total:</span>
-          <span>$ {{ formatPrice(calculateSubtotal() + shippingCost) }}</span>
-        </div>
-      </div>
-      
-      <div class="sidebar-footer">
-        <button v-if="authStore.cartItems.length > 0" class="btn-view-cart" @click="goToCart">
-          Ir al carrito
-        </button>
-        <button class="btn-continue-shopping" @click="hideCartSidebar">
-          Seguir comprando
-        </button>
-      </div>
-    </div>
+    <CartSidebar v-model="showCartSidebar" :auto-hide-delay="5000" />
     <LoginDialog v-model="showLoginDialog" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, Dialog } from 'quasar'
 import { useAuthStore } from '../store/store.js'
@@ -279,6 +220,7 @@ import FavoriteButton from '../components/FavoriteButton.vue'
 import { storeToRefs } from 'pinia'
 import RatingStars from '../components/RatingStars.vue'
 import LoginDialog from '../components/LoginDialog.vue'
+import CartSidebar from '../components/CartSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -557,8 +499,7 @@ const addToCart = () => {
   }
 
   authStore.addToCart(cartItem);
-
-  showSidebar();
+  showCartSidebar.value = true;
   showNotification('positive', `"${producto.value.nombre}" agregado al carrito.`)
 }
 
@@ -573,14 +514,16 @@ const shippingCost = ref(10) // Puedes hacer esto dinámico si lo necesitas
 
 const hideCartSidebar = () => {
   isHiding.value = true
+  document.body.classList.remove('cart-open')
   setTimeout(() => {
     showCartSidebar.value = false
     isHiding.value = false
-  }, 500)
+  }, 300)
 }
 
 const showSidebar = () => {
   showCartSidebar.value = true
+  document.body.classList.add('cart-open')
 
   if (autoHideTimer.value) {
     clearTimeout(autoHideTimer.value)
@@ -654,6 +597,14 @@ const toggleFavorite = async () => {
 };
 
 const showLoginDialog = ref(false)
+
+// Limpiar el timer y la clase del body cuando el componente se desmonta
+onBeforeUnmount(() => {
+  if (autoHideTimer.value) {
+    clearTimeout(autoHideTimer.value)
+  }
+  document.body.classList.remove('cart-open')
+})
 </script>
 
 <style scoped lang="scss">

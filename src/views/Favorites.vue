@@ -84,7 +84,7 @@
             
             <div class="favorite-content">
               <div class="brand-tag" v-if="product.marca">
-                {{ getBrandName(product.marca) }}
+                {{ getBrandName(product.marca.nombre) }}
               </div>
               <h2 class="favorite-name line-clamp-2">{{ getProductName(product) }}</h2>
               

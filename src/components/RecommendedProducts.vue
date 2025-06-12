@@ -467,7 +467,7 @@ onBeforeUnmount(() => {
 // const getBrandColor = (brandName) => { /* ... */ }
 </script>
 <style scoped lang="scss">
-// Importa las variables CSS si es necesario, asegúrate de que existen
+
 @import '../css/variables.css';
 
 // Fuente para títulos
