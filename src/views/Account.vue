@@ -93,20 +93,53 @@
               </template>
             </q-input>
 
-            <q-input
-              v-model="formData.phone"
-              label="Teléfono"
-              mask="(###) ###-####"
-              outlined
-              dense
-              color="primary"
-              bg-color="input-bg"
-              class="tech-input"
-            >
-              <template v-slot:prepend>
-                <q-icon name="phone_android" color="grey-7" />
-              </template>
-            </q-input>
+            <div class="row q-col-gutter-lg">
+              <div class="col-auto">
+                <q-select
+                  v-model="selectedDialCode"
+                  :options="dialCodeOptions"
+                  label="Prefijo"
+                  outlined
+                  dense
+                  color="primary"
+                  bg-color="input-bg"
+                  class="tech-input"
+                  style="min-width: 120px;"
+                  emit-value
+                  map-options
+                  :rules="[val => !!val || 'Requerido']"
+                >
+                  <template v-slot:selected-item="scope">
+                    <q-item-section>
+                      <q-item-label>{{ scope.opt.dial_code }}</q-item-label>
+                    </q-item-section>
+                  </template>
+                  <template v-slot:option="scope">
+                    <q-item v-bind="scope.itemProps">
+                      <q-item-section>
+                        <q-item-label>{{ scope.opt.dial_code }} ({{ scope.opt.name }})</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                  <template v-slot:prepend>
+                    <q-icon name="call" color="grey-7" />
+                  </template>
+                </q-select>
+              </div>
+              <div class="col">
+                <q-input
+                  v-model="formData.phone"
+                  label="Número de Teléfono"
+                  mask="### ### ####"
+                  outlined
+                  dense
+                  color="primary"
+                  bg-color="input-bg"
+                  class="tech-input"
+                  :rules="[val => !!val || 'El teléfono es requerido']"
+                />
+              </div>
+            </div>
 
             <div class="row q-col-gutter-lg">
               <div class="col-12 col-md-6">
@@ -125,19 +158,62 @@
                 </q-input>
               </div>
               <div class="col-12 col-md-6">
-                <q-input
-                  v-model="formData.city"
+                <q-select
+                  v-model="selectedCountry"
+                  :options="countryOptions"
+                  label="País"
+                  outlined
+                  dense
+                  color="primary"
+                  bg-color="input-bg"
+                  class="tech-input"
+                  emit-value
+                  map-options
+                  @update:model-value="onCountryChange"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="public" color="grey-7" />
+                  </template>
+                </q-select>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-select
+                  v-model="selectedState"
+                  :options="filteredStateOptions"
+                  label="Departamento"
+                  outlined
+                  dense
+                  color="primary"
+                  bg-color="input-bg"
+                  class="tech-input"
+                  :disable="!selectedCountry"
+                  emit-value
+                  map-options
+                  @update:model-value="onStateChange"
+                >
+                  <template v-slot:prepend>
+                    <q-icon name="location_city" color="grey-7" />
+                  </template>
+                </q-select>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-select
+                  v-model="selectedCity"
+                  :options="filteredCityOptions"
                   label="Ciudad"
                   outlined
                   dense
                   color="primary"
                   bg-color="input-bg"
                   class="tech-input"
+                  :disable="!selectedState"
+                  emit-value
+                  map-options
                 >
                   <template v-slot:prepend>
                     <q-icon name="apartment" color="grey-7" />
                   </template>
-                </q-input>
+                </q-select>
               </div>
             </div>
 
@@ -394,21 +470,46 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from '../store/store';
 import { postData, putData, getData } from '../services/apiClient';
-import { useRouter } from 'vue-router'; // Importar useRouter
+import { useRouter } from 'vue-router';
+
+// Import local JSON files
+import countriesData from '../utils/countries.json'; // Adjust path as needed
+import statesData from '../utils/states.json';     // Adjust path as needed
+import citiesData from '../utils/cities.json';     // Adjust path as needed
+import dialCodesData from '../utils/CountryCodes.json'; // Import the new file 'Countrycodes.json'; // New: Adjust path as needed
 
 const $q = useQuasar();
 const authStore = useAuthStore();
-const router = useRouter(); // Inicializar router
+const router = useRouter();
 const fileInput = ref(null);
 const loading = ref(false);
 const photoUrl = ref(null);
 const showChangePasswordDialog = ref(false);
 const showDeleteAccountDialog = ref(false);
 const deleteConfirmation = ref('');
+
+// --- Location Selects ---
+const selectedCountry = ref(null);
+const selectedState = ref(null);
+const selectedCity = ref(null);
+
+const countryOptions = ref([]);
+const filteredStateOptions = ref([]);
+const filteredCityOptions = ref([]);
+
+// Full data from JSONs
+const allCountries = countriesData.countries;
+const allStates = statesData.states;
+const allCities = citiesData.cities;
+
+// --- Phone Dial Code Select ---
+const selectedDialCode = ref(null);
+const dialCodeOptions = ref([]);
+const allDialCodes = dialCodesData; // Your provided JSON for dial codes
 
 // Datos del usuario (para mostrar en el encabezado)
 const userData = reactive({
@@ -421,9 +522,8 @@ const formData = reactive({
   firstName: '',
   lastName: '',
   email: '',
-  phone: '',
+  phone: '', // This will now only hold the number part
   address: '',
-  city: '',
   language: 'es',
   theme: 'light',
   notifications: true,
@@ -448,28 +548,85 @@ const themeOptions = [
   { label: 'Oscuro', value: 'dark' }
 ];
 
-// Cargar datos del usuario
+// --- Watchers for location selects ---
+watch(selectedCountry, (newVal) => {
+  filteredStateOptions.value = [];
+  selectedState.value = null;
+  selectedCity.value = null;
+  if (newVal) {
+    filteredStateOptions.value = allStates
+      .filter(state => state.id_country === newVal)
+      .map(state => ({ label: state.name, value: state.id }));
+  }
+});
+
+watch(selectedState, (newVal) => {
+  filteredCityOptions.value = [];
+  selectedCity.value = null;
+  if (newVal) {
+    filteredCityOptions.value = allCities
+      .filter(city => city.id_state === newVal)
+      .map(city => ({ label: city.name, value: city.id }));
+  }
+});
+
+// --- Lifecycle Hook ---
 onMounted(async () => {
+  // Populate country options initially
+  countryOptions.value = allCountries.map(country => ({
+    label: country.name,
+    value: country.id
+  }));
+
+  // Populate dial code options initially
+  dialCodeOptions.value = allDialCodes.map(dialCode => ({
+    label: `${dialCode.dial_code} (${dialCode.name})`,
+    value: dialCode.dial_code,
+    dial_code: dialCode.dial_code, // Keep original dial_code for display in selected item
+    name: dialCode.name
+  }));
+
   try {
-    // Obtener datos del usuario desde el backend
     const response = await getData('usuarios/profile');
     const user = response;
 
     if (user) {
-      // Actualizar datos del usuario para el encabezado
       userData.name = user.name || 'Usuario';
       userData.email = user.email || 'correo@example.com';
 
-      // Separar nombre completo en nombre y apellido para el formulario
       const [firstName = '', ...lastNameParts] = user.name ? user.name.split(' ') : ['', ''];
       formData.firstName = firstName;
       formData.lastName = lastNameParts.join(' ');
       formData.email = user.email || '';
-      formData.phone = user.phone || '';
       formData.address = user.address || '';
-      formData.city = user.city || '';
+      
+      // Load stored location data
+      if (user.countryId) {
+        selectedCountry.value = user.countryId;
+        if (user.stateId) {
+          selectedState.value = user.stateId;
+          if (user.cityId) {
+            selectedCity.value = user.cityId;
+          }
+        }
+      }
 
-      // Cargar preferencias
+      // Load stored phone data
+      if (user.phone) {
+        // Attempt to parse the phone number into dial code and local number
+        const matchedDialCode = allDialCodes.find(dc => user.phone.startsWith(dc.dial_code));
+        if (matchedDialCode) {
+          selectedDialCode.value = matchedDialCode.dial_code;
+          formData.phone = user.phone.substring(matchedDialCode.dial_code.length).trim();
+        } else {
+          // If no matching dial code found, assume local number and default dial code
+          selectedDialCode.value = '+57'; // Default to Colombia's dial code
+          formData.phone = user.phone;
+        }
+      } else {
+        selectedDialCode.value = '+57'; // Default to Colombia's dial code if no phone saved
+      }
+
       if (user.preferences) {
         formData.language = user.preferences.language || 'es';
         formData.theme = user.preferences.theme || 'light';
@@ -477,21 +634,30 @@ onMounted(async () => {
         formData.newsletter = user.preferences.newsletter ?? true;
       }
 
-      // Si tiene una foto de perfil guardada
       if (user.photoUrl) {
         photoUrl.value = user.photoUrl;
       }
+    } else {
+      selectedDialCode.value = '+57'; // Set default dial code if no user data
     }
   } catch (error) {
     console.error('Error al cargar datos del usuario:', error);
     showError('Error al cargar los datos del usuario. Por favor, intenta de nuevo.');
-    // Podrías redirigir al login si el error es de autenticación
     if (error.response && error.response.status === 401) {
       authStore.logout();
       router.push('/login');
     }
   }
 });
+
+// --- Location Change Handlers ---
+const onCountryChange = (value) => {
+  // Watcher handles resetting state and city
+};
+
+const onStateChange = (value) => {
+  // Watcher handles resetting city
+};
 
 // Métodos para manejo de foto de perfil
 const triggerFileUpload = () => {
@@ -502,7 +668,6 @@ const onFileSelected = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
-  // Validar tipo y tamaño
   if (!file.type.startsWith('image/')) {
     showError('Por favor selecciona un archivo de imagen válido (JPEG, PNG, GIF).');
     return;
@@ -515,16 +680,12 @@ const onFileSelected = async (event) => {
 
   try {
     loading.value = true;
-
-    // Crear FormData para enviar el archivo
     const form = new FormData();
-    form.append('photo', file); // Asegúrate de que el nombre del campo coincida con lo que tu API espera
+    form.append('photo', file);
 
-    // Aquí harías la petición a tu API para subir la foto
-    // Asumiendo que tu API devuelve el photoUrl actualizado
     const response = await postData('usuarios/upload-photo', form);
-    photoUrl.value = response.photoUrl; // Actualiza la URL de la foto en el frontend
-    userData.photoUrl = response.photoUrl; // También actualiza en userData si lo usas en otros lugares
+    photoUrl.value = response.photoUrl;
+    userData.photoUrl = response.photoUrl;
 
     showSuccess('Foto de perfil actualizada exitosamente.');
   } catch (error) {
@@ -532,7 +693,6 @@ const onFileSelected = async (event) => {
     showError('No se pudo subir la foto de perfil. Intenta de nuevo.');
   } finally {
     loading.value = false;
-    // Limpiar el input de archivo para permitir la selección del mismo archivo de nuevo
     if (fileInput.value) {
       fileInput.value.value = '';
     }
@@ -544,13 +704,17 @@ const onSubmit = async () => {
   try {
     loading.value = true;
 
-    // Preparar datos para enviar
+    // Combine dial code and phone number
+    const fullPhoneNumber = selectedDialCode.value ? `${selectedDialCode.value}${formData.phone.replace(/\s/g, '')}` : formData.phone.replace(/\s/g, '');
+
     const updateData = {
-      name: `${formData.firstName} ${formData.lastName}`.trim(), // Eliminar espacios extra
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
       email: formData.email,
-      phone: formData.phone,
+      phone: fullPhoneNumber,
       address: formData.address,
-      city: formData.city,
+      countryId: selectedCountry.value, // Send IDs to backend
+      stateId: selectedState.value,
+      cityId: selectedCity.value,
       preferences: {
         language: formData.language,
         theme: formData.theme,
@@ -559,17 +723,14 @@ const onSubmit = async () => {
       }
     };
 
-    // Actualizar datos en el backend
     const response = await putData('usuarios/update-profile', updateData);
 
-    // Actualizar userData para el encabezado
     userData.name = response.name;
     userData.email = response.email;
 
-    // Actualizar store con los nuevos datos si es necesario para reactividad global
     authStore.setUser({
-      ...authStore.user, // Mantener otros campos del usuario
-      ...response // Sobrescribir con la respuesta del backend
+      ...authStore.user,
+      ...response
     });
 
     showSuccess('¡Tus datos han sido actualizados correctamente!');
@@ -583,30 +744,52 @@ const onSubmit = async () => {
 };
 
 const resetForm = () => {
-  // Recargar datos originales del usuario desde el store si es posible
-  // O volver a cargar desde la API si la fuente de verdad es la API
-  const user = authStore.user; // Usar el usuario del store para resetear
+  const user = authStore.user;
 
   if (user) {
     const [firstName = '', ...lastNameParts] = user.name ? user.name.split(' ') : ['', ''];
     formData.firstName = firstName;
     formData.lastName = lastNameParts.join(' ');
     formData.email = user.email || '';
-    formData.phone = user.phone || '';
     formData.address = user.address || '';
-    formData.city = user.city || '';
+    
+    // Reset location selects
+    selectedCountry.value = user.countryId || null;
+    selectedState.value = user.stateId || null;
+    selectedCity.value = user.cityId || null;
+
+    // Reset phone number and dial code
+    if (user.phone) {
+        const matchedDialCode = allDialCodes.find(dc => user.phone.startsWith(dc.dial_code));
+        if (matchedDialCode) {
+          selectedDialCode.value = matchedDialCode.dial_code;
+          formData.phone = user.phone.substring(matchedDialCode.dial_code.length).trim();
+        } else {
+          selectedDialCode.value = '+57'; // Default to Colombia's dial code
+          formData.phone = user.phone;
+        }
+    } else {
+      selectedDialCode.value = '+57';
+      formData.phone = '';
+    }
+
     formData.language = user.preferences?.language || 'es';
     formData.theme = user.preferences?.theme || 'light';
     formData.notifications = user.preferences?.notifications ?? true;
     formData.newsletter = user.preferences?.newsletter ?? true;
   } else {
-    // Si no hay datos en el store, resetear a valores por defecto o vacíos
     formData.firstName = '';
     formData.lastName = '';
     formData.email = '';
-    formData.phone = '';
     formData.address = '';
-    formData.city = '';
+    
+    selectedCountry.value = null;
+    selectedState.value = null;
+    selectedCity.value = null;
+
+    selectedDialCode.value = '+57';
+    formData.phone = '';
+
     formData.language = 'es';
     formData.theme = 'light';
     formData.notifications = true;
@@ -633,7 +816,7 @@ const onChangePassword = async () => {
 
   try {
     loading.value = true;
-    await putData('account/change-password', { // Asegúrate que esta ruta y el payload sean correctos para tu backend
+    await putData('account/change-password', {
       currentPassword: passwordForm.current,
       newPassword: passwordForm.new
     });
@@ -641,12 +824,9 @@ const onChangePassword = async () => {
     showSuccess('¡Contraseña actualizada correctamente! Por favor, inicia sesión con tu nueva contraseña.');
     showChangePasswordDialog.value = false;
 
-    // Limpiar formulario y quizás forzar un re-login por seguridad
     passwordForm.current = '';
     passwordForm.new = '';
     passwordForm.confirm = '';
-    // authStore.logout(); // Podrías forzar el logout aquí
-    // router.push('/login');
   } catch (error) {
     console.error('Error al cambiar contraseña:', error);
     const errorMessage = error.response?.data?.message || 'Error al cambiar la contraseña. Asegúrate de que tu contraseña actual sea correcta.';
@@ -665,13 +845,11 @@ const deleteAccount = async () => {
 
   try {
     loading.value = true;
-    // Asegúrate de que esta ruta sea la correcta para tu backend
-    await postData('usuarios/delete-account', {}); // A veces se envía un objeto vacío, o la contraseña para confirmar
+    await postData('usuarios/delete-account', {});
 
     showSuccess('Tu cuenta ha sido eliminada exitosamente. ¡Te extrañaremos!');
     showDeleteAccountDialog.value = false;
 
-    // Cerrar sesión y redirigir
     authStore.logout();
     router.push('/login');
 
@@ -681,7 +859,7 @@ const deleteAccount = async () => {
     showError(errorMessage);
   } finally {
     loading.value = false;
-    deleteConfirmation.value = ''; // Limpiar campo de confirmación
+    deleteConfirmation.value = '';
   }
 };
 
