@@ -82,7 +82,7 @@
             flat
             no-caps
             class="register-button"
-            @click="navigateToRegister"
+            @click="emit('switch-to-register')"
           >
             Crear cuenta ahora
           </q-btn>
@@ -91,6 +91,7 @@
       </q-card-section>
     </q-card>
   </q-dialog>
+  
 </template>
 
 <script setup>
@@ -103,7 +104,7 @@ import { useQuasar } from 'quasar';
 const props = defineProps({
   modelValue: Boolean
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'switch-to-register']);
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -123,6 +124,8 @@ const passwordFieldType = ref('password');
 const togglePasswordVisibility = () => {
   passwordFieldType.value = passwordFieldType.value === 'password' ? 'text' : 'password';
 };
+
+
 
 const clearErrors = (field = null) => {
   if (field && errors[field]) {
@@ -204,10 +207,7 @@ const forgotPassword = () => {
   });
 };
 
-const navigateToRegister = () => {
-  emit('update:modelValue', false); // Cierra el diálogo de login
-  router.push('/Register'); // Navega a la ruta de registro
-};
+
 </script>
 
 <style scoped>
@@ -246,14 +246,77 @@ body {
   }
 }
 
-/* Contenedor principal del diálogo (q-card) */
+/* Animaciones del fondo tecnológico */
+@keyframes circuitPulse {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+}
+
+/* Patrón de fondo tecnológico */
+.login-background-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+.login-background-pattern::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(6, 143, 255, 0.2) 0%, transparent 35%),
+    radial-gradient(circle at 80% 70%, rgba(6, 143, 255, 0.2) 0%, transparent 35%);
+  animation: circuitPulse 6s ease-in-out infinite;
+}
+
+.login-background-pattern::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 50% 20%, rgba(6, 143, 255, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(6, 143, 255, 0.15) 0%, transparent 45%);
+  animation: circuitPulse 8s ease-in-out infinite alternate;
+}
+
+/* Círculos palpitantes adicionales */
+.login-background-pattern::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 30% 20%, rgba(6, 143, 255, 0.25) 0%, transparent 35%),
+    radial-gradient(circle at 70% 80%, rgba(6, 143, 255, 0.25) 0%, transparent 35%),
+    radial-gradient(circle at 85% 15%, rgba(6, 143, 255, 0.15) 0%, transparent 25%),
+    radial-gradient(circle at 15% 85%, rgba(6, 143, 255, 0.15) 0%, transparent 25%);
+  animation: circuitPulse 4s ease-in-out infinite;
+}
+
+/* Contenedor principal del diálogo */
 .login-card-container {
   padding: 30px 50px 20px;
   position: relative;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.95);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6),
+              inset 0 0 20px rgba(6, 143, 255, 0.1);
+  backdrop-filter: blur(25px); 
   max-height: 100vh;
   width: 90%;
   max-width: 400px;
@@ -261,21 +324,23 @@ body {
   overflow: hidden;
   animation: rotateInPerspective 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-origin: top center;
+  border: 1px solid rgba(6, 143, 255, 0.2);
 }
 
-/* Patrón de fondo abstracto/tecnológico */
-.login-background-pattern {
+/* Efecto de borde con brillo suave */
+.login-card-container::before {
+  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(6, 139, 255, 0.1), rgba(255, 255, 255, 0.1));
-  background-size: cover;
-  background-repeat: no-repeat;
-  opacity: 0.8;
-  pointer-events: none;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: 
+    radial-gradient(circle at 50% 0%, rgba(6, 143, 255, 0.2) 0%, transparent 70%),
+    radial-gradient(circle at 50% 100%, rgba(6, 143, 255, 0.2) 0%, transparent 70%);
+  border-radius: 13px;
   z-index: -1;
+  animation: circuitPulse 5s ease-in-out infinite;
 }
 
 /* Botón de cerrar */
@@ -283,12 +348,12 @@ body {
   position: absolute;
   top: 15px;
   right: 15px;
-  color: #a0a0a0;
+  color: rgba(255, 255, 255, 0.8);
   transition: color 0.3s ease, transform 0.3s ease;
   z-index: 10;
 }
 .close-btn:hover {
-  color: #068FFF;
+  color: #ffffff;
   transform: rotate(90deg);
 }
 
@@ -309,22 +374,26 @@ body {
 .login-title {
   font-family: 'Montserrat', sans-serif;
   font-size: 40px;
-  font-weight: 800;
-  margin: 0;
-  background: linear-gradient(45deg, #068FFF, #000);
+  font-weight: 700;
+  margin: 10px 0px;
+ /*  background: linear-gradient(5deg, #ffffff, #068FFF);
   -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: none;
+  -webkit-text-fill-color: transparent */;
+  color: white;
+  text-shadow: 0 0 20px rgba(6, 143, 255, 0.5);
   line-height: 1.2;
+  letter-spacing: 1px;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.2));
 }
 
 .welcome-text {
-  color: #2c3e50;
+  color: rgba(255, 255, 255, 1);
   font-weight: 500;
   margin: 5px 0 0 0;
   font-size: 13px;
-  opacity: 0.9;
+  opacity: 0.95;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 .login-form {
@@ -333,9 +402,9 @@ body {
 }
 
 label {
-  color: #2c3e50;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 15px;
   transition: color 0.3s ease;
   cursor: pointer;
   user-select: none;
@@ -343,10 +412,11 @@ label {
 
 label:active {
   color: #068FFF;
+  
 }
 
 .form-group:focus-within label {
-  color: #068FFF;
+  color: #ffffff;
 }
 
 /* Estilo del icono de visibilidad */
@@ -365,35 +435,89 @@ label:active {
 }
 
 .forgot-password a {
-  color: #068FFF;
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.3s ease, text-decoration 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 .forgot-password a:hover {
-  color: #0fbfef;
-  text-decoration: underline;
+  color: #ffffff;
 }
 
 .btn-login {
   width: 100%;
-  padding: 14px 20px; /* Ligeramente reducido de 16px */
+  padding: 14px 20px;
   border-radius: 8px;
-   /* Ligeramente reducido de 1.2rem */
   font-weight: 700;
-  margin-top: 15px; /* Reducido de 20px a 15px */
-  background-color: #068FFF;
+  margin-top: 15px;
+  background: linear-gradient(4deg, #068FFF, #0077e6);
   color: white;
-  box-shadow: 0 8px 25px rgba(19, 97, 165, 0.336);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 10px rgba(6, 143, 255, 0.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
   animation: floatIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s both;
+  border: 1px solid rgba(6, 143, 255, 0.4);
+  position: relative;
+  overflow: hidden;
 }
+
+.btn-login::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(37, 127, 216, 0.881),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.btn-login:hover::before {
+  left: 100%;
+}
+
+.btn-login:hover {
+  background: linear-gradient(45deg, #0077e6, #068FFF);
+  box-shadow: 0 8px 25px rgba(6, 143, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-login:active {
+  transform: translateY(1px);
+  box-shadow: 0 5px 15px rgba(41, 121, 255, 0.3);
+}
+
+@keyframes pulseButton {
+  0% {
+    box-shadow: 0 8px 25px rgba(41, 121, 255, 0.4),
+                0 4px 10px rgba(41, 121, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 12px 30px rgba(41, 121, 255, 0.5),
+                0 6px 15px rgba(41, 121, 255, 0.4);
+  }
+  100% {
+    box-shadow: 0 8px 25px rgba(41, 121, 255, 0.4),
+                0 4px 10px rgba(41, 121, 255, 0.3);
+  }
+}
+
+.btn-login:hover {
+  box-shadow: 0 8px 25px rgba(41, 121, 255, 0.4),
+                0 4px 10px rgba(41, 121, 255, 0.3);
+}
+
+
 
 /* Mensajes de error */
 .error-message {
-  color: #e53935;
+  color: #ff6b6b;
   font-size: 0.85rem;
   margin-top: 4px;
   min-height: 1.2em;
@@ -403,17 +527,17 @@ label:active {
   text-align: center;
   margin-top: 1.5rem;
   padding: 0.8rem 1rem;
-  background-color: rgba(229, 57, 53, 0.1);
-  border: 1px solid rgba(229, 57, 53, 0.2);
+  background-color: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.2);
   border-radius: 8px;
   font-weight: 500;
-  color: #c62828;
+  color: #ff6b6b;
 }
 
 /* Sección de "Crear cuenta" */
 .signup-prompt {
   margin-top: 20px;
-  color: #2c3e50;
+  color: rgba(255, 255, 255, 0.9);
   display: flex;
   justify-content: space-around;
   animation: floatIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both;
@@ -431,16 +555,14 @@ label:active {
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem; /* Ligeramente reducido de 0.95rem */
-  border: 1px solid #068FFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   background-color: transparent;
-  color: #068FFF;
+  color: white;
   box-shadow: 0 2px 8px rgba(6, 139, 255, 0.2);
 }
 
 .signup-prompt .register-button:hover {
-  background-color: #068FFF;
-  color: white;
-  box-shadow: 0 5px 15px rgba(6, 139, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Animación de salida */
@@ -448,6 +570,45 @@ label:active {
   animation: rotateOutPerspective 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+@keyframes rotateOutPerspective {
+  0% {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(30deg) translateY(50px);
+  }
+}
 
+/* Estilos para los inputs */
+:deep(.q-field--outlined .q-field__control) {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(6, 143, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+:deep(.q-field--outlined .q-field__control:hover) {
+  border: 1px solid rgba(6, 143, 255, 0.4);
+  box-shadow: 0 0 15px rgba(6, 143, 255, 0.1);
+}
+
+:deep(.q-field--outlined.q-field--focused .q-field__control) {
+  border: 1px solid rgba(6, 143, 255, 0.6);
+  background: rgba(0, 0, 0, 0.9);
+  box-shadow: 0 0 20px rgba(6, 143, 255, 0.15);
+}
+
+:deep(.q-field__native, .q-field__prefix, .q-field__suffix, .q-field__input) {
+  color: white !important;
+}
+
+:deep(.q-field--outlined .q-field__label) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+:deep(.q-field--float .q-field__label) {
+  color: rgba(255, 255, 255, 0.9);
+}
 
 </style>

@@ -572,8 +572,9 @@ const calculateSubtotal = () => {
 
 const handleFavoriteUpdate = (isFavorite) => {
   showNotification(
-    'success',
-    isFavorite ? 'Producto agregado a favoritos' : 'Producto eliminado de favoritos'
+    isFavorite ? 'positive' : 'negative',
+    isFavorite ? 'Producto agregado a favoritos' : 'Producto eliminado de favoritos',
+    
   );
 };
 

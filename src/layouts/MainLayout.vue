@@ -88,7 +88,7 @@
                     <q-item-section>Iniciar sesión</q-item-section>
                   </q-item>
 
-                  <q-item clickable v-if="!authStore.user" @click="goTo('/register')">
+                  <q-item clickable v-if="!authStore.user" @click="openRegisterDialog">
                     <q-item-section avatar>
                       <q-icon name="person_add" color="white" />
                     </q-item-section>
@@ -310,6 +310,11 @@
   </q-layout>
 
   <auth-dialog v-model="showAuth" />
+  <RegisterDialog
+  v-model="showRegisterDialog"
+  @switch-to-login="openLogin"
+  @close="showRegisterDialog = false"
+/>
 </template>
 
 <script setup>
@@ -318,12 +323,13 @@ import { useAuthStore } from '../store/store.js';
 import { useRouter, useRoute } from 'vue-router';
 import AuthDialog from '../components/AuthDialog.vue';
 import { getData } from '../services/apiClient.js';
-
+import RegisterDialog from '../components/RegisterDialog.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 const search = ref('');
+const showRegisterDialog = ref(false);
 
 // Ocultar breadcrumbs en rutas específicas
 const hideBreadcrumbsOn = ['login', 'register', 'home'];
@@ -331,6 +337,10 @@ const hideBreadcrumbsOn = ['login', 'register', 'home'];
 const showBreadcrumbs = computed(() => {
   return !hideBreadcrumbsOn.includes(route.name);
 });
+
+function openRegisterDialog() {
+  showRegisterDialog.value = true
+}
 
 const showMenu = ref(false);
 const showAuth = ref(false);
@@ -370,6 +380,8 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+
 
 function toggleSideMenu() {
   sideMenuOpen.value = !sideMenuOpen.value;
