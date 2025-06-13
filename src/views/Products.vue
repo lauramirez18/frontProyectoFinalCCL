@@ -373,18 +373,26 @@ const fetchProducts = async () => {
     let response;
     
     // Si estamos en la ruta de marca, usar el endpoint específico
-    if (route.params.slug) {
+    if (route.name === 'BrandProducts') {
       console.log('Products: Obteniendo productos de marca:', route.params.slug);
-      response = await api.get(`/marcas/${route.params.slug}`);
-      console.log('Products: Respuesta de marca:', response);
       
-      // Transformar la respuesta al formato esperado
-      if (response.data && response.data.productos) {
-        products.value = response.data.productos;
-        pagination.value = {
-          total: response.data.productos.length,
+      // Primero obtener la información de la marca
+      const brandResponse = await api.get(`/marcas/slug/${route.params.slug}`);
+      console.log('Products: Respuesta de marca:', brandResponse);
+      
+      if (brandResponse.data) {
+        currentBrand.value = brandResponse.data;
+        console.log('Products: Marca cargada:', currentBrand.value.nombre);
+        
+        // Ahora obtener los productos de la marca usando su ID
+        const productsResponse = await api.get(`/productos?marca=${currentBrand.value._id}`);
+        console.log('Products: Respuesta de productos de marca:', productsResponse);
+        
+        products.value = productsResponse.data.productos || [];
+        pagination.value = productsResponse.data.pagination || {
+          total: products.value.length,
           page: 1,
-          limit: response.data.productos.length,
+          limit: pagination.value.limit,
           totalPages: 1
         };
       } else {
@@ -398,8 +406,8 @@ const fetchProducts = async () => {
       }
     } else {
       // Para otras rutas, mantener el comportamiento original
-      if (route.params.categoryId) {
-        params.category = route.params.categoryId;
+      if (category.value?._id) {
+        params.category = category.value._id;
       }
       if (subcategory.value) params.subcategory = subcategory.value._id;
       if (searchQuery.value) params.search = searchQuery.value;
@@ -442,14 +450,14 @@ const fetchProducts = async () => {
 // Obtener datos de categoría y marcas
 const fetchCategoryData = async () => {
   // Si estamos en la ruta de marca, cargar los datos de la marca
-  if (route.params.id) {
+  if (route.name === 'BrandProducts') {
     try {
       console.log('Products: Iniciando carga de marca...');
-      const brandResponse = await api.get(`/marcas/${route.params.id}`);
+      const brandResponse = await api.get(`/marcas/slug/${route.params.slug}`);
       console.log('Products: Respuesta de marca:', brandResponse);
       
-      if (brandResponse.data && brandResponse.data.marca) {
-        currentBrand.value = brandResponse.data.marca;
+      if (brandResponse.data) {
+        currentBrand.value = brandResponse.data;
         console.log('Products: Marca cargada:', currentBrand.value.nombre);
       }
     } catch (error) {
@@ -460,10 +468,11 @@ const fetchCategoryData = async () => {
     }
   }
 
-  if (route.params.categoryId) {
+  // Si estamos en la ruta de categoría, cargar los datos de la categoría
+  if (route.name === 'CategoryProducts') {
     try {
-      // Cargar categoría
-      const catResponse = await api.get(`/categorias/${route.params.categoryId}`)
+      // Cargar categoría por slug
+      const catResponse = await api.get(`/categorias/slug/${route.params.slug}`)
       if (!catResponse.data) {
         throw new Error('Categoría no encontrada')
       }
@@ -518,7 +527,7 @@ const fetchCategoryData = async () => {
 
       // Cargar rango de precios
       try {
-        const pricesResponse = await api.get(`/productos/rango-precios/${route.params.categoryId}`)
+        const pricesResponse = await api.get(`/productos/rango-precios/${category.value._id}`)
         minPrice.value = pricesResponse.data.min || 0
         maxPrice.value = pricesResponse.data.max || 1000000
         priceRange.value = { min: minPrice.value, max: maxPrice.value }
@@ -531,7 +540,7 @@ const fetchCategoryData = async () => {
 
       // Cargar filtros alfabéticos
       try {
-        const alphaResponse = await api.get(`/productos/filtros-alfabeticos/${route.params.categoryId}`)
+        const alphaResponse = await api.get(`/productos/filtros-alfabeticos/${category.value._id}`)
         if (alphaResponse.data && alphaResponse.data.filtrosAlfabeticos) {
           alphabeticFields.value.marca.letters = alphaResponse.data.filtrosAlfabeticos.marca || []
           alphabeticFields.value.modelo.letters = alphaResponse.data.filtrosAlfabeticos.modelo || []
@@ -555,10 +564,10 @@ const fetchCategoryData = async () => {
 
 // Obtener filtros disponibles
 const fetchAvailableFilters = async () => {
-  if (!route.params.categoryId) return
+  if (!category.value?._id) return
 
   try {
-    const filtersResponse = await api.get(`/productos/filtros-disponibles/${route.params.categoryId}`)
+    const filtersResponse = await api.get(`/productos/filtros-disponibles/${category.value._id}`)
     console.log('Filtros disponibles recibidos:', filtersResponse.data)
     
     // Procesar los filtros recibidos

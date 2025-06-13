@@ -479,17 +479,17 @@ const mostrarFacturaModal = () => {
 };
 
 const createBackendOrder = async () => {
-  try {
-    console.log('=== CREANDO ORDEN EN BACKEND ===');
-    
-    if (!authStore.token || !authStore.user) {
-      throw new Error('No se encontró el token de autenticación. Por favor inicia sesión nuevamente.');
-    }
+  try {
+    console.log('=== CREANDO ORDEN EN BACKEND ===');
+    
+    if (!authStore.token || !authStore.user) {
+      throw new Error('No se encontró el token de autenticación. Por favor inicia sesión nuevamente.');
+    }
 
-    const userId = authStore.user.id || authStore.user._id;
-    if (!userId) {
-      throw new Error('La información del usuario no es válida. Falta el ID del usuario.');
-    }
+    const userId = authStore.user.id || authStore.user._id;
+    if (!userId) {
+      throw new Error('La información del usuario no es válida. Falta el ID del usuario.');
+    }
 
     // --- CORRECCIÓN DE BUG ADICIONAL ---
     // Estabas usando `city.value`, `state.value`, etc., pero tus refs se llaman `selectedCity`, `selectedState`.
@@ -498,117 +498,122 @@ const createBackendOrder = async () => {
     const selectedStateName = states.value.find(s => s.id === selectedState.value)?.name || "";
     const selectedCityName = cities.value.find(c => c.id === selectedCity.value)?.name || "";
 
-    const shippingInfo = {
-      firstName: String(firstName.value || '').trim(),
-      lastName: String(lastName.value || '').trim(),
-      phone: `${phonePrefix.value}${String(phone.value || '').trim()}`,
-      address: String(address.value || '').trim(),
+    const shippingInfo = {
+      firstName: String(firstName.value || '').trim(),
+      lastName: String(lastName.value || '').trim(),
+      phone: `${phonePrefix.value}${String(phone.value || '').trim()}`,
+      address: String(address.value || '').trim(),
       // CORRECCIÓN: Usar los nombres de las ubicaciones, no los IDs.
-      city: selectedCityName,
-      state: selectedStateName,
-      country: selectedCountryName,
-      postalCode: String(postalCode.value || '').trim(),
-      notes: String(deliveryNotes.value || '').trim()
-    };
+      city: selectedCityName,
+      state: selectedStateName,
+      country: selectedCountryName,
+      postalCode: String(postalCode.value || '').trim(),
+      notes: String(deliveryNotes.value || '').trim()
+    };
 
-    if (!authStore.cartItems || authStore.cartItems.length === 0) {
-      throw new Error('El carrito está vacío');
-    }
+    if (!authStore.cartItems || authStore.cartItems.length === 0) {
+      throw new Error('El carrito está vacío');
+    }
 
     // 1. CONSTRUIR LA LISTA DE PRODUCTOS CON PRECIOS FINALES (CON DESCUENTO)
-    const products = authStore.cartItems.map(item => {
-      const productId = item.id || item._id;
-      if (!productId) {
-        throw new Error('Uno o más productos no tienen un ID válido');
-      }
-      
+    const products = authStore.cartItems.map(item => {
+      const productId = item.id || item._id;
+      if (!productId) {
+        throw new Error('Uno o más productos no tienen un ID válido');
+      }
+      
       // Usar el precio con descuento si existe y es válido
-      const originalPrice = Number(item.price || 0);
+      const originalPrice = Number(item.price || 0);
       const discountedPrice = Number(item.discountedPrice);
       const price = (discountedPrice > 0 && discountedPrice < originalPrice) ? discountedPrice : originalPrice;
       
-      const quantity = parseInt(item.quantity) || 1;
-      const discountApplied = originalPrice > price ? Math.round((originalPrice - price) * 100) / 100 : 0;
+      const quantity = parseInt(item.quantity) || 1;
+      const discountApplied = originalPrice > price ? Math.round((originalPrice - price) * 100) / 100 : 0;
       // El subtotal debe basarse en el precio final (con descuento)
-      const subtotal = Math.round((price * quantity) * 100) / 100;
-      
-      return {
-        productId: productId,
-        quantity: quantity,
-        price: price, // El precio unitario final
-        originalPrice: originalPrice,
-        discountApplied: discountApplied,
-        subtotal: subtotal // El subtotal de la línea
-      };
-    });
+      const subtotal = Math.round((price * quantity) * 100) / 100;
+      
+      return {
+        productId: productId,
+        quantity: quantity,
+        price: price, // El precio unitario final
+        originalPrice: originalPrice,
+        discountApplied: discountApplied,
+        subtotal: subtotal // El subtotal de la línea
+      };
+    });
 
     // 2. CAMBIO CLAVE: CALCULAR EL TOTAL SUMANDO LOS SUBTOTALES DEL ARRAY QUE ACABAMOS DE CREAR.
     // Esto GARANTIZA que el total coincida siempre con la suma de los productos.
-    const total = products.reduce((sum, product) => sum + product.subtotal, 0);
+    const total = products.reduce((sum, product) => sum + product.subtotal, 0);
 
     // Es buena práctica redondear al final para evitar errores de punto flotante acumulados.
     const finalTotalCOP = Math.round(total * 100) / 100;
  
-    const currentExchangeRate = exchangeRate.value || 4000;
-    
+    const currentExchangeRate = exchangeRate.value || 4000;
+    
     // 3. ACTUALIZAR LOS VALORES GLOBALES Y LA ORDEN CON EL TOTAL CORRECTO
-    totalCOP.value = finalTotalCOP;
-    totalUSD.value = Math.round((finalTotalCOP / currentExchangeRate) * 100) / 100;
-    
-    console.log('=== DETALLES DE LA ORDEN CORREGIDOS ===');
-    console.log('Productos procesados:', JSON.stringify(products, null, 2));
-    console.log('Total calculado (COP):', finalTotalCOP);
-    console.log('Total calculado (USD):', totalUSD.value);
+    totalCOP.value = finalTotalCOP;
+    totalUSD.value = Math.round((finalTotalCOP / currentExchangeRate) * 100) / 100;
+    
+    console.log('=== DETALLES DE LA ORDEN CORREGIDOS ===');
+    console.log('Productos procesados:', JSON.stringify(products, null, 2));
+    console.log('Total calculado (COP):', finalTotalCOP);
+    console.log('Total calculado (USD):', totalUSD.value);
 
-    const orderData = {
-      usuarioId: userId,
-      products: products, // El array con precios de descuento
-      total: finalTotalCOP, // El total que coincide con la suma de los productos
-      totalUSD: totalUSD.value,
-      shippingInfo: shippingInfo,
-      exchangeRate: currentExchangeRate,
-      currency: 'COP',
-      status: 'pendiente'
-    };
+    const orderData = {
+      usuarioId: userId,
+      products: products, // El array con precios de descuento
+      total: finalTotalCOP, // El total que coincide con la suma de los productos
+      totalUSD: totalUSD.value,
+      shippingInfo: shippingInfo,
+      exchangeRate: currentExchangeRate,
+      currency: 'COP',
+      status: 'pagado'
+    };
 
     // Esta validación ahora siempre debería pasar
-    const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
-    if (Math.abs(calculatedTotal - finalTotalCOP) > 0.01) {
-      throw new Error(`Error de consistencia interna. La suma de los subtotales (${calculatedTotal}) no coincide con el total (${finalTotalCOP})`);
-    }
+    const calculatedTotal = orderData.products.reduce((sum, p) => sum + p.subtotal, 0);
+    if (Math.abs(calculatedTotal - finalTotalCOP) > 0.01) {
+      throw new Error(`Error de consistencia interna. La suma de los subtotales (${calculatedTotal}) no coincide con el total (${finalTotalCOP})`);
+    }
 
-console.log('Order data to send:', JSON.stringify(orderData, null, 2));
+    console.log('Order data to send:', JSON.stringify(orderData, null, 2));
 
- const response = await fetch('http://localhost:3000/api/ordenes', {
- method: 'POST',
-headers: {
- 'Content-Type': 'application/json',
- 'Authorization': `Bearer ${authStore.token}`
- },
- body: JSON.stringify(orderData)
- });
+    const response = await fetch('http://localhost:3000/api/ordenes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify(orderData)
+    });
 
     // ... el resto de tu lógica para manejar la respuesta ...
-    const responseText = await response.text();
-    console.log('Server response status:', response.status);
-    console.log('Server response text:', responseText);
+    const responseText = await response.text();
+    console.log('Server response status:', response.status);
+    console.log('Server response text:', responseText);
 
-    if (!response.ok) {
-      let errorMessage = `Server error: ${response.status}`;
-      try {
-        const errorData = JSON.parse(responseText);
-        errorMessage = errorData.message || errorMessage;
-      } catch (parseError) {
-        errorMessage += ` - ${responseText}`;
-      }
-      throw new Error(errorMessage);
-    }
+    if (!response.ok) {
+      let errorMessage = 'Error al procesar el pago';
+      try {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = errorText || errorMessage;
+        }
+      } catch (e) {
+        console.error('Error al leer la respuesta:', e);
+      }
+      throw new Error(errorMessage);
+    }
 
-    return JSON.parse(responseText);
-  } catch (error) {
-    console.error('Error in createBackendOrder:', error);
-    throw error;
-  }
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error('Error in createBackendOrder:', error);
+    throw error;
+  }
 };
 
 
@@ -771,27 +776,30 @@ const renderPayPalButtons = () => {
         console.log('Confirmando pago en backend...');
         
         // 2. Luego confirmamos en nuestro backend
-        const response = await fetch('http://localhost:3000/api/payments/paypal/confirm', {
-          method: 'POST',
+        const response = await fetch(`http://localhost:3000/api/ordenes/${currentOrderId.value}`, {
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authStore.token}`
           },
           body: JSON.stringify({
-            orderId: currentOrderId.value,
-            paymentDetails: details
+            paymentDetails: details,
+            status: 'pagado'
           })
         });
 
         if (!response.ok) {
           let errorMessage = 'Error al procesar el pago';
           try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch (e) {
             const errorText = await response.text();
-            console.error('Error en confirmación:', errorText);
-            errorMessage = errorText || errorMessage;
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.message || errorMessage;
+            } catch (e) {
+              errorMessage = errorText || errorMessage;
+            }
+          } catch (e) {
+            console.error('Error al leer la respuesta:', e);
           }
           throw new Error(errorMessage);
         }

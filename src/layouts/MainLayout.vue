@@ -367,7 +367,8 @@ onMounted(async () => {
     if (Array.isArray(response)) {
       categories.value = response.map(c => ({
         label: c.nombre || c.name,
-        value: c._id
+        value: c._id,
+        slug: c.slug || c.nombre?.toLowerCase().replace(/\s+/g, '-')
       }));
       console.log('Categorías cargadas:', categories.value);
     } else {
@@ -401,7 +402,7 @@ function selectCategory(category) {
     });
   } else {
     router.push({
-      path: `/productos/categoria/${category.value}`,
+      path: `/productos/categoria/${category.slug}`,
       query: { 
         categoryName: category.label
       }
