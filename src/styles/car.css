@@ -406,11 +406,12 @@
     color: #068FFF;
   }
 
-  .checkout-btn {
+  .checkout-btn  {
     width: 100%;
     padding: 15px;
-    background: linear-gradient(135deg, #068FFF, #0052a3);
+    background: linear-gradient(135deg, var(--q-color-primary-blue), #0052a3);
     color: white;
+    text-decoration: none;
     border: none;
     border-radius: 8px;
     font-size: 16px;
@@ -422,11 +423,19 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
+    text-transform: none;
+   
   }
 
   .checkout-btn:hover {
+    background: linear-gradient(135deg, #0052a3, var(--q-color-primary-blue));
     transform: translateY(-3px);
-    box-shadow: 0 8px 15px rgba(6, 143, 255, 0.3);
+    box-shadow: 0 12px 25px rgba(33, 150, 243, 0.5);
+  }
+
+  .checkout-btn a {
+    text-decoration: none;
+    color: white;
   }
 
   .continue-btn {

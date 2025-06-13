@@ -79,7 +79,7 @@
 
           <div class="product-actions">
             <q-btn
-              @click="addToCart"
+              @click="() => addToCart(producto, mainImage)"
               class="add-to-cart-btn"
               icon="shopping_cart"
               label="Agregar al carrito"
@@ -221,6 +221,7 @@ import { storeToRefs } from 'pinia'
 import RatingStars from '../components/RatingStars.vue'
 import LoginDialog from '../components/LoginDialog.vue'
 import CartSidebar from '../components/CartSidebar.vue'
+import { useCart } from '../composables/useCart'
 
 const route = useRoute()
 const router = useRouter()
@@ -240,7 +241,8 @@ const producto = ref({
   promedioCalificacion: 0
 })
 
-const showCartSidebar = ref(false)
+const { addToCart, showCartSidebar, showLoginDialog } = useCart()
+
 const authStore = useAuthStore()
 const { favorites } = storeToRefs(authStore)
 
@@ -460,53 +462,32 @@ const getInitial = (name) => {
   return name.trim().charAt(0).toUpperCase();
 };
 
-const addToCart = () => {
-  if (!authStore.token) {
-    $q.dialog({
-      title: 'Iniciar sesión para añadir al carrito',
-      message: 'Para añadir productos a tu carrito, por favor inicia sesión o regístrate.',
-      cancel: true,
-      persistent: true,
-      ok: {
-        label: 'Iniciar sesión',
-        color: 'primary'
-      },
-      cancel: {
-        label: 'Ahora no',
-        color: 'grey'
-      }
-    }).onOk(() => {
-      showLoginDialog.value = true;
-    });
-    return;
+const handleFavoriteUpdate = (isFavorite) => {
+  showNotification(
+    isFavorite ? 'positive' : 'negative',
+    isFavorite ? 'Producto agregado a favoritos' : 'Producto eliminado de favoritos',
+    
+  );
+};
+
+const isFavorite = computed(() => {
+  if (!producto.value) return false;
+  return favorites.value.includes(producto.value._id);
+});
+
+const toggleFavorite = async () => {
+  if (!producto.value) return;
+
+  try {
+    if (isFavorite.value) {
+      await authStore.removeFromFavorites(producto.value._id);
+    } else {
+      await authStore.addToFavorites(producto.value._id);
+    }
+  } catch (err) {
+    console.error('Error al modificar favoritos:', err);
   }
-
-  const price = producto.value.enOferta ? producto.value.precioOferta : producto.value.precio
-
-  const cartItem = {
-    id: producto.value._id,
-    name: producto.value.nombre,
-    price: price,
-    image: mainImage.value,
-    quantity: 1,
-    seller: typeof producto.value.marca === 'object' ? producto.value.marca.nombre : (producto.value.marca || 'Vendedor oficial')
-  };
-
-  if (!cartItem.id || !cartItem.name || !cartItem.price) {
-    console.error('Datos de producto incompletos:', cartItem);
-    showNotification('error', 'Error: Datos del producto incompletos. No se pudo agregar al carrito.')
-    return;
-  }
-
-  authStore.addToCart(cartItem);
-  showCartSidebar.value = true;
-  showNotification('positive', `"${producto.value.nombre}" agregado al carrito.`)
-}
-
-const goToCart = () => {
-  router.push('/car');
-  hideCartSidebar()
-}
+};
 
 const isHiding = ref(false)
 const autoHideTimer = ref(null)
@@ -569,35 +550,6 @@ const calculateSubtotal = () => {
     return total + (item.price * item.quantity)
   }, 0)
 }
-
-const handleFavoriteUpdate = (isFavorite) => {
-  showNotification(
-    isFavorite ? 'positive' : 'negative',
-    isFavorite ? 'Producto agregado a favoritos' : 'Producto eliminado de favoritos',
-    
-  );
-};
-
-const isFavorite = computed(() => {
-  if (!producto.value) return false;
-  return favorites.value.includes(producto.value._id);
-});
-
-const toggleFavorite = async () => {
-  if (!producto.value) return;
-
-  try {
-    if (isFavorite.value) {
-      await authStore.removeFromFavorites(producto.value._id);
-    } else {
-      await authStore.addToFavorites(producto.value._id);
-    }
-  } catch (err) {
-    console.error('Error al modificar favoritos:', err);
-  }
-};
-
-const showLoginDialog = ref(false)
 
 // Limpiar el timer y la clase del body cuando el componente se desmonta
 onBeforeUnmount(() => {

@@ -15,81 +15,79 @@
     </div>
 
     <div v-else class="products-grid">
-      <router-link
-        v-for="product in bestSellers"
-        :key="product._id"
-        :to="`/Details/${product._id}`"
-        class="product-link"
-      >
-        <q-card class="product-card tech-card" flat>
-          <div class="img-wrapper"
-            @mouseenter="startImageRotation(product)"
-            @mouseleave="stopImageRotation"
-            :data-product-id="product._id"
-          >
-            <q-img
-              :src="getProductImage(product)"
-              :alt="product.nombre"
-              ratio="1"
-              class="product-image"
+      <div v-for="product in bestSellers" :key="product._id" class="product-container">
+        <router-link
+          :to="`/Details/${product._id}`"
+          class="product-link"
+        >
+          <q-card class="product-card tech-card" flat>
+            <div class="img-wrapper"
+              @mouseenter="startImageRotation(product)"
+              @mouseleave="stopImageRotation"
+              :data-product-id="product._id"
             >
-              <template v-slot:loading>
-                <q-spinner-dots color="white" size="40px" />
-              </template>
+              <q-img
+                :src="getProductImage(product)"
+                :alt="product.nombre"
+                ratio="1"
+                class="product-image"
+              >
+                <template v-slot:loading>
+                  <q-spinner-dots color="white" size="40px" />
+                </template>
 
+                <div class="tech-overlay">
+                  <div class="rating-container">
+                    <div class="rating-stars tech-rating">
+                      <q-rating
+                        v-model="product.promedioCalificacion"
+                        max="5"
+                        size="1.2em"
+                        color="yellow"
+                        icon="star"
+                        icon-selected="star"
+                        icon-half="star_half"
+                        readonly
+                      />
+                      <span class="rating-count text-white q-ml-sm">
+                        ({{ product.totalResenas || 0 }})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </q-img>
+            </div>
 
-              <div class="tech-overlay">
-                <div class="rating-container">
-                  <div class="rating-stars tech-rating">
-                    <q-rating
-                      v-model="product.promedioCalificacion"
-                      max="5"
-                      size="1.2em"
-                      color="yellow"
-                      icon="star"
-                      icon-selected="star"
-                      icon-half="star_half"
-                      readonly
-                    />
-                    <span class="rating-count text-white q-ml-sm">
-                      ({{ product.totalResenas || 0 }})
-                    </span>
+            <q-card-section class="product-info">
+              <div class="brand-caption" v-if="product.marca">
+                {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
+              </div>
+              <div class="product-title">{{ product.nombre || 'Producto sin nombre' }}</div>
+
+              <div class="price-section">
+                <div class="price-container">
+                  <div class="current-price">
+                    ${{ formatThousands(product.precio) }}
                   </div>
                 </div>
               </div>
-            </q-img>
-          </div>
-
-          <q-card-section class="product-info">
-            <div class="brand-caption" v-if="product.marca">
-              {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
-            </div>
-            <div class="product-title">{{ product.nombre || 'Producto sin nombre' }}</div>
-
-            <div class="price-section">
-              <div class="price-container">
-                <div class="current-price">
-                  ${{ formatThousands(product.precio) }}
-                </div>
-              </div>
-
-              <div class="actions-container">
-                
-                <q-btn
-                  round
-                  flat
-                  class="action-btn cart-btn"
-                  icon="add_shopping_cart"
-                  color="primary"
-                  @click.stop
-                >
-                  <q-tooltip>Agregar al carrito</q-tooltip>
-                </q-btn>
-              </div>
-            </div>
-          </q-card-section>
-        </q-card>
-      </router-link>
+            </q-card-section>
+          </q-card>
+        </router-link>
+        
+        <div class="actions-container">
+          <q-btn
+            round
+            flat
+            class="action-btn cart-btn"
+            icon="add_shopping_cart"
+            color="primary"
+            @click.stop="addToCart(product, product.imagenes[0])"
+          >
+            <q-tooltip>Agregar al carrito</q-tooltip>
+          </q-btn>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -98,7 +96,8 @@
 import { ref, onMounted, reactive } from 'vue'
 import { getData } from '../services/apiclient'
 import { useThousandsFormat } from '../composables/useThousandFormat'
-
+import { useCart } from '../composables/useCart'
+const {addToCart} = useCart()
 const { formatThousands } = useThousandsFormat()
 const bestSellers = ref([])
 const currentImages = reactive({})
@@ -391,8 +390,6 @@ font-family: 'Montserrat', sans-serif;
   letter-spacing: -0.3px;
 }
 
-
-
 .favorite-btn {
   transition: color 0.3s ease, transform 0.2s ease;
 }
@@ -403,9 +400,13 @@ font-family: 'Montserrat', sans-serif;
 }
 
 .actions-container {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
   display: flex;
   gap: 8px;
   align-items: center;
+  z-index: 2;
 }
 
 .action-btn {
@@ -445,5 +446,11 @@ font-family: 'Montserrat', sans-serif;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
               opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   backface-visibility: hidden;
+}
+
+.product-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 </style>

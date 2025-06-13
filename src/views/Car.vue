@@ -74,12 +74,12 @@
           <span class="total-value">{{ formatCurrency(total) }}</span>
         </div>
       </div>
-      
-      <button class="checkout-btn">
-        <router-link to="/payments"><span>Proceder al pago</span></router-link>
-        
+
+      <q-btn to="/payments" class="checkout-btn">
+        <span>Proceder al pago</span>
         <q-icon name="arrow_forward" size="sm" />
-      </button>
+      </q-btn>
+
       <button class="continue-btn" @click="continueShopping">Seguir comprando</button>
     </div>
   </div>
@@ -205,6 +205,7 @@ const formatCurrency = (value) => {
 
 <style scoped>
 @import '../styles/car.css';
+@import '../css/variables.css';
 
 
 
