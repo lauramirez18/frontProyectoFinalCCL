@@ -12,7 +12,8 @@ const normalizeUrl = (url) => {
     url = url.substring(1);
   }
 
-  return url;
+  // Asegurarse de que la URL no tenga dobles barras
+  return url.replace(/\/+/g, '/');
 };
 
 const apiClient = axios.create({
@@ -29,6 +30,8 @@ apiClient.interceptors.request.use(
     try {
       // Normalizar la URL
       config.url = normalizeUrl(config.url);
+      
+      // Log para debugging
       console.log('URL normalizada:', config.url);
       console.log('URL completa de la petición:', `${config.baseURL}/${config.url}`);
       

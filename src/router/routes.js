@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MainLayout from '../layouts/MainLayout.vue';
 import Home from '../views/Home.vue';
-import Register from '../views/Register.vue';
+import DashboardView from '../views/DashboardView.vue';
+
 import Admin from '../views/admin.vue';
 import AdminLogin from '../views/Login.vue';
 import Login from '../views/Login.vue';
@@ -38,9 +39,10 @@ const routes = [
         component: Home
       },
       {
-        path: 'register',
-        name: 'Register',
-        component: Register
+        path: '/dashboard',
+        name: 'Dashboard',
+        component: DashboardView,
+        meta: { requiresAuth: true }
       },
       {
         path: '/account',

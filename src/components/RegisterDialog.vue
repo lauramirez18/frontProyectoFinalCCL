@@ -166,7 +166,7 @@
               flat
               no-caps
               class="login-button"
-              @click="$emit('switch-to-login')"
+              @click="switchToLogin"
             >
               Iniciar sesión
             </q-btn>
@@ -243,8 +243,14 @@ const dialogModel = computed({
 });
 
 const closeDialog = () => {
+  emit('update:modelValue', false);
   emit('close');
 };
+
+function switchToLogin() {
+  emit('update:modelValue', false);
+  emit('switch-to-login');
+}
 
 const $q = useQuasar();
 const authStore = useAuthStore();

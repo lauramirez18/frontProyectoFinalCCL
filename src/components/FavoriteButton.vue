@@ -68,15 +68,16 @@ const handleClick = async (event) => {
     loading.value = true
     const productId = props.product._id || props.product.id
 
+    let newFavoriteState
     if (isFavorite.value) {
       await authStore.removeFromFavorites(productId)
-      showNotification('success', 'Producto eliminado de favoritos')
+      newFavoriteState = false
     } else {
       await authStore.addToFavorites(productId)
-      showNotification('success', 'Producto agregado a favoritos')
+      newFavoriteState = true
     }
 
-    emit('update:favorite', !isFavorite.value)
+    emit('update:favorite', newFavoriteState)
   } catch (error) {
     console.error('Error managing favorites:', error)
     showNotification(

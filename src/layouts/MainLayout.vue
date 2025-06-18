@@ -90,7 +90,7 @@
                     <q-item-section>Iniciar sesión</q-item-section>
                   </q-item>
 
-                  <q-item clickable v-if="!authStore.user" @click="goTo('/register')">
+                  <q-item clickable v-if="!authStore.user" @click="openRegisterDialog">
                     <q-item-section avatar>
                       <q-icon name="person_add" color="white" />
                     </q-item-section>
@@ -102,6 +102,13 @@
                       <q-icon name="manage_accounts" color="white" />
                     </q-item-section>
                     <q-item-section>Mi cuenta</q-item-section>
+                  </q-item>
+
+                  <q-item clickable v-if="authStore.user" @click="goTo('/dashboard')">
+                    <q-item-section avatar>
+                      <q-icon name="dashboard" color="white" />
+                    </q-item-section>
+                    <q-item-section>Panel de Control</q-item-section>
                   </q-item>
 
                   <q-item clickable v-if="authStore.user" @click="logout">
@@ -317,6 +324,11 @@
   </q-layout>
 
   <auth-dialog v-model="showAuth" />
+  <RegisterDialog
+  v-model="showRegisterDialog"
+  @switch-to-login="openLogin"
+  @close="showRegisterDialog = false"
+/>
 </template>
 
 <script setup>
@@ -327,6 +339,7 @@ import AuthDialog from '../components/AuthDialog.vue';
 import { getData } from '../services/apiClient.js';
 import Breadcrumbs from '../components/ui/Breadcrumbs.vue';
 import SearchSuggestions from '../components/SearchSuggestions.vue';
+import RegisterDialog from '../components/RegisterDialog.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -335,6 +348,11 @@ const search = ref('');
 const searchSuggestions = ref([]);
 const showSuggestions = ref(false);
 const searchTimeout = ref(null);
+const showRegisterDialog = ref(false);
+const sideMenuOpen = ref(false);
+const showMenu = ref(false);
+const customBreadcrumbsInjected = ref(null);
+const showAuth = ref(false);
 
 // Ocultar breadcrumbs en rutas específicas
 const hideBreadcrumbsOn = ['login', 'register', 'home'];
@@ -343,10 +361,11 @@ const showBreadcrumbs = computed(() => {
   return !hideBreadcrumbsOn.includes(route.name);
 });
 
-const showMenu = ref(false);
-const showAuth = ref(false);
+function openRegisterDialog() {
+  showRegisterDialog.value = true
+}
+
 const selectedCategory = ref('Todas las categorías');
-const sideMenuOpen = ref(false);
 const expandedCategory = ref(null);
 const showMobileSearchInput = ref(false);
 
@@ -354,8 +373,6 @@ let hideTimer = null;
 
 const categories = ref([]);
 const loading = ref(false);
-
-const customBreadcrumbsInjected = inject('customBreadcrumbs', null);
 
 onMounted(async () => {
   loading.value = true;
@@ -514,7 +531,7 @@ const getUserInitials = computed(() => {
       .map(word => word[0])
       .join('')
       .toUpperCase()
-      .slice(0, 2);
+      .substring(0, 2);
   }
   return '';
 });

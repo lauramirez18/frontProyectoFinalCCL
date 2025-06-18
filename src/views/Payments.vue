@@ -125,11 +125,12 @@
           <p class="error" v-if="errors.city">{{ errors.city }}</p>
         </div>
         <div class="form-group half">
-          <label for="postalCode">Código Postal</label>
+          <label for="postalCode">Código Postal *</label>
           <input
             type="text"
             id="postalCode"
             v-model="postalCode"
+            required
             placeholder="Código postal"
           />
           <p class="error" v-if="errors.postalCode">{{ errors.postalCode }}</p>
@@ -389,11 +390,11 @@ const validateShippingData = () => {
     errors.city = "La ciudad es obligatoria.";
     isValid = false;
   }
-  // Puedes añadir validación para postalCode si es requerido o tiene un formato específico
-  // if (postalCode.value && !/^\d{5}$/.test(postalCode.value)) {
-  //   errors.postalCode = "Código postal inválido.";
-  //   isValid = false;
-  // }
+  // Validación del código postal
+  if (!postalCode.value || postalCode.value.trim() === "") {
+    errors.postalCode = "El código postal es obligatorio.";
+    isValid = false;
+  }
 
   return isValid;
 };
@@ -548,7 +549,7 @@ const createBackendOrder = async () => {
 
     // Es buena práctica redondear al final para evitar errores de punto flotante acumulados.
     const finalTotalCOP = Math.round(total * 100) / 100;
- 
+    
     const currentExchangeRate = exchangeRate.value || 4000;
     
     // 3. ACTUALIZAR LOS VALORES GLOBALES Y LA ORDEN CON EL TOTAL CORRECTO
@@ -568,7 +569,7 @@ const createBackendOrder = async () => {
       shippingInfo: shippingInfo,
       exchangeRate: currentExchangeRate,
       currency: 'COP',
-      status: 'pagado'
+      status: 'pendiente'
     };
 
     // Esta validación ahora siempre debería pasar
@@ -594,22 +595,33 @@ const createBackendOrder = async () => {
     console.log('Server response text:', responseText);
 
     if (!response.ok) {
-      let errorMessage = 'Error al procesar el pago';
+      let errorMessage = `Server error: ${response.status}`;
       try {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          errorMessage = errorText || errorMessage;
-        }
-      } catch (e) {
-        console.error('Error al leer la respuesta:', e);
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.message || errorMessage;
+      } catch (parseError) {
+        errorMessage += ` - ${responseText}`;
       }
       throw new Error(errorMessage);
     }
 
-    return JSON.parse(responseText);
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(responseText);
+      console.log('Parsed response:', parsedResponse);
+      
+      if (!parsedResponse.orden || !parsedResponse.orden._id) {
+        console.error('Response missing orden._id:', parsedResponse);
+        throw new Error('La respuesta del servidor no incluye el ID de la orden');
+      }
+      
+      // Return the entire orden object since it contains all the order details
+      return parsedResponse.orden;
+    } catch (parseError) {
+      console.error('Error parsing response:', parseError);
+      console.error('Raw response text:', responseText);
+      throw new Error('Error al procesar la respuesta del servidor');
+    }
   } catch (error) {
     console.error('Error in createBackendOrder:', error);
     throw error;
@@ -658,91 +670,26 @@ const renderPayPalButtons = () => {
 
         // 2. Crear orden en el backend
         const orderData = await createBackendOrder();
-        currentOrderId.value = orderData._id;
-
         console.log('Orden backend creada:', orderData);
-        console.log('ID de orden actual:', currentOrderId.value);
         
-        // Usar la tasa de cambio ya obtenida
-        const exchangeRateToUse = currentExchangeRate;
-        
-        // Preparar ítems para PayPal y calcular totales
-        const paypalItems = [];
-        let paypalItemsTotal = 0;
-        
-        // Primero calcular todos los ítems y sus totales
-        authStore.cartItems.forEach(item => {
-          // Obtener precio en COP (usar precio con descuento si está disponible)
-          const unitAmountCOP = Number(item.discountedPrice || item.price || 0);
-          const quantity = parseInt(item.quantity) || 1;
-          
-          // Convertir a USD y redondear a 2 decimales
-          const unitAmountUSD = parseFloat((unitAmountCOP / exchangeRateToUse).toFixed(2));
-          const itemTotal = parseFloat((unitAmountUSD * quantity).toFixed(2));
-          
-          // Acumular al total de ítems
-          paypalItemsTotal = parseFloat((paypalItemsTotal + itemTotal).toFixed(2));
-          
-          // Agregar ítem a la lista de PayPal
-          paypalItems.push({
-            name: String(item.name || 'Producto').substring(0, 127),
-            description: String(item.description || '').substring(0, 126) || undefined,
-            quantity: quantity,
-            unit_amount: {
-              currency_code: 'USD',
-              value: unitAmountUSD.toFixed(2)
-            }
-          });
-        });
-        
-        // Calcular el total de la orden en USD
-        const paypalTotal = parseFloat((totalCOP.value / exchangeRateToUse).toFixed(2));
-        
-        // Asegurar que los totales coincidan exactamente
-        console.log('=== VALIDACIÓN DE TOTALES PAYPAL ===');
-        console.log('Total COP:', totalCOP.value);
-        console.log('Tasa de cambio:', exchangeRateToUse);
-        console.log('Total USD calculado:', paypalTotal);
-        console.log('Suma de ítems USD:', paypalItemsTotal);
-        
-        // Ajustar el total de ítems para que coincida exactamente con el total de la orden
-        // Esto es necesario porque PayPal requiere que los montos coincidan exactamente
-        if (paypalItems.length > 0 && Math.abs(paypalTotal - paypalItemsTotal) > 0.01) {
-          console.log('Ajustando diferencia en el primer ítem...');
-          // Ajustar la diferencia en el primer ítem
-          const difference = parseFloat((paypalTotal - (paypalItemsTotal - parseFloat(paypalItems[0].unit_amount.value) * paypalItems[0].quantity)).toFixed(2));
-          const newFirstItemPrice = parseFloat((difference / paypalItems[0].quantity).toFixed(2));
-          
-          paypalItems[0].unit_amount.value = newFirstItemPrice.toFixed(2);
-          paypalItemsTotal = parseFloat((paypalItemsTotal - (parseFloat(paypalItems[0].unit_amount.value) * paypalItems[0].quantity) + (newFirstItemPrice * paypalItems[0].quantity)).toFixed(2));
-          
-          console.log('Nuevo precio del primer ítem:', newFirstItemPrice);
-          console.log('Nueva suma de ítems:', paypalItemsTotal);
+        // Asegurarnos de que tenemos el ID de la orden
+        if (!orderData._id) {
+          throw new Error('No se recibió el ID de la orden del backend');
         }
         
-        // Crear orden en PayPal con los montos exactos
-        const paypalOrderRequest = {
+        currentOrderId.value = orderData._id;
+        console.log('ID de orden actual:', currentOrderId.value);
+
+        // Crear la orden de PayPal
+        const paypalOrder = await actions.order.create({
           purchase_units: [{
             amount: {
-              value: paypalTotal.toFixed(2),
-              currency_code: "USD",
-              breakdown: {
-                item_total: {
-                  value: paypalItemsTotal.toFixed(2),
-                  currency_code: "USD"
-                }
-              }
+              value: totalUSD.value,
+              currency_code: "USD"
             },
-            items: paypalItems,
-            reference_id: orderData._id,
-            description: `Compra de ${authStore.cartItems.length} producto(s)`
+            reference_id: orderData._id
           }]
-        };
-        
-        console.log('Solicitud de orden PayPal:', JSON.stringify(paypalOrderRequest, null, 2));
-        
-        // Crear la orden de PayPal
-        const paypalOrder = await actions.order.create(paypalOrderRequest);
+        });
 
         console.log('Orden PayPal creada:', paypalOrder);
         return paypalOrder;
@@ -761,97 +708,102 @@ const renderPayPalButtons = () => {
 
     onApprove: async (data, actions) => {
       try {
-        console.log('=== INICIANDO ONAPPROVE ===');
-        console.log('Data recibida:', data);
-        
-        // 1. Primero capturamos el pago en PayPal
-        const details = await actions.order.capture();
-        console.log('Detalles del pago capturado:', details);
-        
-        // Guardar datos del pago
-        payerName.value = `${details.payer.name.given_name} ${details.payer.name.surname}`;
-        payerEmail.value = details.payer.email_address;
-        amountPaid.value = details.purchase_units[0].amount.value;
-        
-        console.log('Confirmando pago en backend...');
-        
-        // 2. Luego confirmamos en nuestro backend
-        const response = await fetch(`http://localhost:3000/api/ordenes/${currentOrderId.value}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authStore.token}`
-          },
-          body: JSON.stringify({
-            paymentDetails: details,
-            status: 'pagado'
-          })
+        console.log('=== DATOS DE PAYPAL ===');
+        console.log('Detalles del pago:', data);
+        console.log('ID de PayPal:', data.orderID);
+        console.log('ID de la orden actual:', currentOrderId.value);
+
+        if (!currentOrderId.value) {
+            throw new Error('No se encontró el ID de la orden. Por favor intente nuevamente.');
+        }
+
+        if (!authStore.token) {
+            throw new Error('No se encontró el token de autenticación. Por favor inicia sesión nuevamente.');
+        }
+
+        const payload = {
+            orderId: currentOrderId.value,
+            paypalOrderId: data.orderID
+        };
+
+        console.log('=== DATOS ENVIADOS AL BACKEND ===');
+        console.log('URL:', 'http://localhost:3000/api/ordenes/confirmar-pago');
+        console.log('Payload:', payload);
+
+        const response = await fetch('http://localhost:3000/api/ordenes/confirmar-pago', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`
+            },
+            body: JSON.stringify(payload)
         });
+
+        const responseText = await response.text();
+        console.log('Respuesta del servidor (texto):', responseText);
 
         if (!response.ok) {
-          let errorMessage = 'Error al procesar el pago';
-          try {
-            const errorText = await response.text();
+            let errorMessage;
             try {
-              const errorData = JSON.parse(errorText);
-              errorMessage = errorData.message || errorMessage;
-            } catch (e) {
-              errorMessage = errorText || errorMessage;
+                const errorData = JSON.parse(responseText);
+                errorMessage = errorData.message || 'Error al confirmar el pago';
+            } catch (parseError) {
+                errorMessage = responseText || 'Error al confirmar el pago';
             }
-          } catch (e) {
-            console.error('Error al leer la respuesta:', e);
-          }
-          throw new Error(errorMessage);
+            throw new Error(errorMessage);
         }
 
-        const confirmationResult = await response.json();
-        console.log('Pago confirmado exitosamente:', confirmationResult);
-        
-        // 3. Limpiar carrito
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('Error al parsear la respuesta:', parseError);
+            throw new Error('Error al procesar la respuesta del servidor');
+        }
+
+        console.log('Respuesta del servidor (parseada):', result);
+
+        if (!result.success) {
+            throw new Error(result.message || 'Error al confirmar el pago');
+        }
+
+        // Limpiar carrito
         authStore.clearCart();
         
-        // 4. Mostrar factura
+        // Mostrar factura
         mostrarFactura();
         
-        // 5. Mostrar mensaje de éxito al usuario
+        // Mostrar mensaje de éxito al usuario
         await Swal.fire({
-          icon: 'success',
-          title: '¡Pago exitoso!',
-          text: 'Tu pago ha sido procesado correctamente.',
-          confirmButtonText: 'Entendido'
+            icon: 'success',
+            title: '¡Pago exitoso!',
+            text: 'Tu pago ha sido procesado correctamente.',
+            confirmButtonText: 'Entendido'
         });
         
-        // 6. Redirigir a la página de confirmación
+        // Redirigir a la página de confirmación
         router.push('/order-confirmation');
-        
-        // 7. Retornar los detalles de PayPal para cerrar el diálogo
-        return details;
-        
-      } catch (error) {
+
+    } catch (error) {
         console.error('Error en la confirmación del pago:', error);
         
-        // Mostrar mensaje de error al usuario
-        let errorMessage = 'No se pudo completar el pago. Por favor intente nuevamente.';
-        if (error.message) {
-          errorMessage = error.message;
+        // Mensaje de error más específico basado en el tipo de error
+        let errorMessage = 'Error al procesar el pago';
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'No se pudo conectar con el servidor. Por favor, verifica que el servidor esté en ejecución.';
+        } else if (error.message) {
+            errorMessage = error.message;
         }
-        
-        // Si es un error de conexión, mostrar mensaje más específico
-        if (error.message && error.message.includes('Failed to fetch')) {
-          errorMessage = 'No se pudo conectar con el servidor. Por favor verifica que el servidor esté en ejecución y tu conexión a internet.';
-        }
-        
-        await Swal.fire({
-          icon: 'error',
-          title: 'Error en el pago',
-          text: errorMessage,
-          confirmButtonText: 'Entendido'
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error en el pago',
+            text: errorMessage,
+            confirmButtonText: 'Entendido'
         });
-        
-        // Re-lanzar el error para que PayPal lo maneje
         throw error;
-      }
-    },
+    }
+},
 
     onError: (err) => {
       console.error("Error completo en PayPal:", err);
