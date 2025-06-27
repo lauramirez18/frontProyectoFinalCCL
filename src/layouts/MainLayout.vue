@@ -487,6 +487,8 @@ const getUserInitials = computed(() => {
 </script>
 
 <style>
+
+    
 /* Estilos del breadcrumbs */
 .breadcrumbs-container {
   background: var(--q-primary);

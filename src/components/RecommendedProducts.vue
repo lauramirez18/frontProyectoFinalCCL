@@ -172,12 +172,14 @@ import { useRouter } from 'vue-router'
 import { getData } from '../services/apiclient'
 import { reviewsService } from '../services/resenias'
 import { useThousandsFormat } from '../composables/useThousandFormat'
+import { useCart } from '../composables/useCart'
 
 const router = useRouter()
 const { formatThousands } = useThousandsFormat()
 const loading = ref(true)
 const bestSellers = ref([])
 const favorites = ref(new Set())
+const { addToCart: addToCartComposable } = useCart()
 
 // --- Carousel Logic ---
 const carouselWrapper = ref(null)
@@ -346,8 +348,9 @@ const toggleFavorite = (product) => {
 }
 
 const addToCart = (product) => {
-  console.log('Añadir al carrito:', product)
-  // Implement actual add to cart logic here (e.g., using a store like Pinia/Vuex)
+  // Usar la primera imagen del producto o un placeholder
+  const mainImage = getProductImage(product)
+  addToCartComposable(product, mainImage)
 }
 
 const getProductImage = (product) => {
