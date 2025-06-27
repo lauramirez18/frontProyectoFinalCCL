@@ -98,13 +98,21 @@ const duplicatedCategories = computed(() => {
 });
 
 const goToCategoryProducts = (category) => {
+  if (!category || !category.name) return
+  
+  // Generar slug a partir del nombre de la categoría
+  const slug = category.name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+  
   router.push({
-    name: 'CategoryProducts', // Asegúrate de que esta ruta esté definida en tu router
-    params: { categoryId: category._id },
-    query: { categoryName: category.name }
-  });
-  stopAutoScroll(); // Detener el auto-scroll al navegar
-};
+    name: 'CategoryProducts',
+    params: { slug }
+  })
+}
 
 const startAutoScroll = () => {
   stopAutoScroll(); // Limpiar cualquier intervalo existente

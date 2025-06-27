@@ -1,9 +1,6 @@
 <template>
   <div class="admin-container">
-    <!-- Breadcrumbs for admin view -->
-    <div class="q-px-md q-pt-md">
-      <Breadcrumbs :items="breadcrumbs" @navigate="handleBreadcrumbNavigate" />
-    </div>
+    <!-- Eliminado breadcrumb local, ahora es global -->
     
     <q-tabs
       v-model="activeTab"

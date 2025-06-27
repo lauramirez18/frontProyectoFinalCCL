@@ -2,19 +2,22 @@ import axios from 'axios';
 import { useAuthStore } from '../store/store';
 
 const normalizeUrl = (url) => {
-  // Eliminar /api si está al inicio de la URL ya que está en la baseURL
-  url = url.replace(/^\/api\//, '');
+  // Si la URL ya incluye /api, no la modifiques
+  if (url.includes('/api/')) {
+    return url;
+  }
   
   // Eliminar la barra inicial si existe
   if (url.startsWith('/')) {
     url = url.substring(1);
   }
 
-  return url;
+  // Asegurarse de que la URL no tenga dobles barras
+  return url.replace(/\/+/g, '/');
 };
 
 const apiClient = axios.create({
-   baseURL: 'http://localhost:3000/api', 
+  baseURL: 'http://localhost:3000/api',
   /* baseURL: 'https://backmartplaceccl.onrender.com/api', */
   headers: {
     'Content-Type': 'application/json'
@@ -25,8 +28,10 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     try {
-      // Normalizar la URL y loggear la URL completa antes de la petición
+      // Normalizar la URL
       config.url = normalizeUrl(config.url);
+      
+      // Log para debugging
       console.log('URL normalizada:', config.url);
       console.log('URL completa de la petición:', `${config.baseURL}/${config.url}`);
       
@@ -87,6 +92,11 @@ apiClient.interceptors.response.use(
       const authStore = useAuthStore();
       authStore.logout();
       window.location.href = '/login';
+    }
+
+    // Si hay un mensaje de error en la respuesta, usarlo
+    if (error.response?.data?.error) {
+      error.message = error.response.data.error;
     }
 
     return Promise.reject(error);

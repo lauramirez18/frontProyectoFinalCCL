@@ -53,7 +53,7 @@
           </q-card-section>
           
           <q-card-actions align="between" class="q-px-md q-pb-md">
-            <q-btn flat label="Ver Detalles" color="primary" :to="`/Details/${product._id}`" />
+            <q-btn flat label="Ver Detalles" color="primary" :to="getDetailsPath(product.slug)" />
             <FavoriteButton :product="product" />
           </q-card-actions>
         </q-card>
@@ -113,12 +113,11 @@ const fetchProducts = async () => {
     const { page } = route.query;
     const params = {
       page: page || 1,
-      enOferta: true,
       limit: 12
     };
 
     console.log('Fetching products with params:', params);
-    const response = await getData('productos', params);
+    const response = await getData('productos/ofertas', params);
     console.log('API Response:', response);
     
     // Handle both array and object responses
@@ -131,24 +130,17 @@ const fetchProducts = async () => {
       productosArray = [];
     }
     
-    // Filtrar solo los productos que realmente están en oferta
-    const productosEnOferta = productosArray.filter(producto => 
-      producto.enOferta === true && 
-      producto.precioOferta && 
-      producto.precioOferta < producto.precio
-    );
+    // Ya no necesitamos filtrar aquí porque la API ya nos devuelve solo productos en oferta
+    products.value = productosArray;
     
-    console.log('Total productos:', productosArray.length);
-    console.log('Productos en oferta:', productosEnOferta.length);
+    console.log('Total productos en oferta:', productosArray.length);
     
-    products.value = productosEnOferta;
-
     // Set pagination data
     pagination.value = {
-      total: productosEnOferta.length,
+      total: productosArray.length,
       page: page || 1,
       limit: 12,
-      totalPages: Math.ceil(productosEnOferta.length / 12)
+      totalPages: Math.ceil(productosArray.length / 12)
     };
     currentPage.value = pagination.value.page;
 
@@ -175,6 +167,14 @@ watch(() => route.query, fetchProducts, { deep: true });
 const changePage = (newPage) => {
   router.push({ query: { ...route.query, page: newPage } });
 };
+
+const getDetailsPath = (slug) => {
+  if (!slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return '/'
+  }
+  return `/Details/${encodeURIComponent(slug.trim())}`
+}
 </script>
 
 <style scoped>

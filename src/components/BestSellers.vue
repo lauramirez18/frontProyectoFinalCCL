@@ -14,95 +14,242 @@
       <p>No hay productos disponibles en este momento</p>
     </div>
 
-    <div v-else class="products-grid">
-      <div v-for="product in bestSellers" :key="product._id" class="product-container">
-        <router-link
-          :to="`/Details/${product._id}`"
-          class="product-link"
-        >
-          <q-card class="product-card tech-card" flat>
-            <div class="img-wrapper"
-              @mouseenter="startImageRotation(product)"
-              @mouseleave="stopImageRotation"
-              :data-product-id="product._id"
-            >
-              <q-img
-                :src="getProductImage(product)"
-                :alt="product.nombre"
-                ratio="1"
-                class="product-image"
-              >
-                <template v-slot:loading>
-                  <q-spinner-dots color="white" size="40px" />
-                </template>
+    <div v-else class="carousel-container" @mouseenter="stopAutoScroll" @mouseleave="startAutoScroll">
+      <q-btn
+        round
+        dense
+        flat
+        icon="chevron_left"
+        class="nav-arrow left-arrow"
+        @click="scrollLeft"
+      />
 
-                <div class="tech-overlay">
-                  <div class="rating-container">
-                    <div class="rating-stars tech-rating">
-                      <q-rating
-                        v-model="product.promedioCalificacion"
-                        max="5"
-                        size="1.2em"
-                        color="yellow"
-                        icon="star"
-                        icon-selected="star"
-                        icon-half="star_half"
-                        readonly
-                      />
-                      <span class="rating-count text-white q-ml-sm">
-                        ({{ product.totalResenas || 0 }})
-                      </span>
+      <div class="carousel-wrapper" ref="carouselWrapper">
+        <div
+          :class="['carousel-track', { 'is-scrolling-manual': isManualScroll, 'animate-loop': !isManualScroll }]"
+          ref="carouselTrack"
+          :style="{ transform: `translateX(${trackTranslateX}px)` }"
+        >
+          <div
+            v-for="(product, index) in duplicatedProducts"
+            :key="`main-${product._id}-${index}`"
+            class="product-card-wrapper"
+          >
+            <router-link
+              :to="`/Details/${product.slug}`"
+              class="product-link"
+            >
+              <q-card class="product-card tech-card" flat>
+                <div class="img-wrapper"
+                  @mouseenter="startImageRotation(product)"
+                  @mouseleave="stopImageRotation"
+                  :data-product-id="product._id"
+                >
+                  <q-img
+                    :src="getProductImage(product)"
+                    :alt="product.nombre"
+                    ratio="1"
+                    class="product-image"
+                  >
+                    <template v-slot:loading>
+                      <q-spinner-dots color="white" size="40px" />
+                    </template>
+
+                    <div class="tech-overlay">
+                      <div class="rating-container">
+                        <div class="rating-stars tech-rating">
+                          <q-rating
+                            v-model="product.promedioCalificacion"
+                            max="5"
+                            size="1.2em"
+                            color="yellow"
+                            icon="star"
+                            icon-selected="star"
+                            icon-half="star_half"
+                            readonly
+                          />
+                          <span class="rating-count text-white q-ml-sm">
+                            ({{ product.totalResenas || 0 }})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </q-img>
+                </div>
+
+                <q-card-section class="product-info">
+                  <div class="brand-caption" v-if="product.marca">
+                    {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
+                  </div>
+                  <div class="product-title">{{ product.nombre || 'Producto sin nombre' }}</div>
+
+                  <div class="price-section">
+                    <div class="price-container">
+                      <div class="current-price">
+                        ${{ formatThousands(product.precio) }}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </q-img>
+                </q-card-section>
+              </q-card>
+            </router-link>
+            
+            <div class="actions-container">
+              <q-btn
+                round
+                flat
+                class="action-btn cart-btn"
+                icon="add_shopping_cart"
+                color="primary"
+                @click.stop="addToCart(product, product.imagenes[0])"
+              >
+                <q-tooltip>Agregar al carrito</q-tooltip>
+              </q-btn>
             </div>
-
-            <q-card-section class="product-info">
-              <div class="brand-caption" v-if="product.marca">
-                {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
-              </div>
-              <div class="product-title">{{ product.nombre || 'Producto sin nombre' }}</div>
-
-              <div class="price-section">
-                <div class="price-container">
-                  <div class="current-price">
-                    ${{ formatThousands(product.precio) }}
-                  </div>
-                </div>
-              </div>
-            </q-card-section>
-          </q-card>
-        </router-link>
-        
-        <div class="actions-container">
-          <q-btn
-            round
-            flat
-            class="action-btn cart-btn"
-            icon="add_shopping_cart"
-            color="primary"
-            @click.stop="addToCart(product, product.imagenes[0])"
-          >
-            <q-tooltip>Agregar al carrito</q-tooltip>
-          </q-btn>
+          </div>
         </div>
       </div>
+
+      <q-btn
+        round
+        dense
+        flat
+        icon="chevron_right"
+        class="nav-arrow right-arrow"
+        @click="scrollRight"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed, onBeforeUnmount, nextTick } from 'vue'
 import { getData } from '../services/apiclient'
 import { useThousandsFormat } from '../composables/useThousandFormat'
 import { useCart } from '../composables/useCart'
+
 const {addToCart} = useCart()
 const { formatThousands } = useThousandsFormat()
 const bestSellers = ref([])
 const currentImages = reactive({})
 const loading = ref(true)
 let imageInterval = null
+
+// Carousel Logic
+const carouselWrapper = ref(null)
+const carouselTrack = ref(null)
+const trackTranslateX = ref(0)
+const itemWidth = ref(0)
+const visibleItems = ref(0)
+const currentIndex = ref(0)
+const scrollInterval = ref(null)
+const isManualScroll = ref(false)
+const animationDuration = 500
+
+const duplicatedProducts = computed(() => {
+  if (bestSellers.value.length === 0) {
+    return [];
+  }
+  return [...bestSellers.value, ...bestSellers.value, ...bestSellers.value];
+});
+
+const calculateCarouselDimensions = () => {
+  if (carouselWrapper.value && carouselTrack.value && bestSellers.value.length > 0) {
+    const wrapperWidth = carouselWrapper.value.offsetWidth;
+    const firstProductCard = carouselTrack.value.querySelector('.product-card-wrapper');
+    if (firstProductCard) {
+      itemWidth.value = firstProductCard.offsetWidth;
+      visibleItems.value = Math.floor(wrapperWidth / itemWidth.value);
+    }
+  }
+};
+
+const resetCarouselPosition = () => {
+  const numProducts = bestSellers.value.length;
+  if (numProducts === 0 || itemWidth.value === 0) return;
+
+  if (currentIndex.value >= numProducts) {
+    currentIndex.value -= numProducts;
+    trackTranslateX.value = -currentIndex.value * itemWidth.value;
+  }
+  else if (currentIndex.value < 0) {
+    currentIndex.value += numProducts;
+    trackTranslateX.value = -currentIndex.value * itemWidth.value;
+  }
+};
+
+const scrollCarousel = () => {
+  if (bestSellers.value.length === 0 || itemWidth.value === 0) return;
+
+  currentIndex.value++;
+  trackTranslateX.value = -currentIndex.value * itemWidth.value;
+
+  if (currentIndex.value >= bestSellers.value.length * 2) {
+    isManualScroll.value = true;
+    trackTranslateX.value = -bestSellers.value.length * itemWidth.value;
+    currentIndex.value = bestSellers.value.length;
+    setTimeout(() => {
+      isManualScroll.value = false;
+    }, 50);
+  }
+};
+
+const startAutoScroll = () => {
+  stopAutoScroll();
+  const delay = 3000;
+  scrollInterval.value = setInterval(() => {
+    scrollCarousel();
+  }, delay);
+};
+
+const stopAutoScroll = () => {
+  if (scrollInterval.value) {
+    clearInterval(scrollInterval.value);
+    scrollInterval.value = null;
+  }
+};
+
+const scrollLeft = () => {
+  stopAutoScroll();
+  isManualScroll.value = true;
+  currentIndex.value--;
+  trackTranslateX.value = -currentIndex.value * itemWidth.value;
+
+  if (currentIndex.value < 0) {
+    trackTranslateX.value = -(bestSellers.value.length * 2 + currentIndex.value) * itemWidth.value;
+    currentIndex.value = bestSellers.value.length * 2 + currentIndex.value;
+    setTimeout(() => {
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, animationDuration);
+  } else {
+    setTimeout(() => {
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, animationDuration);
+  }
+};
+
+const scrollRight = () => {
+  stopAutoScroll();
+  isManualScroll.value = true;
+  currentIndex.value++;
+  trackTranslateX.value = -currentIndex.value * itemWidth.value;
+
+  if (currentIndex.value >= bestSellers.value.length * 3) {
+    trackTranslateX.value = -bestSellers.value.length * itemWidth.value;
+    currentIndex.value = bestSellers.value.length;
+    setTimeout(() => {
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, 50);
+  } else {
+    setTimeout(() => {
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, animationDuration);
+  }
+};
 
 const getProductImage = (product) => {
   if (product && product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
@@ -184,8 +331,23 @@ const fetchBestSellers = async () => {
   }
 }
 
+const getDetailsPath = (slug) => {
+  if (!slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return '/'
+  }
+  return `/Details/${encodeURIComponent(slug.trim())}`
+}
+
 onMounted(() => {
   fetchBestSellers()
+  window.addEventListener('resize', calculateCarouselDimensions)
+  startAutoScroll()
+})
+
+onBeforeUnmount(() => {
+  stopAutoScroll()
+  window.removeEventListener('resize', calculateCarouselDimensions)
 })
 </script>
 
@@ -452,5 +614,105 @@ font-family: 'Montserrat', sans-serif;
   position: relative;
   display: flex;
   flex-direction: column;
+}
+
+.carousel-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 0 40px;
+}
+
+.carousel-wrapper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.carousel-track {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+}
+
+.carousel-track.is-scrolling-manual {
+  transition: transform 0.5s ease-in-out;
+}
+
+.carousel-track.animate-loop {
+  transition: transform 0.5s linear;
+}
+
+.product-card-wrapper {
+  flex: 0 0 auto;
+  width: 280px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  color: var(--q-color-dark-blue);
+  transition: all 0.3s ease;
+  width: 45px;
+  height: 45px;
+  font-size: 1.5em;
+  border: 1px solid rgba(6, 143, 255, 0.1);
+}
+
+.nav-arrow:hover {
+  background: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+  color: var(--q-color-primary-blue);
+  transform: translateY(-50%) scale(1.1);
+  border-color: rgba(6, 143, 255, 0.3);
+}
+
+.left-arrow {
+  left: 0;
+}
+
+.right-arrow {
+  right: 0;
+}
+
+@media (max-width: 1024px) {
+  .product-card-wrapper {
+    width: 250px;
+    padding: 8px;
+  }
+  .nav-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3em;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-card-wrapper {
+    width: 220px;
+    padding: 6px;
+  }
+  .nav-arrow {
+    width: 35px;
+    height: 35px;
+    font-size: 1.1em;
+  }
+}
+
+@media (max-width: 576px) {
+  .product-card-wrapper {
+    width: 180px;
+    padding: 5px;
+  }
+  .nav-arrow {
+    width: 30px;
+    height: 30px;
+    font-size: 1em;
+  }
 }
 </style>

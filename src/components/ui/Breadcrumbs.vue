@@ -1,14 +1,10 @@
 <template>
-  <q-breadcrumbs 
-    v-if="breadcrumbs.length > 0"
-    class="text-grey-8 q-py-sm" 
-    active-color="primary"
-    separator="/"
-  >
-    <q-breadcrumbs-el 
-      v-for="(item, index) in breadcrumbs" 
+  <q-breadcrumbs v-if="itemsToShow.length > 1" class="breadcrumb-bar" active-color="primary" separator="/">
+    <q-breadcrumbs-el
+      v-for="(item, index) in itemsToShow"
       :key="index"
-      :label="item.label" 
+      v-if="index !== itemsToShow.length - 1 || (item.label && item.label !== '' && !/^[a-f0-9]{24}$/.test(item.label))"
+      :label="item.label"
       :to="!item.disabled ? item.to : undefined"
       :icon="item.icon"
       :class="{
@@ -16,104 +12,47 @@
         'text-weight-medium': item.disabled,
         'cursor-default': item.disabled
       }"
-      @click="handleBreadcrumbClick(item, $event)"
-    >
-      <q-tooltip v-if="!item.disabled && item.to">
-        Ir a {{ item.label }}
-      </q-tooltip>
-    </q-breadcrumbs-el>
+      @click="!item.disabled && navigateTo(item.to)"
+    />
   </q-breadcrumbs>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
 import useBreadcrumbs from '../../composables/useBreadcrumbs';
 
 const props = defineProps({
-  // Items personalizados (opcional)
-  items: {
+  customItems: {
     type: Array,
-    default: () => []
-  },
-  // Configuración del breadcrumb de inicio
-  home: {
-    type: Object,
-    default: () => ({
-      label: 'Inicio',
-      to: '/',
-      icon: 'home',
-      disabled: false
-    })
-  },
-  // Mostrar el breadcrumb de inicio
-  showHome: {
-    type: Boolean,
-    default: true
+    default: null
   }
 });
 
-const emit = defineEmits(['navigate']);
-const router = useRouter();
-const route = useRoute();
-
-// Usar el composable de breadcrumbs
-const { breadcrumbs: routeBreadcrumbs } = useBreadcrumbs();
-
-// Combinar breadcrumbs personalizados con los de la ruta
-const breadcrumbs = computed(() => {
-  // Si hay items personalizados, usarlos
-  if (props.items && props.items.length > 0) {
-    return props.showHome ? [props.home, ...props.items] : [...props.items];
-  }
-  
-  // Si no hay items personalizados, usar los de la ruta
-  return routeBreadcrumbs.value;
-});
-
-// Manejar clic en un breadcrumb
-const handleBreadcrumbClick = (item, event) => {
-  if (item.to) {
-    event.preventDefault();
-    emit('navigate', item.to);
-    router.push(item.to);
-  }
-};
+const { breadcrumbs, navigateTo } = useBreadcrumbs();
+const itemsToShow = computed(() => props.customItems && props.customItems.length > 0 ? props.customItems : breadcrumbs.value);
 </script>
 
 <style scoped>
-.q-breadcrumbs {
-  padding: 8px 16px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  margin-bottom: 16px;
-}
-
-.q-breadcrumbs--last {
-  color: inherit;
-  font-weight: 500;
-}
-
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.cursor-default {
-  cursor: default;
-}
-</style>
-
-<style scoped>
-.q-breadcrumbs {
+.breadcrumb-bar {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  margin: 0 0 24px 0;
   font-size: 1rem;
-}
-
-.q-breadcrumbs--last {
-  color: inherit;
   font-weight: 500;
+  color: #222;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  box-shadow: none;
+  border: none;
 }
-
-.cursor-pointer {
-  cursor: pointer;
+.breadcrumb-bar :deep(.q-breadcrumbs__el),
+.breadcrumb-bar :deep(.q-breadcrumbs__el .q-icon),
+.breadcrumb-bar :deep(.q-breadcrumbs__el .q-breadcrumbs__label) {
+  color: #222 !important;
+}
+.breadcrumb-bar :deep(.q-breadcrumbs__separator) {
+  color: #888 !important;
 }
 </style>

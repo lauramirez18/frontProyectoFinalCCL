@@ -209,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed, onBeforeUnmount, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar, Dialog } from 'quasar'
 import { useAuthStore } from '../store/store.js'
@@ -306,13 +306,19 @@ const fetchProduct = async () => {
   try {
     loading.value = true;
     error.value = false;
-    const productId = route.params.id;
+    const productSlug = route.params.slug;
 
-    if (!productId || productId === 'favorites' || productId === 'undefined') {
-      throw new Error('ID de producto inválido');
+    if (!productSlug) {
+      throw new Error('Slug de producto no proporcionado');
     }
 
-    const productResponse = await api.get(`/productos/${productId}`);
+    const sanitizedSlug = String(productSlug).trim();
+    if (!sanitizedSlug) {
+      throw new Error('Slug de producto inválido');
+    }
+
+    const productResponse = await api.get(`/productos/slug/${encodeURIComponent(sanitizedSlug)}`);
+    
     if (!productResponse.data) {
       throw new Error('Producto no encontrado');
     }
@@ -324,7 +330,7 @@ const fetchProduct = async () => {
     }
 
     try {
-      const reviewsResponse = await api.get(`/resenas/producto/${productId}`);
+      const reviewsResponse = await api.get(`/resenas/producto/${producto.value._id}`);
       reviews.value = reviewsResponse.data;
     } catch (reviewError) {
       console.error('Error al cargar reseñas:', reviewError);
@@ -550,6 +556,7 @@ const calculateSubtotal = () => {
     return total + (item.price * item.quantity)
   }, 0)
 }
+
 
 // Limpiar el timer y la clase del body cuando el componente se desmonta
 onBeforeUnmount(() => {

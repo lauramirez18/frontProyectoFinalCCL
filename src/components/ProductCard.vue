@@ -15,7 +15,7 @@
       :src="mainImage"
       :ratio="1"
       class="cursor-pointer"
-      @click="$router.push(`/producto/${product._id}`)"
+      @click="$router.push(`/Details/${product.slug}`)"
     >
       <template v-slot:error>
         <div class="absolute-full flex flex-center bg-grey-3 text-grey-8">

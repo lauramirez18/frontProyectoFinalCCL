@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import MainLayout from '../layouts/MainLayout.vue';
 import Home from '../views/Home.vue';
+import DashboardView from '../views/DashboardView.vue';
 
 import Admin from '../views/admin.vue';
 import AdminLogin from '../views/Login.vue';
@@ -37,7 +38,12 @@ const routes = [
         name: 'home',
         component: Home
       },
-      
+      {
+        path: '/dashboard',
+        name: 'Dashboard',
+        component: DashboardView,
+        meta: { requiresAuth: true }
+      },
       {
         path: '/account',
         name: 'Account',
@@ -50,13 +56,13 @@ const routes = [
         component: Products
       },
       {
-        path: '/marcas/:id', 
-        name: 'BrandProducts',
+        path: '/productos/categoria/:slug', 
+        name: 'CategoryProducts',
         component: Products
       },
       {
-        path: '/products/:categoryId', 
-        name: 'CategoryProducts',
+        path: '/marcas/:slug', 
+        name: 'BrandProducts',
         component: Products
       },
       {
@@ -77,7 +83,7 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
-        path: 'Details/:id',
+        path: 'Details/:slug',
         name: 'Details',
         component: Details
       },
@@ -107,7 +113,10 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    return { top: 0 }
+  }
 });
 
 export { router };

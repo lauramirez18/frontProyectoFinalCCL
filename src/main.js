@@ -8,6 +8,7 @@ import './style.css'
 import 'quasar/src/css/index.sass'
 import 'material-icons/iconfont/material-icons.css'
 import './css/variables.css'
+import './styles/global.css'
 
 
 const pinia = createPinia()
