@@ -5,11 +5,11 @@
       <q-spinner-hourglass color="primary" size="3em" />
       <div class="q-mt-sm">Cargando productos...</div>
     </div>
-    <div v-else-if="products.length === 0" class="text-center text-grey-7">
+    <div v-else-if="productosStore.productos.length === 0" class="text-center text-grey-7">
       No se encontraron productos que coincidan con tu búsqueda.
     </div>
     <div v-else class="row q-col-gutter-md">
-      <div v-for="product in products" :key="product.id" class="col-12 col-sm-6 col-md-4 col-lg-3">
+      <div v-for="product in productosStore.productos" :key="product.id" class="col-12 col-sm-6 col-md-4 col-lg-3">
         <q-card class="my-card">
           <q-img :src="product.imagenPrincipal || 'placeholder.jpg'" />
           <q-card-section>
@@ -39,12 +39,12 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getData } from '../services/apiClient.js'; 
+import { useProductosStore } from '@/store/store'
 
 const route = useRoute();
 const router = useRouter();
+const productosStore = useProductosStore()
 
-const products = ref([]);
 const loading = ref(true);
 const currentPage = ref(1);
 const pagination = ref({
@@ -67,20 +67,22 @@ const fetchProducts = async () => {
     };
 
     const response = await getData('productos', params); 
-    products.value = response.productos;
+    productosStore.productos = response.productos;
     pagination.value = response.pagination;
     currentPage.value = response.pagination.page;
 
   } catch (error) {
     console.error('Error fetching products:', error);
-    products.value = [];
+    productosStore.productos = [];
   } finally {
     loading.value = false;
   }
 };
 
 
-onMounted(fetchProducts);
+onMounted(() => {
+  productosStore.cargarTodo()
+})
 watch(() => route.query, fetchProducts, { deep: true });
 
 const changePage = (newPage) => {

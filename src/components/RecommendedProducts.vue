@@ -169,14 +169,13 @@
 <script setup>
 import { ref, onMounted, reactive, computed, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { getData } from '../services/apiclient'
-import { reviewsService } from '../services/resenias'
+import { getData } from '../services/apiClient'
 import { useThousandsFormat } from '../composables/useThousandFormat'
 
 const router = useRouter()
 const { formatThousands } = useThousandsFormat()
 const loading = ref(true)
-const bestSellers = ref([])
+const recommended = ref([])
 const favorites = ref(new Set())
 
 // --- Carousel Logic ---
@@ -191,68 +190,52 @@ const isManualScroll = ref(false) // To control animation
 const animationDuration = 500; // ms for manual scroll animation
 
 const duplicatedProducts = computed(() => {
-  // Only duplicate if there are actual products
-  if (sortedProducts.value.length === 0) {
+  if (recommended.value.length === 0) {
     return [];
   }
-  // Duplicate the array to create the infinite loop effect
-  return [...sortedProducts.value, ...sortedProducts.value, ...sortedProducts.value];
+  return [...recommended.value, ...recommended.value, ...recommended.value];
 });
 
 const calculateCarouselDimensions = () => {
-  if (carouselWrapper.value && carouselTrack.value && sortedProducts.value.length > 0) {
+  if (carouselWrapper.value && carouselTrack.value && recommended.value.length > 0) {
     const wrapperWidth = carouselWrapper.value.offsetWidth;
-    // Assuming each card takes similar width + gap
-    // Adjust this calculation based on your CSS grid/flex setup for .product-card-wrapper
-    // A simple way is to measure the first actual product card if available
     const firstProductCard = carouselTrack.value.querySelector('.product-card-wrapper');
     if (firstProductCard) {
-      itemWidth.value = firstProductCard.offsetWidth; // Includes margin/padding from CSS
+      itemWidth.value = firstProductCard.offsetWidth;
       visibleItems.value = Math.floor(wrapperWidth / itemWidth.value);
-      console.log('Carousel Dimensions:', { wrapperWidth, itemWidth: itemWidth.value, visibleItems: visibleItems.value });
-    } else {
-      console.warn('First product card not found for dimension calculation.');
     }
   }
 };
 
 const resetCarouselPosition = () => {
-  const numProducts = sortedProducts.value.length;
+  const numProducts = recommended.value.length;
   if (numProducts === 0 || itemWidth.value === 0) return;
-
-  // If we are at the end of the first 'real' set of items, jump back to the middle 'real' set
   if (currentIndex.value >= numProducts) {
     currentIndex.value -= numProducts;
     trackTranslateX.value = -currentIndex.value * itemWidth.value;
-  }
-  // If we scrolled back into the 'cloned' beginning, jump to the middle 'real' set
-  else if (currentIndex.value < 0) {
+  } else if (currentIndex.value < 0) {
     currentIndex.value += numProducts;
     trackTranslateX.value = -currentIndex.value * itemWidth.value;
   }
 };
 
 const scrollCarousel = () => {
-  if (sortedProducts.value.length === 0 || itemWidth.value === 0) return;
-
+  if (recommended.value.length === 0 || itemWidth.value === 0) return;
   currentIndex.value++;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
-
-  // Reset position to create infinite loop illusion
-  if (currentIndex.value >= sortedProducts.value.length * 2) { // When we reach the end of the second set
-    isManualScroll.value = true; // Temporarily disable animation
-    trackTranslateX.value = -sortedProducts.value.length * itemWidth.value; // Jump to the start of the middle set
-    currentIndex.value = sortedProducts.value.length; // Update index
-    // Use setTimeout to re-enable animation after a brief moment, simulating a jump
+  if (currentIndex.value >= recommended.value.length * 2) {
+    isManualScroll.value = true;
+    trackTranslateX.value = -recommended.value.length * itemWidth.value;
+    currentIndex.value = recommended.value.length;
     setTimeout(() => {
       isManualScroll.value = false;
-    }, 50); // Small delay to allow DOM to render the jump
+    }, 50);
   }
 };
 
 const startAutoScroll = () => {
-  stopAutoScroll(); // Clear any existing interval
-  const delay = 3000; // Scroll every 3 seconds
+  stopAutoScroll();
+  const delay = 3000;
   scrollInterval.value = setInterval(() => {
     scrollCarousel();
   }, delay);
@@ -270,61 +253,51 @@ const scrollLeft = () => {
   isManualScroll.value = true;
   currentIndex.value--;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
-
   if (currentIndex.value < 0) {
-    // Jump to the end of the second set of cloned items
-    trackTranslateX.value = -(sortedProducts.value.length * 2 + currentIndex.value) * itemWidth.value;
-    currentIndex.value = sortedProducts.value.length * 2 + currentIndex.value;
-    // Set a timeout to allow the transition to complete before resetting
+    trackTranslateX.value = -(recommended.value.length * 2 + currentIndex.value) * itemWidth.value;
+    currentIndex.value = recommended.value.length * 2 + currentIndex.value;
     setTimeout(() => {
-        isManualScroll.value = false;
-        startAutoScroll();
-    }, animationDuration); // Match CSS transition duration
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, animationDuration);
   } else {
-    // Set a timeout to allow the transition to complete before re-enabling auto-scroll
     setTimeout(() => {
-        isManualScroll.value = false;
-        startAutoScroll();
-    }, animationDuration); // Match CSS transition duration
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, animationDuration);
   }
 };
-
 
 const scrollRight = () => {
   stopAutoScroll();
   isManualScroll.value = true;
   currentIndex.value++;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
-
-  if (currentIndex.value >= sortedProducts.value.length * 3) { // Adjusted to handle 3 sets
-    // If we've scrolled past the end of the duplicated set, jump back to the middle
-    trackTranslateX.value = -sortedProducts.value.length * itemWidth.value;
-    currentIndex.value = sortedProducts.value.length;
-    // Set a timeout to allow the transition to complete before resetting
+  if (currentIndex.value >= recommended.value.length * 3) {
+    trackTranslateX.value = -recommended.value.length * itemWidth.value;
+    currentIndex.value = recommended.value.length;
     setTimeout(() => {
-        isManualScroll.value = false;
-        startAutoScroll();
-    }, 50); // Small delay for the "jump"
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, 50);
   } else {
-    // Set a timeout to allow the transition to complete before re-enabling auto-scroll
     setTimeout(() => {
-        isManualScroll.value = false;
-        startAutoScroll();
-    }, animationDuration); // Match CSS transition duration
+      isManualScroll.value = false;
+      startAutoScroll();
+    }, animationDuration);
   }
 };
 
-
 // --- Product Data Logic ---
 const validProducts = computed(() => {
-  return bestSellers.value.filter(product => {
+  return recommended.value.filter(product => {
     return product &&
            typeof product === 'object' &&
            !Array.isArray(product) &&
            product._id &&
            product.nombre &&
            typeof product.nombre === 'string' &&
-           product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0; // Ensure product has at least one image
+           product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0;
   });
 });
 
@@ -347,14 +320,13 @@ const toggleFavorite = (product) => {
 
 const addToCart = (product) => {
   console.log('Añadir al carrito:', product)
-  // Implement actual add to cart logic here (e.g., using a store like Pinia/Vuex)
 }
 
 const getProductImage = (product) => {
   if (product && product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
     return product.imagenes[0]
   }
-  return '/placeholder.png' // Ensure you have a generic placeholder image in your public folder
+  return '/placeholder.png'
 }
 
 const goToProduct = (product) => {
@@ -373,114 +345,36 @@ const getDetailsPath = (slug) => {
   return `/Details/${encodeURIComponent(slug.trim())}`
 }
 
-const generateSlug = (name) => {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-};
-
-const fetchBestSellers = async () => {
+const fetchRecommended = async () => {
   loading.value = true
   try {
-    console.log('Bestsellers: Iniciando fetch de productos...')
-    const response = await getData('productos')
-
-    console.log('Bestsellers: Respuesta completa del servidor (RAW):', response)
-
-    if (!response) {
-      console.error('Bestsellers: No se recibió respuesta del servidor')
-      bestSellers.value = []
-      return
+    // Puedes ajustar el endpoint según tu backend
+    const res = await getData('productos', { sort: 'rating_desc', limit: 8 })
+    let productos = []
+    if (Array.isArray(res)) {
+      productos = res
+    } else if (res.productos && Array.isArray(res.productos)) {
+      productos = res.productos
+    } else {
+      productos = []
     }
-
-    const productos = Array.isArray(response) ? response : []
-
-    if (productos.length === 0) {
-      console.log('Bestsellers: No hay productos disponibles')
-      bestSellers.value = []
-      return
-    }
-
-    const productosConCalificaciones = await Promise.all(
-      productos.map(async (product) => {
-        if (!product || !product._id) {
-          console.error('Bestsellers: Producto inválido en la lista:', product)
-          return null
-        }
-
-        try {
-          const ratings = await reviewsService.getProductRatings(product._id)
-          const slug = product.slug || generateSlug(product.nombre)
-
-          return {
-            _id: product._id,
-            nombre: product.nombre || 'Producto sin nombre',
-            descripcion: product.descripcion || 'Sin descripción',
-            precio: parseFloat(product.precio) || 0,
-            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
-            enOferta: Boolean(product.enOferta),
-            marca: product.marca || null,
-            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
-            promedioCalificacion: ratings?.promedioTotal || 0,
-            totalResenas: ratings?.totalReseñas || 0,
-            slug: slug
-          }
-        } catch (error) {
-          console.error(`Bestsellers: Error al obtener calificaciones para producto ${product._id}:`, error)
-          const slug = product.slug || generateSlug(product.nombre)
-          return {
-            _id: product._id,
-            nombre: product.nombre || 'Producto sin nombre',
-            descripcion: product.descripcion || 'Sin descripción',
-            precio: parseFloat(product.precio) || 0,
-            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
-            enOferta: Boolean(product.enOferta),
-            marca: product.marca || null,
-            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
-            promedioCalificacion: 0,
-            totalResenas: 0,
-            slug: slug
-          }
-        }
-      })
-    )
-
-    bestSellers.value = productosConCalificaciones.filter(product => product !== null)
-
-    console.log('Bestsellers: Productos procesados y asignados a bestSellers.value:', bestSellers.value.length)
-
-    // Wait for the DOM to update after data is loaded and rendered
-    await nextTick();
-    calculateCarouselDimensions(); // Calculate dimensions after products are rendered
-    // Set initial position to the start of the second set for seamless loop
-    if (sortedProducts.value.length > 0) {
-      currentIndex.value = sortedProducts.value.length; // Start at the beginning of the middle set
-      trackTranslateX.value = -currentIndex.value * itemWidth.value;
-      startAutoScroll(); // Start auto-scrolling
-    }
-
-
-  } catch (error) {
-    console.error('Bestsellers: Error al obtener o procesar productos:', error)
-    bestSellers.value = []
+    recommended.value = productos
+  } catch (e) {
+    recommended.value = []
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  fetchBestSellers()
-  window.addEventListener('resize', calculateCarouselDimensions); // Recalculate on resize
+  fetchRecommended()
+  window.addEventListener('resize', calculateCarouselDimensions)
 })
 
 onBeforeUnmount(() => {
-  stopAutoScroll();
-  window.removeEventListener('resize', calculateCarouselDimensions);
+  stopAutoScroll()
+  window.removeEventListener('resize', calculateCarouselDimensions)
 })
-
 
 </script>
 <style scoped lang="scss">

@@ -7,14 +7,14 @@
       <div class="q-mt-md text-primary">Cargando ofertas...</div>
     </div>
 
-    <div v-else-if="products.length === 0" class="text-center text-grey-7 q-my-xl">
+    <div v-else-if="productosStore.productos.length === 0" class="text-center text-grey-7 q-my-xl">
       <q-icon name="sentiment_dissatisfied" size="4em" class="q-mb-md" />
       <div class="text-h6">No hay ofertas disponibles en este momento.</div>
       <p class="q-mt-sm">Vuelve más tarde para ver nuestras promociones.</p>
     </div>
 
     <div v-else class="row q-col-gutter-md">
-      <div v-for="product in products" :key="product._id" class="col-12 col-sm-6 col-md-4 col-lg-3">
+      <div v-for="product in productosStore.productos" :key="product._id" class="col-12 col-sm-6 col-md-4 col-lg-3">
         <q-card class="my-card">
           <q-img 
             :src="product.imagenes?.[0] || 'https://via.placeholder.com/300'" 
@@ -78,14 +78,14 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getData } from '../services/apiClient.js';
+import { useProductosStore } from '@/store/store'
 import FavoriteButton from '../components/FavoriteButton.vue';
 import RatingStars from '../components/RatingStars.vue';
 
 const route = useRoute();
 const router = useRouter();
+const productosStore = useProductosStore()
 
-const products = ref([]);
 const loading = ref(true);
 const currentPage = ref(1);
 const pagination = ref({
@@ -131,7 +131,7 @@ const fetchProducts = async () => {
     }
     
     // Ya no necesitamos filtrar aquí porque la API ya nos devuelve solo productos en oferta
-    products.value = productosArray;
+    productosStore.productos = productosArray;
     
     console.log('Total productos en oferta:', productosArray.length);
     
@@ -147,7 +147,7 @@ const fetchProducts = async () => {
   } catch (error) {
     console.error('Error al obtener productos en oferta:', error);
     console.error('Error details:', error.response?.data);
-    products.value = [];
+    productosStore.productos = [];
     // Reset pagination on error
     pagination.value = {
       total: 0,
@@ -161,7 +161,9 @@ const fetchProducts = async () => {
   }
 };
 
-onMounted(fetchProducts);
+onMounted(() => {
+  productosStore.cargarTodo()
+})
 watch(() => route.query, fetchProducts, { deep: true });
 
 const changePage = (newPage) => {

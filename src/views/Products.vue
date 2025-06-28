@@ -192,7 +192,6 @@
               :max-pages="6"
               direction-links
               boundary-links
-              @update:model-value="fetchProducts"
               input
               color="primary"
             />
@@ -206,7 +205,7 @@
         </div>
 
         <!-- Sin resultados -->
-        <div v-else-if="products.length === 0" class="row justify-center q-py-xl">
+        <div v-else-if="productosFiltrados.length === 0" class="row justify-center q-py-xl">
           <q-icon name="search_off" size="3em" color="grey-7" />
           <div class="text-subtitle1 q-mt-md col-12 text-center">
             No se encontraron productos con los filtros seleccionados
@@ -222,10 +221,10 @@
         <!-- Vista de cuadrícula -->
         <div v-else-if="gridView" class="row q-col-gutter-lg">
           <div
-            v-for="product in products"
+            v-for="product in productosFiltrados"
             :key="product._id"
             class="col-12 col-sm-6 col-md-4 col-lg-3"
-            :class="{'col-xl-2': products.length > 5}"
+            :class="{'col-xl-2': productosFiltrados.length > 5}"
           >
             <product-card :product="product" />
           </div>
@@ -234,7 +233,7 @@
         <!-- Vista de lista -->
         <div v-else class="column q-gutter-md">
           <product-card-list
-            v-for="product in products"
+            v-for="product in productosFiltrados"
             :key="product._id"
             :product="product"
             :show-specs="true"
@@ -242,14 +241,13 @@
         </div>
 
         <!-- Paginación inferior -->
-        <div class="row justify-center q-mt-lg" v-if="pagination.totalPages > 1 && products.length > 0">
+        <div class="row justify-center q-mt-lg" v-if="pagination.totalPages > 1 && productosFiltrados.length > 0">
           <q-pagination
             v-model="currentPage"
             :max="pagination.totalPages"
             :max-pages="6"
             direction-links
             boundary-links
-            @update:model-value="fetchProducts"
             input
             color="primary"
           />
@@ -263,17 +261,17 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
-import api from '../plugins/axios'
+import { useProductosStore } from '@/store/store'
 import ProductCard from '../components/ProductCard.vue'
+import { getData, postData, putData, deleteData } from '../services/apiClient'
 import ProductCardList from '../components/ProductCardList.vue'
-import { getData } from '../services/apiclient'
 
 const $q = useQuasar()
 const route = useRoute()
 const router = useRouter()
+const productosStore = useProductosStore()
 
 // Datos reactivos
-const products = ref([])
 const loading = ref(false)
 const category = ref(null)
 const subcategory = ref(null)
@@ -333,6 +331,26 @@ const hasActiveFilters = computed(() => {
   return false
 })
 
+const productosFiltrados = computed(() => {
+  let productos = productosStore.productos
+
+  // Filtrar por categoría si está seleccionada
+  if (category.value && category.value._id) {
+    productos = productos.filter(
+      p => p.category === category.value._id || p.category?._id === category.value._id
+    )
+  }
+
+  // Filtrar por marca si está seleccionada
+  if (currentBrand.value && currentBrand.value._id) {
+    productos = productos.filter(
+      p => p.marca === currentBrand.value._id || p.marca?._id === currentBrand.value._id
+    )
+  }
+
+  return productos
+})
+
 // Obtener el slug de la marca de la URL
 const brandSlug = computed(() => route.params.slug)
 
@@ -361,103 +379,17 @@ const showError = (message, caption) => {
   })
 }
 
-// Obtener productos
-const fetchProducts = async () => {
-  loading.value = true;
-  try {
-    const params = {
-      page: currentPage.value,
-      limit: pagination.value.limit
-    };
-    
-    let response;
-    
-    // Si estamos en la ruta de marca, usar el endpoint específico
-    if (route.name === 'BrandProducts') {
-      console.log('Products: Obteniendo productos de marca:', route.params.slug);
-      
-      // Primero obtener la información de la marca
-      const brandResponse = await api.get(`/marcas/slug/${route.params.slug}`);
-      console.log('Products: Respuesta de marca:', brandResponse);
-      
-      if (brandResponse.data) {
-        currentBrand.value = brandResponse.data;
-        console.log('Products: Marca cargada:', currentBrand.value.nombre);
-        
-        // Ahora obtener los productos de la marca usando su ID
-        const productsResponse = await api.get(`/productos?marca=${currentBrand.value._id}`);
-        console.log('Products: Respuesta de productos de marca:', productsResponse);
-        
-        products.value = productsResponse.data.productos || [];
-        pagination.value = productsResponse.data.pagination || {
-          total: products.value.length,
-          page: 1,
-          limit: pagination.value.limit,
-          totalPages: 1
-        };
-      } else {
-        products.value = [];
-        pagination.value = {
-          total: 0,
-          page: 1,
-          limit: pagination.value.limit,
-          totalPages: 0
-        };
-      }
-    } else {
-      // Para otras rutas, mantener el comportamiento original
-      if (category.value?._id) {
-        params.category = category.value._id;
-      }
-      if (subcategory.value) params.subcategory = subcategory.value._id;
-      if (searchQuery.value) params.search = searchQuery.value;
-
-      if (priceRange.value.min > minPrice.value) params.minPrice = priceRange.value.min;
-      if (priceRange.value.max < maxPrice.value) params.maxPrice = priceRange.value.max;
-
-      // Construir la URL con los parámetros
-      const queryString = Object.entries(params)
-        .filter(([_, value]) => value !== undefined && value !== null && value !== 'undefined')
-        .map(([key, value]) => {
-          if (Array.isArray(value)) {
-            return value.map((v, i) => `${key}[${i}]=${encodeURIComponent(v)}`).join('&');
-          }
-          return `${key}=${encodeURIComponent(value)}`;
-        })
-        .join('&');
-
-      console.log('URL de búsqueda:', `/productos?${queryString}`);
-      response = await api.get(`/productos?${queryString}`);
-
-      products.value = response.data.productos || [];
-      pagination.value = response.data.pagination || {
-        total: products.value.length,
-        page: currentPage.value,
-        limit: pagination.value.limit,
-        totalPages: 1
-      };
-    }
-
-  } catch (error) {
-    console.error('Products: Error al cargar productos:', error);
-    showError('Error al cargar productos', error.message);
-    products.value = [];
-  } finally {
-    loading.value = false;
-  }
-};
-
 // Obtener datos de categoría y marcas
 const fetchCategoryData = async () => {
   // Si estamos en la ruta de marca, cargar los datos de la marca
   if (route.name === 'BrandProducts') {
     try {
       console.log('Products: Iniciando carga de marca...');
-      const brandResponse = await api.get(`/marcas/slug/${route.params.slug}`);
+      const brandResponse = await getData(`marcas/slug/${route.params.slug}`);
       console.log('Products: Respuesta de marca:', brandResponse);
       
-      if (brandResponse.data) {
-        currentBrand.value = brandResponse.data;
+      if (brandResponse) {
+        currentBrand.value = brandResponse;
         console.log('Products: Marca cargada:', currentBrand.value.nombre);
       }
     } catch (error) {
@@ -472,32 +404,32 @@ const fetchCategoryData = async () => {
   if (route.name === 'CategoryProducts') {
     try {
       // Cargar categoría por slug
-      const catResponse = await api.get(`/categorias/slug/${route.params.slug}`)
-      if (!catResponse.data) {
+      const catResponse = await getData(`categorias/slug/${route.params.slug}`)
+      if (!catResponse) {
         throw new Error('Categoría no encontrada')
       }
-      category.value = catResponse.data
+      category.value = catResponse
 
       // Cargar marcas
       try {
         console.log('Products: Iniciando carga de marcas...');
-        const brandsResponse = await api.get('/marcas');
+        const brandsResponse = await getData('/marcas');
         console.log('Products: Respuesta completa de marcas:', brandsResponse);
         
-        if (brandsResponse.data) {
-          console.log('Products: Datos de marcas recibidos:', brandsResponse.data);
+        if (brandsResponse) {
+          console.log('Products: Datos de marcas recibidos:', brandsResponse);
           
           // Verificar que la respuesta sea un array
-          if (Array.isArray(brandsResponse.data)) {
+          if (Array.isArray(brandsResponse)) {
             // Filtrar solo marcas activas y con logo
-            brands.value = brandsResponse.data.filter(brand => 
+            brands.value = brandsResponse.filter(brand => 
               brand.state === '1' && 
               brand.logo && 
               brand.nombre
             );
             console.log('Products: Marcas válidas encontradas:', brands.value.length);
           } else {
-            console.warn('Products: Formato de respuesta de marcas inesperado:', brandsResponse.data);
+            console.warn('Products: Formato de respuesta de marcas inesperado:', brandsResponse);
             brands.value = [];
           }
         } else {
@@ -514,8 +446,8 @@ const fetchCategoryData = async () => {
       // Cargar subcategoría si existe
       if (route.params.subcategoryId) {
         try {
-          const subcatResponse = await api.get(`/subcategorias/${route.params.subcategoryId}`)
-          subcategory.value = subcatResponse.data
+          const subcatResponse = await getData(`subcategorias/${route.params.subcategoryId}`)
+          subcategory.value = subcatResponse
         } catch (subcatError) {
           console.warn('No se pudo cargar la subcategoría:', subcatError)
           subcategory.value = null
@@ -527,9 +459,9 @@ const fetchCategoryData = async () => {
 
       // Cargar rango de precios
       try {
-        const pricesResponse = await api.get(`/productos/rango-precios/${category.value._id}`)
-        minPrice.value = pricesResponse.data.min || 0
-        maxPrice.value = pricesResponse.data.max || 1000000
+        const pricesResponse = await getData(`productos/rango-precios/${category.value._id}`)
+        minPrice.value = pricesResponse.min || 0
+        maxPrice.value = pricesResponse.max || 1000000
         priceRange.value = { min: minPrice.value, max: maxPrice.value }
       } catch (pricesError) {
         console.warn('No se pudo cargar el rango de precios:', pricesError)
@@ -540,10 +472,10 @@ const fetchCategoryData = async () => {
 
       // Cargar filtros alfabéticos
       try {
-        const alphaResponse = await api.get(`/productos/filtros-alfabeticos/${category.value._id}`)
-        if (alphaResponse.data && alphaResponse.data.filtrosAlfabeticos) {
-          alphabeticFields.value.marca.letters = alphaResponse.data.filtrosAlfabeticos.marca || []
-          alphabeticFields.value.modelo.letters = alphaResponse.data.filtrosAlfabeticos.modelo || []
+        const alphaResponse = await getData(`productos/filtros-alfabeticos/${category.value._id}`)
+        if (alphaResponse && alphaResponse.filtrosAlfabeticos) {
+          alphabeticFields.value.marca.letters = alphaResponse.filtrosAlfabeticos.marca || []
+          alphabeticFields.value.modelo.letters = alphaResponse.filtrosAlfabeticos.modelo || []
         }
       } catch (alphaError) {
         console.warn('No se pudieron cargar los filtros alfabéticos:', alphaError)
@@ -567,13 +499,13 @@ const fetchAvailableFilters = async () => {
   if (!category.value?._id) return
 
   try {
-    const filtersResponse = await api.get(`/productos/filtros-disponibles/${category.value._id}`)
-    console.log('Filtros disponibles recibidos:', filtersResponse.data)
+    const filtersResponse = await getData(`productos/filtros-disponibles/${category.value._id}`)
+    console.log('Filtros disponibles recibidos:', filtersResponse);
     
     // Procesar los filtros recibidos
     const processedFilters = {}
-    for (const key in filtersResponse.data.filters) {
-      const filterValues = filtersResponse.data.filters[key]
+    for (const key in filtersResponse.filters) {
+      const filterValues = filtersResponse.filters[key]
       processedFilters[key] = filterValues.map(value => ({
         label: value.label || value,
         value: value.value || value
@@ -599,17 +531,14 @@ const fetchAvailableFilters = async () => {
 // Manejo de filtros
 const applyFilters = () => {
   currentPage.value = 1
-  fetchProducts()
 }
 
 const applyPriceFilter = () => {
   currentPage.value = 1
-  fetchProducts()
 }
 
 const applySorting = () => {
   currentPage.value = 1
-  fetchProducts()
 }
 
 const applyAlphaFilter = (field, letter) => {
@@ -620,13 +549,11 @@ const applyAlphaFilter = (field, letter) => {
 
   activeAlphaFilter.value = { field, letter }
   currentPage.value = 1
-  fetchProducts()
 }
 
 const clearAlphaFilter = () => {
   activeAlphaFilter.value = { field: null, letter: null }
   currentPage.value = 1
-  fetchProducts()
 }
 
 // Manejo de filtro por marca
@@ -678,28 +605,29 @@ const resetAllFilters = () => {
 
   // Volver a la primera página
   currentPage.value = 1
-  
-  // Recargar productos
-  fetchProducts()
 }
 
 // Inicialización
 const initializeFromRoute = async () => {
+  console.log('Products: Iniciando inicialización desde ruta...')
   await fetchCategoryData()
-  fetchProducts()
+  console.log('Products: Datos de categoría cargados, iniciando carga de productos...')
+  await productosStore.cargarTodo()
+  console.log('Products: Inicialización completada')
 }
 
 // Watchers
 watch(() => route.params, () => {
+  console.log('Products: Cambio en parámetros de ruta detectado')
   currentPage.value = 1
   initializeFromRoute()
 }, { immediate: true })
 
 watch(() => route.query, (newQuery) => {
+  console.log('Products: Cambio en query de ruta detectado:', newQuery)
   if (newQuery.search !== searchQuery.value) {
     searchQuery.value = newQuery.search || ''
     currentPage.value = 1
-    fetchProducts()
   }
   
   // Si hay un cambio en el parámetro brand
@@ -708,46 +636,53 @@ watch(() => route.query, (newQuery) => {
     if (brand) {
       currentBrand.value = brand
       currentPage.value = 1
-      fetchProducts()
     }
   } else if (currentBrand.value) {
     // Si se eliminó el parámetro brand pero tenemos una marca seleccionada
     currentBrand.value = null
     currentPage.value = 1
-    fetchProducts()
   }
 }, { immediate: true })
 
 watch(showOnlyOffers, () => {
+  console.log('Products: Cambio en filtro de ofertas detectado')
   currentPage.value = 1
-  fetchProducts()
 })
 
 // Cargar la marca por slug
 const loadBrandBySlug = async () => {
   if (brandSlug.value) {
+    console.log('Products: Cargando marca por slug:', brandSlug.value)
     try {
       const response = await getData(`marcas/slug/${brandSlug.value}`)
       if (response) {
         currentBrand.value = response
+        console.log('Products: Marca cargada por slug:', response.nombre)
         // Aplicar el filtro de marca
         activeFilters.value.marca = [response._id]
-        await fetchProducts()
       }
     } catch (error) {
-      console.error('Error al cargar la marca:', error)
+      console.error('Products: Error al cargar la marca por slug:', error)
     }
   }
 }
 
 // Observar cambios en el slug de la marca
 watch(brandSlug, () => {
+  console.log('Products: Cambio en slug de marca detectado')
   loadBrandBySlug()
 })
 
 // Cargar la marca al montar el componente
 onMounted(() => {
-  loadBrandBySlug()
+  console.log('Products: Componente montado, iniciando carga de productos...')
+  productosStore.cargarTodo()
+})
+
+// Si necesitas watchers para filtros, solo vuelve a llamar a cargarTodo
+watch([currentPage, sortOption, showOnlyOffers], () => {
+  console.log('Products: Cambio en filtros detectado, recargando productos...')
+  productosStore.cargarTodo()
 })
 </script>
 

@@ -144,6 +144,8 @@ const props = defineProps({
   }
 })
 
+console.log('PRODUCTO EN CARD:', props.product)
+
 const router = useRouter()
 const $q = useQuasar()
 const currentImage = ref(0)
@@ -151,7 +153,9 @@ const loading = ref(false)
 const showLoginDialog = ref(false)
 
 const mainImage = computed(() => {
-  return props.product.imagenes[currentImage.value] || '/placeholder-product.png'
+  return Array.isArray(props.product.imagenes) && props.product.imagenes.length > 0
+    ? props.product.imagenes[currentImage.value]
+    : '/placeholder-product.png'
 })
 
 const highlightedSpecs = computed(() => {
@@ -169,6 +173,7 @@ const highlightedSpecs = computed(() => {
 })
 
 const formatPrice = (price) => {
+  if (typeof price !== 'number' || isNaN(price)) return '$0'
   return price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
 }
 

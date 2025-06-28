@@ -6,13 +6,13 @@
       <q-spinner-hourglass color="primary" size="4em" />
       <div class="q-mt-md text-primary">Cargando productos...</div>
     </div>
-    <div v-else-if="!products || products.length === 0" class="text-center text-grey-7 q-my-xl">
+    <div v-else-if="!productosStore.productos || productosStore.productos.length === 0" class="text-center text-grey-7 q-my-xl">
       <q-icon name="sentiment_dissatisfied" size="4em" class="q-mb-md" />
       <div class="text-h6">No se encontraron productos que coincidan con tu búsqueda.</div>
       <p class="q-mt-sm">Intenta con otros términos o filtros.</p>
     </div>
     <div v-else class="products-grid">
-      <div v-for="product in products" :key="product._id" class="product-wrapper">
+      <div v-for="product in productosStore.productos" :key="product._id" class="product-wrapper">
         <q-card class="product-card tech-card" flat>
           <div class="img-wrapper">
             <q-img 
@@ -117,7 +117,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getData } from '../services/apiClient.js';
+import { useProductosStore } from '@/store/store';
 import FavoriteButton from './FavoriteButton.vue';
 import RatingStars from './RatingStars.vue';
 import LoginDialog from './LoginDialog.vue';
@@ -128,8 +128,8 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const $q = useQuasar();
+const productosStore = useProductosStore();
 
-const products = ref([]);
 const loading = ref(true);
 const currentPage = ref(1);
 const showLoginDialog = ref(false);
@@ -178,57 +178,15 @@ const handleAddToCart = (product) => {
   });
 };
 
-const fetchProducts = async () => {
-  loading.value = true;
-  try {
-    const { q, category, page } = route.query;
-
-    const params = {
-      page: page || 1,
-      ...(q && { query: q }),
-      ...(category && { category }),
-    };
-
-    const response = await getData('productos/busqueda', params);
-    console.log('Response from API:', response);
-
-    if (response && response.productos) {
-      products.value = response.productos;
-      pagination.value = {
-        total: response.total || 0,
-        page: response.page || 1,
-        limit: response.limit || 10,
-        totalPages: response.totalPages || 1
-      };
-    } else {
-      products.value = [];
-      pagination.value = {
-        total: 0,
-        page: 1,
-        limit: 10,
-        totalPages: 1
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    products.value = [];
-    $q.notify({
-      type: 'negative',
-      message: 'Error al cargar los productos',
-      position: 'top'
-    });
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(fetchProducts);
+onMounted(() => {
+  productosStore.cargarTodo();
+});
 
 watch(
   () => route.query,
   (newQuery) => {
     currentPage.value = parseInt(newQuery.page) || 1;
-    fetchProducts();
+    productosStore.cargarTodo();
   },
   { immediate: true }
 );

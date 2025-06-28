@@ -23,6 +23,9 @@ export async function getData(url, params = {}) {
       if (Array.isArray(response.data)) {
         console.log('getData: Marcas encontradas:', response.data.length);
         return response.data;
+      } else if (response.data.marcas && Array.isArray(response.data.marcas)) {
+        console.log('getData: Marcas encontradas en data.marcas:', response.data.marcas.length);
+        return response.data.marcas;
       } else {
         console.warn('getData: Formato de respuesta de marcas inesperado:', response.data);
         return [];
@@ -90,6 +93,7 @@ export async function getData(url, params = {}) {
     console.error('Detalles del error:', error.response?.data);
     console.error('URL de la petición:', error.config?.url);
     console.error('Método de la petición:', error.config?.method);
+    console.error('Headers de la petición:', error.config?.headers);
     
     // Si el error es de autenticación, lanzar un error específico
     if (error.response?.status === 401) {

@@ -187,7 +187,7 @@
     </q-header>
 
     <!-- Breadcrumbs -->
-    <div v-if="showBreadcrumbs" class="breadcrumbs-container q-px-md" style="margin-top: 56px; background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%);">
+    <div v-if="showBreadcrumbs && route.name" class="breadcrumbs-container q-px-md" style="margin-top: 56px; background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%);">
       <Breadcrumbs :custom-items="customBreadcrumbsInjected ? customBreadcrumbsInjected : undefined" />
     </div>
 
@@ -329,10 +329,13 @@
   @switch-to-login="openLogin"
   @close="showRegisterDialog = false"
 />
+  
+  <!-- Debug Panel -->
+  <DebugPanel />
 </template>
 
 <script setup>
-import { ref, onMounted, computed, inject, watch } from 'vue';
+import { ref, onMounted, computed, inject, watch, nextTick } from 'vue';
 import { useAuthStore } from '../store/store.js';
 import { useRouter, useRoute } from 'vue-router';
 import AuthDialog from '../components/AuthDialog.vue';
@@ -340,6 +343,7 @@ import { getData } from '../services/apiClient.js';
 import Breadcrumbs from '../components/ui/Breadcrumbs.vue';
 import SearchSuggestions from '../components/SearchSuggestions.vue';
 import RegisterDialog from '../components/RegisterDialog.vue';
+import DebugPanel from '../components/DebugPanel.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -375,11 +379,14 @@ const categories = ref([]);
 const loading = ref(false);
 
 onMounted(async () => {
+  // Asegurar que el DOM esté listo antes de cargar datos
+  await nextTick()
+  
   loading.value = true;
   try {
-    console.log('Iniciando carga de categorías...');
+    console.log('MainLayout: Iniciando carga de categorías...');
     const response = await getData('categorias');
-    console.log('Respuesta del servidor categorías:', response);
+    console.log('MainLayout: Respuesta del servidor categorías:', response);
     
     if (Array.isArray(response)) {
       categories.value = response.map(c => ({
@@ -387,13 +394,13 @@ onMounted(async () => {
         value: c._id,
         slug: c.slug || c.nombre?.toLowerCase().replace(/\s+/g, '-')
       }));
-      console.log('Categorías cargadas:', categories.value);
+      console.log('MainLayout: Categorías cargadas:', categories.value);
     } else {
-      console.error('La respuesta no es un array:', response);
+      console.error('MainLayout: La respuesta no es un array:', response);
       categories.value = [];
     }
   } catch (error) {
-    console.error('Error al cargar categorías:', error);
+    console.error('MainLayout: Error al cargar categorías:', error);
     categories.value = [];
   } finally {
     loading.value = false;
