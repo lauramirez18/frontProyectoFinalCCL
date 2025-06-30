@@ -1,17 +1,33 @@
 <template>
   <div class="bestsellers-section">
-    <div class="section-header">
-      <h2 class="title">Lo más vendido</h2>
-      <div class="title-underline"></div>
+    <div class="section-header text-center">
+      <h6 class="glowing-text">
+        <div class="stars-wrapper">
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
+        </div>
+        <q-icon name="trending_up" class="q-mr-sm" />
+        Lo Más Vendido
+        <div class="stars-wrapper">
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
+          <q-icon name="star" size="xs" color="yellow-7" class="star-icon" />
+        </div>
+      </h6>
+      <p class="animated-subtitle text-caption text-grey-7">
+        Descubre la excelencia tecnológica mejor valorada
+      </p>
     </div>
 
-    <div v-if="loading" class="row justify-center q-pa-xl">
-      <q-spinner-dots color="primary" size="4em" />
+    <div v-if="loading" class="flex flex-center q-pa-xl">
+      <div class="tech-loader">
+        <q-spinner-dots color="primary" size="40px" />
+        <div class="loading-text">Cargando innovación...</div>
+      </div>
     </div>
 
-    <div v-else-if="bestSellers.length === 0" class="empty-state q-pa-xl">
-      <q-icon name="inventory_2" size="4em" color="grey-5" />
-      <p>No hay productos disponibles en este momento</p>
+    <div v-else-if="sortedProducts.length === 0" class="text-center q-pa-xl text-grey-7">
+      <q-icon name="devices" size="4em" color="grey-5" class="pulse-animation" />
+      <p class="q-mt-sm">No hay productos disponibles en este momento</p>
     </div>
 
     <div v-else class="carousel-container" @mouseenter="stopAutoScroll" @mouseleave="startAutoScroll">
@@ -35,77 +51,106 @@
             :key="`main-${product._id}-${index}`"
             class="product-card-wrapper"
           >
-            <router-link
-              :to="`/Details/${product.slug}`"
-              class="product-link"
+            <q-card
+              class="product-card tech-card"
+              flat
+              @click="goToProduct(product)"
             >
-              <q-card class="product-card tech-card" flat>
-                <div class="img-wrapper"
-                  @mouseenter="startImageRotation(product)"
-                  @mouseleave="stopImageRotation"
-                  :data-product-id="product._id"
+              <div class="img-wrapper">
+                <q-img
+                  :src="getProductImage(product)"
+                  :alt="product.nombre"
+                  ratio="1"
+                  class="product-image"
                 >
-                  <q-img
-                    :src="getProductImage(product)"
-                    :alt="product.nombre"
-                    ratio="1"
-                    class="product-image"
-                  >
-                    <template v-slot:loading>
-                      <q-spinner-dots color="white" size="40px" />
-                    </template>
+                  <template v-slot:error>
+                    <div class="absolute-full flex flex-center bg-grey-3">
+                      <q-icon name="devices_other" size="3em" color="grey-7" class="pulse-slow" />
+                    </div>
+                  </template>
 
-                    <div class="tech-overlay">
-                      <div class="rating-container">
-                        <div class="rating-stars tech-rating">
-                          <q-rating
-                            v-model="product.promedioCalificacion"
-                            max="5"
-                            size="1.2em"
-                            color="yellow"
-                            icon="star"
-                            icon-selected="star"
-                            icon-half="star_half"
-                            readonly
-                          />
-                          <span class="rating-count text-white q-ml-sm">
-                            ({{ product.totalResenas || 0 }})
-                          </span>
-                        </div>
+                  <div class="brand-badge" v-if="product.marca">
+                    <q-chip dense class="brand-chip" size="sm">
+                      <q-icon name="verified" size="xs" class="brand-icon" />
+                      <span class="brand-name-text">
+                        {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
+                      </span>
+                    </q-chip>
+                  </div>
+
+                  <div class="absolute-top-right q-ma-sm">
+                    <q-btn
+                      round
+                      flat
+                      :icon="favorites.has(product._id) ? 'favorite' : 'favorite_border'"
+                      class="favorite-btn tech-btn"
+                      :class="{ 'is-favorite': favorites.has(product._id) }"
+                      :color="favorites.has(product._id) ? 'red-5' : 'grey-5'"
+                      @click.stop="toggleFavorite(product)"
+                    >
+                      <q-tooltip>
+                        {{ favorites.has(product._id) ? 'Quitar de favoritos' : 'Agregar a favoritos' }}
+                      </q-tooltip>
+                    </q-btn>
+                  </div>
+
+                  <div class="tech-overlay">
+                    <div class="rating-container">
+                      <div class="rating-stars tech-rating">
+                        <q-rating
+                          v-model="product.promedioCalificacion"
+                          max="5"
+                          size="1.2em"
+                          color="yellow"
+                          icon="star"
+                          readonly
+                        />
+                        <span class="rating-count text-white q-ml-sm">
+                          ({{ product.totalResenas || 0 }})
+                        </span>
                       </div>
                     </div>
-                  </q-img>
-                </div>
-
-                <q-card-section class="product-info">
-                  <div class="brand-caption" v-if="product.marca">
-                    {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
                   </div>
-                  <div class="product-title">{{ product.nombre || 'Producto sin nombre' }}</div>
+                </q-img>
+              </div>
 
-                  <div class="price-section">
-                    <div class="price-container">
+              <q-card-section class="product-info">
+                <div class="brand-caption" v-if="product.marca">
+                  {{ typeof product.marca === 'object' ? product.marca.nombre : product.marca }}
+                </div>
+                <div class="product-title">{{ product.nombre }}</div>
+
+                <div class="price-section">
+                  <div class="price-container">
+                    <template v-if="product.enOferta">
+                      <div class="original-price">
+                        ${{ formatThousands(product.precio) }}
+                      </div>
+                      <div class="offer-price">
+                        ${{ formatThousands(product.precioOferta) }}
+                      </div>
+                    </template>
+                    <template v-else>
                       <div class="current-price">
                         ${{ formatThousands(product.precio) }}
                       </div>
-                    </div>
+                    </template>
                   </div>
-                </q-card-section>
-              </q-card>
-            </router-link>
-            
-            <div class="actions-container">
-              <q-btn
-                round
-                flat
-                class="action-btn cart-btn"
-                icon="add_shopping_cart"
-                color="primary"
-                @click.stop="addToCart(product, product.imagenes[0])"
-              >
-                <q-tooltip>Agregar al carrito</q-tooltip>
-              </q-btn>
-            </div>
+
+                  <q-btn
+                    round
+                    flat
+                    class="cart-btn"
+                    @click.stop="addToCart(product)"
+                  >
+                    <q-icon name="add_shopping_cart" size="sm" />
+                    <q-tooltip>Agregar al carrito</q-tooltip>
+                  </q-btn>
+                </div>
+
+                
+              </q-card-section>
+            </q-card>
           </div>
         </div>
       </div>
@@ -121,21 +166,22 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, reactive, computed, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { getData } from '../services/apiclient'
+import { reviewsService } from '../services/resenias'
 import { useThousandsFormat } from '../composables/useThousandFormat'
 import { useCart } from '../composables/useCart'
 
-const {addToCart} = useCart()
+const router = useRouter()
 const { formatThousands } = useThousandsFormat()
-const bestSellers = ref([])
-const currentImages = reactive({})
 const loading = ref(true)
-let imageInterval = null
+const bestSellers = ref([])
+const favorites = ref(new Set())
+const { addToCart: addToCartComposable } = useCart()
 
-// Carousel Logic
+// --- Carousel Logic ---
 const carouselWrapper = ref(null)
 const carouselTrack = ref(null)
 const trackTranslateX = ref(0)
@@ -143,35 +189,45 @@ const itemWidth = ref(0)
 const visibleItems = ref(0)
 const currentIndex = ref(0)
 const scrollInterval = ref(null)
-const isManualScroll = ref(false)
-const animationDuration = 500
+const isManualScroll = ref(false) // To control animation
+const animationDuration = 500; // ms for manual scroll animation
 
 const duplicatedProducts = computed(() => {
-  if (bestSellers.value.length === 0) {
+  // Only duplicate if there are actual products
+  if (sortedProducts.value.length === 0) {
     return [];
   }
-  return [...bestSellers.value, ...bestSellers.value, ...bestSellers.value];
+  // Duplicate the array to create the infinite loop effect
+  return [...sortedProducts.value, ...sortedProducts.value, ...sortedProducts.value];
 });
 
 const calculateCarouselDimensions = () => {
-  if (carouselWrapper.value && carouselTrack.value && bestSellers.value.length > 0) {
+  if (carouselWrapper.value && carouselTrack.value && sortedProducts.value.length > 0) {
     const wrapperWidth = carouselWrapper.value.offsetWidth;
+    // Assuming each card takes similar width + gap
+    // Adjust this calculation based on your CSS grid/flex setup for .product-card-wrapper
+    // A simple way is to measure the first actual product card if available
     const firstProductCard = carouselTrack.value.querySelector('.product-card-wrapper');
     if (firstProductCard) {
-      itemWidth.value = firstProductCard.offsetWidth;
+      itemWidth.value = firstProductCard.offsetWidth; // Includes margin/padding from CSS
       visibleItems.value = Math.floor(wrapperWidth / itemWidth.value);
+      console.log('Carousel Dimensions:', { wrapperWidth, itemWidth: itemWidth.value, visibleItems: visibleItems.value });
+    } else {
+      console.warn('First product card not found for dimension calculation.');
     }
   }
 };
 
 const resetCarouselPosition = () => {
-  const numProducts = bestSellers.value.length;
+  const numProducts = sortedProducts.value.length;
   if (numProducts === 0 || itemWidth.value === 0) return;
 
+  // If we are at the end of the first 'real' set of items, jump back to the middle 'real' set
   if (currentIndex.value >= numProducts) {
     currentIndex.value -= numProducts;
     trackTranslateX.value = -currentIndex.value * itemWidth.value;
   }
+  // If we scrolled back into the 'cloned' beginning, jump to the middle 'real' set
   else if (currentIndex.value < 0) {
     currentIndex.value += numProducts;
     trackTranslateX.value = -currentIndex.value * itemWidth.value;
@@ -179,24 +235,26 @@ const resetCarouselPosition = () => {
 };
 
 const scrollCarousel = () => {
-  if (bestSellers.value.length === 0 || itemWidth.value === 0) return;
+  if (sortedProducts.value.length === 0 || itemWidth.value === 0) return;
 
   currentIndex.value++;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
 
-  if (currentIndex.value >= bestSellers.value.length * 2) {
-    isManualScroll.value = true;
-    trackTranslateX.value = -bestSellers.value.length * itemWidth.value;
-    currentIndex.value = bestSellers.value.length;
+  // Reset position to create infinite loop illusion
+  if (currentIndex.value >= sortedProducts.value.length * 2) { // When we reach the end of the second set
+    isManualScroll.value = true; // Temporarily disable animation
+    trackTranslateX.value = -sortedProducts.value.length * itemWidth.value; // Jump to the start of the middle set
+    currentIndex.value = sortedProducts.value.length; // Update index
+    // Use setTimeout to re-enable animation after a brief moment, simulating a jump
     setTimeout(() => {
       isManualScroll.value = false;
-    }, 50);
+    }, 50); // Small delay to allow DOM to render the jump
   }
 };
 
 const startAutoScroll = () => {
-  stopAutoScroll();
-  const delay = 3000;
+  stopAutoScroll(); // Clear any existing interval
+  const delay = 3000; // Scroll every 3 seconds
   scrollInterval.value = setInterval(() => {
     scrollCarousel();
   }, delay);
@@ -216,19 +274,23 @@ const scrollLeft = () => {
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
 
   if (currentIndex.value < 0) {
-    trackTranslateX.value = -(bestSellers.value.length * 2 + currentIndex.value) * itemWidth.value;
-    currentIndex.value = bestSellers.value.length * 2 + currentIndex.value;
+    // Jump to the end of the second set of cloned items
+    trackTranslateX.value = -(sortedProducts.value.length * 2 + currentIndex.value) * itemWidth.value;
+    currentIndex.value = sortedProducts.value.length * 2 + currentIndex.value;
+    // Set a timeout to allow the transition to complete before resetting
     setTimeout(() => {
-      isManualScroll.value = false;
-      startAutoScroll();
-    }, animationDuration);
+        isManualScroll.value = false;
+        startAutoScroll();
+    }, animationDuration); // Match CSS transition duration
   } else {
+    // Set a timeout to allow the transition to complete before re-enabling auto-scroll
     setTimeout(() => {
-      isManualScroll.value = false;
-      startAutoScroll();
-    }, animationDuration);
+        isManualScroll.value = false;
+        startAutoScroll();
+    }, animationDuration); // Match CSS transition duration
   }
 };
+
 
 const scrollRight = () => {
   stopAutoScroll();
@@ -236,99 +298,80 @@ const scrollRight = () => {
   currentIndex.value++;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
 
-  if (currentIndex.value >= bestSellers.value.length * 3) {
-    trackTranslateX.value = -bestSellers.value.length * itemWidth.value;
-    currentIndex.value = bestSellers.value.length;
+  if (currentIndex.value >= sortedProducts.value.length * 3) { // Adjusted to handle 3 sets
+    // If we've scrolled past the end of the duplicated set, jump back to the middle
+    trackTranslateX.value = -sortedProducts.value.length * itemWidth.value;
+    currentIndex.value = sortedProducts.value.length;
+    // Set a timeout to allow the transition to complete before resetting
     setTimeout(() => {
-      isManualScroll.value = false;
-      startAutoScroll();
-    }, 50);
+        isManualScroll.value = false;
+        startAutoScroll();
+    }, 50); // Small delay for the "jump"
   } else {
+    // Set a timeout to allow the transition to complete before re-enabling auto-scroll
     setTimeout(() => {
-      isManualScroll.value = false;
-      startAutoScroll();
-    }, animationDuration);
+        isManualScroll.value = false;
+        startAutoScroll();
+    }, animationDuration); // Match CSS transition duration
   }
 };
 
+function ensureCarouselDimensions(attempt = 0) {
+  calculateCarouselDimensions();
+  if (itemWidth.value === 0 && attempt < 10) {
+    setTimeout(() => ensureCarouselDimensions(attempt + 1), 100);
+  }
+}
+
+// --- Product Data Logic ---
+const validProducts = computed(() => {
+  return bestSellers.value.filter(product => {
+    return product &&
+           typeof product === 'object' &&
+           !Array.isArray(product) &&
+           product._id &&
+           product.nombre &&
+           typeof product.nombre === 'string' &&
+           product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0; // Ensure product has at least one image
+  });
+});
+
+const sortedProducts = computed(() => {
+  return [...validProducts.value].sort((a, b) => {
+    if (b.promedioCalificacion !== a.promedioCalificacion) {
+      return b.promedioCalificacion - a.promedioCalificacion;
+    }
+    return b.totalResenas - a.totalResenas;
+  });
+});
+
+const toggleFavorite = (product) => {
+  if (favorites.value.has(product._id)) {
+    favorites.value.delete(product._id)
+  } else {
+    favorites.value.add(product._id)
+  }
+}
+
+const addToCart = (product) => {
+  // Usar la primera imagen del producto o un placeholder
+  const mainImage = getProductImage(product)
+  addToCartComposable(product, mainImage)
+}
+
 const getProductImage = (product) => {
   if (product && product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
-    return currentImages[product._id] || product.imagenes[0]
+    return product.imagenes[0]
   }
-  return '/placeholder.png'
+  return '/placeholder.png' // Ensure you have a generic placeholder image in your public folder
 }
 
-const startImageRotation = (product) => {
-  if (!product || !product.imagenes || !Array.isArray(product.imagenes) || product.imagenes.length < 2) return
-  stopImageRotation()
-  
-  let i = 0
-  imageInterval = setInterval(() => {
-    const imgWrapper = document.querySelector(`[data-product-id="${product._id}"] .product-image`)
-    if (imgWrapper) {
-      imgWrapper.style.opacity = '0'
-      setTimeout(() => {
-        i = (i + 1) % product.imagenes.length
-        currentImages[product._id] = product.imagenes[i]
-        setTimeout(() => {
-          imgWrapper.style.opacity = '1'
-        }, 50)
-      }, 300)
-    }
-  }, 2000)
-}
-
-const stopImageRotation = () => {
-  clearInterval(imageInterval)
-  imageInterval = null
-}
-
-const fetchBestSellers = async () => {
-  loading.value = true
-  try {
-    const res = await getData('/productos', { 
-      sort: 'stock_asc',
-      limit: 8 
-    })
-    
-    if (res) {
-      let productos = []
-      
-      if (Array.isArray(res)) {
-        productos = res
-      } else if (res.productos && Array.isArray(res.productos)) {
-        productos = res.productos
-      } else {
-        console.error('Formato de respuesta no esperado:', res)
-        productos = []
-      }
-      
-      productos.sort((a, b) => {
-        const stockA = a.stock || 0
-        const stockB = b.stock || 0
-        return stockA - stockB
-      })
-   
-      bestSellers.value = productos.map(product => {
-        return {
-          ...product,
-          _id: product._id || `temp-${Math.random()}`,
-          nombre: product.nombre || 'Producto sin nombre',
-          descripcion: product.descripcion || 'Sin descripción',
-          precio: product.precio || 0,
-          brand: product.brand || 'Sin marca',
-          imagenes: Array.isArray(product.imagenes) ? product.imagenes : []
-        }
-      })
-    } else {
-      bestSellers.value = []
-    }
-  } catch (error) {
-    console.error('Error al obtener productos más vendidos:', error)
-    bestSellers.value = []
-  } finally {
-    loading.value = false
+const goToProduct = (product) => {
+  if (!product.slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return
   }
+  router.push(`/Details/${encodeURIComponent(product.slug.trim())}`)
 }
 
 const getDetailsPath = (slug) => {
@@ -339,380 +382,121 @@ const getDetailsPath = (slug) => {
   return `/Details/${encodeURIComponent(slug.trim())}`
 }
 
+const generateSlug = (name) => {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
+
+const fetchBestSellers = async () => {
+  loading.value = true
+  try {
+    console.log('Bestsellers: Iniciando fetch de productos...')
+    const response = await getData('productos')
+
+    console.log('Bestsellers: Respuesta completa del servidor (RAW):', response)
+
+    if (!response) {
+      console.error('Bestsellers: No se recibió respuesta del servidor')
+      bestSellers.value = []
+      return
+    }
+
+    const productos = Array.isArray(response) ? response : []
+
+    if (productos.length === 0) {
+      console.log('Bestsellers: No hay productos disponibles')
+      bestSellers.value = []
+      return
+    }
+
+    const productosConCalificaciones = await Promise.all(
+      productos.map(async (product) => {
+        if (!product || !product._id) {
+          console.error('Bestsellers: Producto inválido en la lista:', product)
+          return null
+        }
+
+        try {
+          const ratings = await reviewsService.getProductRatings(product._id)
+          const slug = product.slug || generateSlug(product.nombre)
+
+          return {
+            _id: product._id,
+            nombre: product.nombre || 'Producto sin nombre',
+            descripcion: product.descripcion || 'Sin descripción',
+            precio: parseFloat(product.precio) || 0,
+            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
+            enOferta: Boolean(product.enOferta),
+            marca: product.marca || null,
+            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
+            promedioCalificacion: ratings?.promedioTotal || 0,
+            totalResenas: ratings?.totalReseñas || 0,
+            slug: slug
+          }
+        } catch (error) {
+          console.error(`Bestsellers: Error al obtener calificaciones para producto ${product._id}:`, error)
+          const slug = product.slug || generateSlug(product.nombre)
+          return {
+            _id: product._id,
+            nombre: product.nombre || 'Producto sin nombre',
+            descripcion: product.descripcion || 'Sin descripción',
+            precio: parseFloat(product.precio) || 0,
+            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
+            enOferta: Boolean(product.enOferta),
+            marca: product.marca || null,
+            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
+            promedioCalificacion: 0,
+            totalResenas: 0,
+            slug: slug
+          }
+        }
+      })
+    )
+
+    bestSellers.value = productosConCalificaciones.filter(product => product !== null)
+
+    console.log('Bestsellers: Productos procesados y asignados a bestSellers.value:', bestSellers.value.length)
+
+    // Esperar a que el DOM se actualice y calcular dimensiones
+    await nextTick();
+    ensureCarouselDimensions();
+    if (sortedProducts.value.length > 0) {
+      currentIndex.value = sortedProducts.value.length;
+      trackTranslateX.value = -currentIndex.value * itemWidth.value;
+      startAutoScroll();
+    }
+
+
+  } catch (error) {
+    console.error('Bestsellers: Error al obtener o procesar productos:', error)
+    bestSellers.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(() => {
   fetchBestSellers()
   window.addEventListener('resize', calculateCarouselDimensions)
-  startAutoScroll()
 })
 
 onBeforeUnmount(() => {
-  stopAutoScroll()
-  window.removeEventListener('resize', calculateCarouselDimensions)
+  stopAutoScroll();
+  window.removeEventListener('resize', calculateCarouselDimensions);
 })
-</script>
 
-<style scoped>
+
+</script>
+<style scoped lang="scss">
+
 @import '../css/variables.css';
 
-.bestsellers-section {
-  padding: 2rem;
-  
-}
+// Fuente para títulos
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
 
-.section-header {
-  text-align: center;
-  margin-bottom: 3rem;
-  position: relative;
-}
-
-.title {
- font-size: 3em;
-  font-weight: 800;
-  text-align: center;
-  margin-bottom: 50px;
-  color: #0056b3; 
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  position: relative;
-  padding-bottom: 20px;
-  font-family: 'Montserrat', sans-serif;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-  z-index: 1; 
-}
-
-.title::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 150px; 
-  height: 5px;
-  background: linear-gradient(90deg, #068FFF, #0052a3);
-  border-radius: 3px;
-  animation: underlineGrow 1s ease-out forwards;
-}
-
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 2rem;
-  padding: 1rem;
-}
-
-.product-link {
-  text-decoration: none;
-  color: inherit;
-}
-
-.product-card {
-  height: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  background: #ffffff;
-  box-shadow: 0 2px 8px var(--q-color-card-shadow-light);
-  transition: all 0.3s ease-in-out;
-  border: 1px solid var(--q-color-neutral-border);
-}
-
-.tech-card {
-  position: relative;
-  z-index: 1;
-}
-
-.product-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: 0 8px 20px var(--q-color-card-shadow-hover);
-}
-
-.img-wrapper {
-  position: relative;
-  overflow: hidden;
-  padding: 1rem;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 160px;
-}
-
-.img-wrapper::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.img-wrapper:hover::after {
-  opacity: 1;
-}
-
-.product-image {
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 1;
-}
-
-.tech-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top,
-    rgba(0, 0, 0, 0.3),
-    rgba(0, 0, 0, 0.1) 70%,
-    transparent
-  );
-  padding: 10px;
-  transition: background 0.3s ease;
-}
-
-.rating-container {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-}
-
-.rating-stars {
-  display: flex;
-  align-items: center;
-}
-
-.rating-count {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: white;
-}
-
-.product-info {
-  padding: 16px !important;
-  background: #ffffff;
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.brand-caption {
-  font-size: 0.65rem;
-  color: #9e9e9e;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-  font-weight: 500;
-  opacity: 0.7;
-}
-
-.product-title {
-font-family: 'Montserrat', sans-serif;
-  font-size: 1rem;
-  line-height: 1.3;
-  height: 2.6em;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  color: var(--q-color-text-dark);
-  font-weight: 600; 
-  transition: color 0.3s ease;
-  letter-spacing: -0.3px;
-}
-
-.product-card:hover .product-title {
-  color: var(--q-color-primary-blue);
-}
-
-.price-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(6, 143, 255, 0.03);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(6, 143, 255, 0.08);
-}
-
-.price-container {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.current-price {
-  font-size: 1.1rem;
-  background: linear-gradient(45deg, var(--q-color-primary-blue), var(--q-color-dark-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-}
-
-.favorite-btn {
-  transition: color 0.3s ease, transform 0.2s ease;
-}
-
-.favorite-btn.is-favorite {
-  color: #EF5350 !important;
-  animation: pulse .8s ease-out;
-}
-
-.actions-container {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  z-index: 2;
-}
-
-.action-btn {
-  width: 36px;
-  height: 36px;
-  transition: all 0.3s ease;
-}
-
-.action-btn:hover {
-  transform: scale(1.1);
-}
-
-.cart-btn {
-  background: rgba(6, 143, 255, 0.1);
-}
-
-.cart-btn:hover {
-  background: rgba(6, 143, 255, 0.2);
-}
-
-@media (max-width: 600px) {
-  .bestsellers-section {
-    padding: 1rem;
-  }
-
-  .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
-  }
-
-  .title {
-    font-size: 2rem;
-  }
-}
-
-:deep(.q-img__image) {
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  backface-visibility: hidden;
-}
-
-.product-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.carousel-container {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  padding: 0 40px;
-}
-
-.carousel-wrapper {
-  width: 100%;
-  overflow: hidden;
-}
-
-.carousel-track {
-  display: flex;
-  transition: transform 0.5s ease-in-out;
-}
-
-.carousel-track.is-scrolling-manual {
-  transition: transform 0.5s ease-in-out;
-}
-
-.carousel-track.animate-loop {
-  transition: transform 0.5s linear;
-}
-
-.product-card-wrapper {
-  flex: 0 0 auto;
-  width: 280px;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.nav-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  color: var(--q-color-dark-blue);
-  transition: all 0.3s ease;
-  width: 45px;
-  height: 45px;
-  font-size: 1.5em;
-  border: 1px solid rgba(6, 143, 255, 0.1);
-}
-
-.nav-arrow:hover {
-  background: white;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
-  color: var(--q-color-primary-blue);
-  transform: translateY(-50%) scale(1.1);
-  border-color: rgba(6, 143, 255, 0.3);
-}
-
-.left-arrow {
-  left: 0;
-}
-
-.right-arrow {
-  right: 0;
-}
-
-@media (max-width: 1024px) {
-  .product-card-wrapper {
-    width: 250px;
-    padding: 8px;
-  }
-  .nav-arrow {
-    width: 40px;
-    height: 40px;
-    font-size: 1.3em;
-  }
-}
-
-@media (max-width: 768px) {
-  .product-card-wrapper {
-    width: 220px;
-    padding: 6px;
-  }
-  .nav-arrow {
-    width: 35px;
-    height: 35px;
-    font-size: 1.1em;
-  }
-}
-
-@media (max-width: 576px) {
-  .product-card-wrapper {
-    width: 180px;
-    padding: 5px;
-  }
-  .nav-arrow {
-    width: 30px;
-    height: 30px;
-    font-size: 1em;
-  }
-}
+@import '../styles/RecommendedProducts.css';
 </style>

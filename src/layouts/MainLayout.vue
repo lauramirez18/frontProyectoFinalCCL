@@ -616,6 +616,8 @@ onMounted(() => {
 </script>
 
 <style>
+
+    
 /* Estilos del breadcrumbs */
 .breadcrumbs-container {
   background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%) !important;
