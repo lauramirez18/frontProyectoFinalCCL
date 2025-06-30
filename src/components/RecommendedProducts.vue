@@ -42,7 +42,7 @@
               <q-card class="product-card tech-card" flat>
                 <div class="img-wrapper"
                   @mouseenter="startImageRotation(product)"
-                  @mouseleave="stopImageRotation"
+                  @mouseleave="stopImageRotation(product)"
                   :data-product-id="product._id"
                 >
                   <q-img
@@ -132,6 +132,8 @@ const { formatThousands } = useThousandsFormat()
 const loading = ref(true)
 const bestSellers = ref([])
 const favorites = ref(new Set())
+const currentImages = reactive({})
+const imageIntervals = reactive({})
 
 // Carousel Logic
 const carouselWrapper = ref(null)
@@ -281,17 +283,33 @@ const sortedProducts = computed(() => {
   });
 });
 
+const startImageRotation = (product) => {
+  if (!product || !product.imagenes || product.imagenes.length <= 1) return;
+
+  let currentIndex = product.imagenes.indexOf(currentImages[product._id] || product.imagenes[0]);
+
+  imageIntervals[product._id] = setInterval(() => {
+    currentIndex = (currentIndex + 1) % product.imagenes.length;
+    currentImages[product._id] = product.imagenes[currentIndex];
+  }, 1200);
+};
+
+const stopImageRotation = (product) => {
+  if (imageIntervals[product._id]) {
+    clearInterval(imageIntervals[product._id]);
+    delete imageIntervals[product._id];
+    if (product && product.imagenes && product.imagenes.length > 0) {
+      currentImages[product._id] = product.imagenes[0];
+    }
+  }
+};
+
 const toggleFavorite = (product) => {
   if (favorites.value.has(product._id)) {
     favorites.value.delete(product._id)
   } else {
     favorites.value.add(product._id)
   }
-}
-
-const addToCart = (product) => {
-  console.log('Añadir al carrito:', product)
-  // Implement actual add to cart logic here (e.g., using a store like Pinia/Vuex)
 }
 
 const getProductImage = (product) => {
@@ -307,14 +325,6 @@ const goToProduct = (product) => {
     return
   }
   router.push(`/Details/${encodeURIComponent(product.slug.trim())}`)
-}
-
-const getDetailsPath = (slug) => {
-  if (!slug) {
-    console.error('Slug no proporcionado para la navegación')
-    return '/'
-  }
-  return `/Details/${encodeURIComponent(slug.trim())}`
 }
 
 const generateSlug = (name) => {
@@ -413,14 +423,6 @@ const fetchBestSellers = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const getDetailsPath = (slug) => {
-  if (!slug) {
-    console.error('Slug no proporcionado para la navegación')
-    return '/'
-  }
-  return `/Details/${encodeURIComponent(slug.trim())}`
 }
 
 onMounted(() => {
