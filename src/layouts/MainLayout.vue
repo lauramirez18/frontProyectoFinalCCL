@@ -1,6 +1,6 @@
 <template>
   <q-layout view="hHh Lpr fff" style="background: linear-gradient(180deg, #e8f2fa 0%, #ffffff 100%);">
-    <q-header elevated class="header-main">
+    <q-header elevated class="header-main sticky-header">
       <q-toolbar class="header-toolbar">
         <div class="header-left">
           <q-btn
@@ -8,13 +8,13 @@
             dense
             round
             icon="menu"
-            class="menu-toggle-btn"
+            class="menu-toggle-btn animated-hover"
             @click="toggleSideMenu"
           >
             <q-tooltip>Menú de categorías</q-tooltip>
           </q-btn>
           <router-link to="/" class="logo-link">
-            <q-avatar square size="50px" class="logo">
+            <q-avatar square size="50px" class="logo animated-hover">
               <img src="/logo2.png" alt="Logo CCL" />
             </q-avatar>
           </router-link>
@@ -26,11 +26,13 @@
               v-model="search"
               dense
               outlined
-              placeholder="¿Qué estás buscando?"
-              class="search-input"
+              label="¿Qué estás buscando?"
+              class="search-input enhanced-search-input floating-label-input"
               bg-color="white"
               @keyup.enter="performSearch"
               @blur="setTimeout(() => showSuggestions = false, 200)"
+              :loading="searchLoading"
+              :class="{ 'shake': shakeInput }"
             >
               <template v-slot:prepend>
                 <q-icon name="search" color="grey-7" />
@@ -41,17 +43,25 @@
                   dense
                   icon="arrow_forward"
                   color="primary"
-                  class="search-btn"
+                  class="search-btn animated-hover"
                   @click="performSearch"
                 >
                   <q-tooltip>Buscar</q-tooltip>
                 </q-btn>
               </template>
             </q-input>
+            <q-linear-progress
+              v-if="searchLoading"
+              indeterminate
+              color="primary"
+              class="search-progress-bar"
+              style="height: 3px; border-radius: 2px; margin-bottom: -3px;"
+            />
             <SearchSuggestions
               v-if="showSuggestions"
               :suggestions="searchSuggestions"
               @select="selectSuggestion"
+              class="fade-in"
             />
           </div>
         </div>
@@ -135,6 +145,7 @@
               floating
               color="red"
               text-color="white"
+              class="pop-badge"
             >
               {{ authStore.favorites.length }}
             </q-badge>
@@ -148,6 +159,7 @@
                 floating
                 color="secondary"
                 text-color="white"
+                class="pop-badge"
               >
                 {{ authStore.cartItems.length }}
               </q-badge>
@@ -191,50 +203,54 @@
       <Breadcrumbs :custom-items="customBreadcrumbsInjected ? customBreadcrumbsInjected : undefined" />
     </div>
 
-    <q-drawer v-model="sideMenuOpen" side="left" overlay behavior="mobile" :width="320" class="bg-white">
-      <div class="drawer-header">
-        <div class="row items-center justify-between">
-          <div class="col">
-            <div class="text-h6">Explorar Categorías</div>
+    <!-- Sidebar animado -->
+    <transition name="sidebar-slide">
+      <q-drawer v-model="sideMenuOpen" side="left" overlay behavior="desktop" :width="300" class="main-sidebar" show-if-above persistent>
+        <div class="drawer-header sidebar-blur">
+          <div class="row items-center justify-between">
+            <div class="col">
+              <div class="text-h6">Explorar Categorías</div>
+            </div>
+            <q-btn flat round dense icon="close" color="white" class="close-btn" @click="closeSideMenu" v-if="$q.screen.lt.md" />
           </div>
-          <q-btn flat round dense icon="close" color="white" class="close-btn" @click="closeSideMenu" />
         </div>
-      </div>
-
-      <q-scroll-area style="height: calc(100vh - 120px);">
-        <q-list padding>
-          <div class="category-item">
-            <q-item clickable @click="selectCategory({label: 'Todas las categorías', value: 'all'})" class="category-main-item">
-              <q-item-section>
-                <q-item-label>Todos los productos</q-item-label>
-              </q-item-section>
-            </q-item>
-          </div>
-
-          <div class="category-item">
-            <q-item clickable @click="goTo('/ofertas')" class="category-main-item special-offer">
-              <q-item-section>
-                <q-item-label>Ofertas</q-item-label>
-              </q-item-section>
-            </q-item>
-          </div>
-
-          <q-separator class="q-my-md" />
-
-          <div v-for="category in categories" :key="category.value" class="category-item">
-            <q-item 
-              clickable
-              class="category-main-item"
-              @click="selectCategory(category)"
-            >
-              <q-item-section>
-                <q-item-label>{{ category.label }}</q-item-label>
-              </q-item-section>
-            </q-item>
-          </div>
-        </q-list>
-      </q-scroll-area>
-    </q-drawer>
+        <q-scroll-area style="height: calc(100vh - 120px);">
+          <q-list padding>
+            <div class="category-item">
+              <q-item clickable @click="selectCategory({label: 'Todas las categorías', value: 'all'})" class="category-main-item sidebar-item-anim">
+                <q-item-section avatar>
+                  <q-icon name="apps" color="primary" size="32px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Todos los productos</q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+            <div class="category-item">
+              <q-item clickable @click="goTo('/ofertas')" class="category-main-item special-offer sidebar-item-anim">
+                <q-item-section avatar>
+                  <q-icon name="local_offer" color="red" size="32px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Ofertas</q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+            <q-separator class="q-my-md" />
+            <div v-for="category in categories" :key="category.value" class="category-item">
+              <q-item clickable class="category-main-item sidebar-item-anim" @click="selectCategory(category)">
+                <q-item-section avatar>
+                  <q-icon :name="category.icon || 'category'" color="primary" size="32px" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ category.label }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </div>
+          </q-list>
+        </q-scroll-area>
+      </q-drawer>
+    </transition>
 
     <q-page-container>
       <router-view />
@@ -357,6 +373,14 @@ const sideMenuOpen = ref(false);
 const showMenu = ref(false);
 const customBreadcrumbsInjected = ref(null);
 const showAuth = ref(false);
+const searchLoading = ref(false)
+const quickCategories = ref([
+  { label: 'Ofertas', icon: 'local_offer', value: 'ofertas' },
+  { label: 'Electrónica', icon: 'devices', value: 'electronica' },
+  { label: 'Hogar', icon: 'weekend', value: 'hogar' },
+  { label: 'Moda', icon: 'checkroom', value: 'moda' },
+])
+const shakeInput = ref(false)
 
 // Ocultar breadcrumbs en rutas específicas
 const hideBreadcrumbsOn = ['login', 'register', 'home'];
@@ -476,19 +500,32 @@ function hideMenuDelayed() {
   }, 1000);
 }
 
+function selectQuickCategory(cat) {
+  search.value = cat.label
+  performSearch()
+}
+
+function onMicClick() {
+  // Aquí podrías integrar búsqueda por voz en el futuro
+  $q.notify({ type: 'info', message: 'Funcionalidad de voz próximamente' })
+}
+
 // Función para obtener sugerencias de búsqueda
 const getSearchSuggestions = async (query) => {
   if (!query || query.length < 2) {
     searchSuggestions.value = []
+    searchLoading.value = false
     return
   }
-
+  searchLoading.value = true
   try {
     const response = await getData('productos/sugerencias-busqueda', { query })
     searchSuggestions.value = response || []
   } catch (error) {
     console.error('Error al obtener sugerencias:', error)
     searchSuggestions.value = []
+  } finally {
+    searchLoading.value = false
   }
 }
 
@@ -511,13 +548,16 @@ watch(search, (newValue) => {
 
 // Función para realizar la búsqueda
 const performSearch = () => {
-  if (search.value.trim()) {
-    router.push({
-      name: 'SearchResults',
-      query: { q: search.value.trim() }
-    })
-    showSuggestions.value = false
+  if (!search.value.trim()) {
+    shakeInput.value = true
+    setTimeout(() => (shakeInput.value = false), 500)
+    return
   }
+  router.push({
+    name: 'SearchResults',
+    query: { q: search.value.trim() }
+  })
+  showSuggestions.value = false
 }
 
 // Función para seleccionar una sugerencia
@@ -541,6 +581,37 @@ const getUserInitials = computed(() => {
       .substring(0, 2);
   }
   return '';
+});
+
+// Badge pop animation on change
+watch(() => authStore.favorites.length, () => {
+  const el = document.querySelector('.pop-badge')
+  if (el) {
+    el.classList.remove('pop')
+    void el.offsetWidth // trigger reflow
+    el.classList.add('pop')
+  }
+})
+watch(() => authStore.cartItems.length, () => {
+  const el = document.querySelectorAll('.pop-badge')[1]
+  if (el) {
+    el.classList.remove('pop')
+    void el.offsetWidth
+    el.classList.add('pop')
+  }
+})
+
+// Forzar sidebar abierto en desktop
+watch(() => $q.screen.gt.md, (isDesktop) => {
+  if (isDesktop) {
+    sideMenuOpen.value = true;
+  }
+});
+
+onMounted(() => {
+  if ($q.screen.gt.md) {
+    sideMenuOpen.value = true;
+  }
 });
 </script>
 
@@ -567,45 +638,17 @@ const getUserInitials = computed(() => {
 
 /* HEADER STYLES */
 .header-main {
-  background: linear-gradient(135deg, #068FFF, #0052a3);
-  position: relative;
+  background: #003366 !important;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   color: white;
   overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(to right,
-      transparent 0%,
-      rgba(255, 255, 255, 0.3) 50%,
-      transparent 100%
-    );
-  }
-
-  /* Shine effect for the header */
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, 
-      transparent 30%, 
-      rgba(255, 255, 255, 0.1) 50%, 
-      transparent 70%
-    );
-    pointer-events: none;
-    animation: shine 3s infinite linear; /* Apply animation */
-  }
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.08);
 }
 
 .header-toolbar {
-  
+  background: #003366 !important;
   margin: 0 auto;
   padding: 0.5rem 1rem;
   display: flex;
@@ -614,24 +657,21 @@ const getUserInitials = computed(() => {
   height: 70px;
   position: relative;
   z-index: 1;
-  background: rgba(0, 0, 0, 0.4);
 }
 
 /* Mejoras visuales para elementos del header */
 .menu-toggle-btn {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(4px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #003366 !important;
   width: 40px;
   height: 40px;
   font-size: 1.5rem;
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(6, 143, 255, 0.2);
-    border-color: rgba(6, 143, 255, 0.3);
-    transform: rotate(90deg);
-    box-shadow: 0 0 15px rgba(6, 143, 255, 0.2);
+    background: #003366 !important;
+    color: #fff !important;
   }
 }
 
@@ -698,16 +738,16 @@ const getUserInitials = computed(() => {
   }
 }
 
-.search-btn {
-  margin-right: 4px;
+.search-btn, .search-btn.animated-hover {
+  background: #003366 !important;
+  color: #fff !important;
   border-radius: 6px;
   transition: all 0.3s ease;
-  
-  &:hover {
-    background: #068FFF;
-    color: white !important;
-    transform: translateX(2px);
-  }
+}
+
+.search-btn.animated-hover:hover {
+  background: #002244 !important;
+  color: #fff !important;
 }
 
 /* Sección derecha */
@@ -1079,15 +1119,50 @@ const getUserInitials = computed(() => {
 }
 
 /* Estilos del menú de categorías */
-.q-drawer {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-right: 1px solid rgba(0, 0, 0, 0.1);
+.main-sidebar {
+  background: #e3f0ff !important;
+  box-shadow: 8px 0 32px 0 rgba(0,0,0,0.13);
+  backdrop-filter: blur(8px) saturate(1.2);
+  border-right: 1.5px solid #e0e6ef;
+  z-index: 200;
+  transition: box-shadow 0.3s, background 0.3s;
 }
-
+.sidebar-blur {
+  background: rgba(255,255,255,0.85) !important;
+  backdrop-filter: blur(12px) saturate(1.2);
+  border-bottom: 1px solid #e0e6ef;
+}
+.sidebar-slide-enter-active, .sidebar-slide-leave-active {
+  transition: transform 0.45s cubic-bezier(.68,-0.55,.27,1.55), opacity 0.3s;
+}
+.sidebar-slide-enter-from {
+  transform: translateX(-100%);
+  opacity: 0.2;
+}
+.sidebar-slide-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+.sidebar-slide-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+.sidebar-slide-leave-to {
+  transform: translateX(-100%);
+  opacity: 0.2;
+}
+.sidebar-item-anim {
+  transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+  border-radius: 10px;
+}
+.sidebar-item-anim:hover {
+  background: #f0f6ff !important;
+  transform: scale(1.04) translateX(8px);
+  box-shadow: 0 2px 12px 0 #068FFF22;
+}
 .category-item {
   margin-bottom: 4px;
 }
-
 .category-main-item {
   border-radius: 8px;
   margin: 4px 8px;
@@ -1236,5 +1311,67 @@ const getUserInitials = computed(() => {
     border-color: #068FFF;
     box-shadow: 0 0 0 3px rgba(6, 143, 255, 0.15);
   }
+}
+
+.enhanced-search-input {
+  box-shadow: 0 4px 24px 0 rgba(6,143,255,0.08), 0 1.5px 4px 0 rgba(6,143,255,0.10);
+  border-radius: 16px;
+  overflow: visible;
+}
+.mic-btn {
+  margin-right: 2px;
+  border-radius: 50%;
+  background: rgba(6,143,255,0.08);
+  transition: background 0.2s;
+}
+.mic-btn:hover {
+  background: #068FFF;
+  color: white !important;
+}
+.quick-categories {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.animated-hover {
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.animated-hover:hover {
+  box-shadow: 0 2px 12px 0 rgba(6,143,255,0.18);
+  transform: scale(1.07);
+}
+.search-btn.animated-hover:hover {
+  background: #068FFF !important;
+  color: #fff !important;
+}
+.logo.animated-hover:hover {
+  box-shadow: 0 2px 12px 0 #003366;
+  transform: scale(1.08);
+}
+.pop-badge {
+  animation: none;
+}
+.pop-badge.pop {
+  animation: pop-badge 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+}
+@keyframes pop-badge {
+  0% { transform: scale(0.7); opacity: 0.5; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.fade-in {
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.header-separator {
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #068FFF 0%, #003366 100%);
+  margin-bottom: 0.5rem;
+  border-radius: 2px;
 }
 </style>
