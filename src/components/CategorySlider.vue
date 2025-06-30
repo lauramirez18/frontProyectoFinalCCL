@@ -61,10 +61,10 @@
 <script setup>
 import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
-import { getData } from '../services/apiclient';
+import { useProductosStore } from '@/store/store'
 
-const categories = ref([]);
 const router = useRouter();
+const productosStore = useProductosStore()
 
 const carouselWrapper = ref(null); // Referencia al contenedor con overflow: hidden
 const carouselTrack = ref(null);    // Referencia al div que se va a mover (carousel-track)
@@ -83,7 +83,7 @@ const AUTOSCROLL_STEP = 1; // Píxeles a mover por frame
 const fetchCategories = async () => {
   try {
     const res = await getData('categorias');
-    categories.value = res;
+    productosStore.categorias = res;
     startAutoScroll(); // Iniciar auto-scroll después de cargar
   } catch (err) {
     console.error('Error fetching categories:', err);
@@ -92,9 +92,9 @@ const fetchCategories = async () => {
 
 // Duplicamos las categorías para el bucle infinito
 const duplicatedCategories = computed(() => {
-  if (categories.value.length === 0) return [];
+  if (productosStore.categorias.length === 0) return [];
   // Duplicamos más de una vez para asegurar un loop suave al menos con 2-3 duplicados
-  return [...categories.value, ...categories.value, ...categories.value];
+  return [...productosStore.categorias, ...productosStore.categorias, ...productosStore.categorias];
 });
 
 const goToCategoryProducts = (category) => {
@@ -162,7 +162,7 @@ const scrollRight = () => {
 };
 
 onMounted(() => {
-  fetchCategories();
+  productosStore.cargarTodo()
   // Añadir un listener para los eventos de scroll manual del wrapper
   if (carouselWrapper.value) {
     carouselWrapper.value.addEventListener('scroll', handleManualScroll);

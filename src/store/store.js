@@ -329,3 +329,79 @@ export const useAuthStore = defineStore('auth', () => {
 }, {
   persist: true
 })
+
+export const useProductosStore = defineStore('productos', () => {
+  const productos = ref([])
+  const categorias = ref([])
+  const loading = ref(false)
+  const error = ref(null)
+
+  async function cargarTodo() {
+    loading.value = true
+    error.value = null
+    try {
+      console.log('ProductosStore: Iniciando carga de productos y categorías...')
+      
+      // Peticiones en paralelo
+      const [prodRes, catRes] = await Promise.all([
+        axios.get(`${API_URL}/productos`),
+        axios.get(`${API_URL}/categorias`)
+      ])
+      
+      console.log('ProductosStore: Respuesta de productos:', prodRes.data)
+      console.log('ProductosStore: Respuesta de categorías:', catRes.data)
+      
+      // Manejo mejorado de la respuesta de productos
+      if (prodRes.data && prodRes.data.productos && Array.isArray(prodRes.data.productos)) {
+        productos.value = prodRes.data.productos
+        console.log('ProductosStore: Productos cargados correctamente:', productos.value.length)
+      } else if (Array.isArray(prodRes.data)) {
+        productos.value = prodRes.data
+        console.log('ProductosStore: Productos cargados como array directo:', productos.value.length)
+      } else {
+        console.warn('ProductosStore: Formato de respuesta inesperado para productos:', prodRes.data)
+        productos.value = []
+      }
+      
+      // Manejo mejorado de la respuesta de categorías
+      if (catRes.data && Array.isArray(catRes.data)) {
+        categorias.value = catRes.data
+        console.log('ProductosStore: Categorías cargadas correctamente:', categorias.value.length)
+      } else if (catRes.data && catRes.data.categorias && Array.isArray(catRes.data.categorias)) {
+        categorias.value = catRes.data.categorias
+        console.log('ProductosStore: Categorías cargadas desde data.categorias:', categorias.value.length)
+      } else {
+        console.warn('ProductosStore: Formato de respuesta inesperado para categorías:', catRes.data)
+        categorias.value = []
+      }
+      
+    } catch (err) {
+      console.error('ProductosStore: Error al cargar datos:', err)
+      console.error('ProductosStore: Detalles del error:', err.response?.data)
+      error.value = err.response?.data?.error || err.message || 'Error desconocido al cargar productos'
+      productos.value = []
+      categorias.value = []
+    } finally {
+      loading.value = false
+      console.log('ProductosStore: Carga completada. Productos:', productos.value.length, 'Categorías:', categorias.value.length)
+    }
+  }
+
+  // Ejemplo de POST y PUT
+  async function crearProducto(data) {
+    return axios.post(`${API_URL}/productos`, data)
+  }
+  async function actualizarProducto(id, data) {
+    return axios.put(`${API_URL}/productos/${id}`, data)
+  }
+
+  return {
+    productos,
+    categorias,
+    loading,
+    error,
+    cargarTodo,
+    crearProducto,
+    actualizarProducto
+  }
+})

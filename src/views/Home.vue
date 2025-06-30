@@ -1,5 +1,8 @@
 <template>
   <q-page class="home-page">
+    <!-- Componente de prueba temporal -->
+    <TestComponent />
+    
     <div class="banner-section"> 
       <BannerSlider />
     </div>
@@ -9,7 +12,16 @@
     </div>
 
     <div class="section-container">
-      <OfertasSection />
+      <div class="text-center q-py-lg">
+        <h4 class="text-h4 q-mb-md">Ofertas Especiales</h4>
+        <q-btn 
+          color="primary" 
+          size="lg" 
+          label="Ver Todas las Ofertas" 
+          icon="local_offer"
+          :to="{ name: 'Ofertas' }"
+        />
+      </div>
     </div>
 
     <div class="section-container q-py-sm">
@@ -31,7 +43,10 @@
     </div>
 
     <div class="section-container q-pb-xl">
-      <BrandsList />
+      <div class="text-center q-py-lg">
+        <h4 class="text-h4 q-mb-md">Nuestras Marcas</h4>
+        <BrandsBar />
+      </div>
     </div>
   </q-page>
 </template>
@@ -44,16 +59,19 @@ import RecommendedProducts from '../components/RecommendedProducts.vue'
 import BannerSlider from '../components/BannerSlider.vue';
 import BestSellers from '../components/BestSellers.vue'
 import InfoColumns from '../components/InfoColumns.vue'
-const showLoginDialog = ref(false); // Make sure this is handled if you use it
+import LoginDialog from '../components/LoginDialog.vue'
 
-let observer = null; // Declare observer outside for cleanup
+
+const showLoginDialog = ref(false);
+
+let observer = null;
 
 onMounted(() => {
   const sections = document.querySelectorAll('.section-container');
   const options = {
-    root: null, // Use the viewport as the root
+    root: null,
     rootMargin: '0px',
-    threshold: 0.1 // Trigger when 10% of the element is visible
+    threshold: 0.1
   };
 
   observer = new IntersectionObserver((entries, observer) => {
@@ -61,20 +79,20 @@ onMounted(() => {
       if (entry.isIntersecting) {
         entry.target.classList.remove('is-hidden');
         entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target); // Stop observing once animated
+        observer.unobserve(entry.target);
       }
     });
   }, options);
 
   sections.forEach(section => {
-    section.classList.add('is-hidden'); // Add hidden class initially
+    section.classList.add('is-hidden');
     observer.observe(section);
   });
 });
 
 onUnmounted(() => {
   if (observer) {
-    observer.disconnect(); // Clean up observer
+    observer.disconnect();
   }
 });
 </script>
@@ -99,42 +117,29 @@ onUnmounted(() => {
   z-index: 0;
 }
 
-
-
 .section-container {
-
   margin: 0 auto;
   padding: 0 1rem;
-
-  // Base transition for elements that will be animated
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out; // Increased duration
-  will-change: opacity, transform; // Optimize for animation
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  will-change: opacity, transform;
 
   @media (max-width: 600px) {
     padding: 0 0.5rem;
   }
 }
 
-// Initial hidden state for elements before they come into view
 .section-container.is-hidden {
   opacity: 0;
-  transform: translateY(40px); // Increased initial offset for more impact
+  transform: translateY(40px);
 }
 
-// State when element becomes visible and animates
 .section-container.is-visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-// Removed the old @keyframes fadeIn and nth-child animation-delay
-// as the Intersection Observer handles the trigger and the
-// transition property handles the animation.
-
 .banner-section {
   width: 100%;
   margin-bottom: 2rem;
-  // If you DO NOT want the banner to fade in, remove 'section-container' from its div in the template.
-  // Otherwise, it will fade in like other sections.
 }
 </style>

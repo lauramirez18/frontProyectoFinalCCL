@@ -41,8 +41,8 @@
             >
               <q-card class="product-card tech-card" flat>
                 <div class="img-wrapper"
-                  @mouseenter="startImageRotation(product.imagenes[0])"
-                  @mouseleave="stopImageRotation"
+                  @mouseenter="startImageRotation(product)"
+                  @mouseleave="stopImageRotation(product)"
                   :data-product-id="product._id"
                 >
                   <q-img
@@ -121,16 +121,19 @@
 
 <script setup>
 import { ref, onMounted, reactive, computed, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { getData } from '../services/apiclient'
+import { reviewsService } from '../services/resenias'
 import { useThousandsFormat } from '../composables/useThousandFormat'
 import { useCart } from '../composables/useCart'
 
 const {addToCart} = useCart()
 const { formatThousands } = useThousandsFormat()
-const bestSellers = ref([])
-const currentImages = reactive({})
 const loading = ref(true)
-let imageInterval = null
+const bestSellers = ref([])
+const favorites = ref(new Set())
+const currentImages = reactive({})
+const imageIntervals = reactive({})
 
 // Carousel Logic
 const carouselWrapper = ref(null)
@@ -144,14 +147,16 @@ const isManualScroll = ref(false)
 const animationDuration = 500
 
 const duplicatedProducts = computed(() => {
-  if (bestSellers.value.length === 0) {
+  // Only duplicate if there are actual products
+  if (sortedProducts.value.length === 0) {
     return [];
   }
-  return [...bestSellers.value, ...bestSellers.value, ...bestSellers.value];
+  // Duplicate the array to create the infinite loop effect
+  return [...sortedProducts.value, ...sortedProducts.value, ...sortedProducts.value];
 });
 
 const calculateCarouselDimensions = () => {
-  if (carouselWrapper.value && carouselTrack.value && bestSellers.value.length > 0) {
+  if (carouselWrapper.value && carouselTrack.value && sortedProducts.value.length > 0) {
     const wrapperWidth = carouselWrapper.value.offsetWidth;
     const firstProductCard = carouselTrack.value.querySelector('.product-card-wrapper');
     if (firstProductCard) {
@@ -162,13 +167,15 @@ const calculateCarouselDimensions = () => {
 };
 
 const resetCarouselPosition = () => {
-  const numProducts = bestSellers.value.length;
+  const numProducts = sortedProducts.value.length;
   if (numProducts === 0 || itemWidth.value === 0) return;
 
+  // If we are at the end of the first 'real' set of items, jump back to the middle 'real' set
   if (currentIndex.value >= numProducts) {
     currentIndex.value -= numProducts;
     trackTranslateX.value = -currentIndex.value * itemWidth.value;
   }
+  // If we scrolled back into the 'cloned' beginning, jump to the middle 'real' set
   else if (currentIndex.value < 0) {
     currentIndex.value += numProducts;
     trackTranslateX.value = -currentIndex.value * itemWidth.value;
@@ -176,15 +183,17 @@ const resetCarouselPosition = () => {
 };
 
 const scrollCarousel = () => {
-  if (bestSellers.value.length === 0 || itemWidth.value === 0) return;
+  if (sortedProducts.value.length === 0 || itemWidth.value === 0) return;
 
   currentIndex.value++;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
 
-  if (currentIndex.value >= bestSellers.value.length * 2) {
-    isManualScroll.value = true;
-    trackTranslateX.value = -bestSellers.value.length * itemWidth.value;
-    currentIndex.value = bestSellers.value.length;
+  // Reset position to create infinite loop illusion
+  if (currentIndex.value >= sortedProducts.value.length * 2) { // When we reach the end of the second set
+    isManualScroll.value = true; // Temporarily disable animation
+    trackTranslateX.value = -sortedProducts.value.length * itemWidth.value; // Jump to the start of the middle set
+    currentIndex.value = sortedProducts.value.length; // Update index
+    // Use setTimeout to re-enable animation after a brief moment, simulating a jump
     setTimeout(() => {
       isManualScroll.value = false;
     }, 50);
@@ -211,10 +220,11 @@ const scrollLeft = () => {
   isManualScroll.value = true;
   currentIndex.value--;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
-
   if (currentIndex.value < 0) {
-    trackTranslateX.value = -(bestSellers.value.length * 2 + currentIndex.value) * itemWidth.value;
-    currentIndex.value = bestSellers.value.length * 2 + currentIndex.value;
+    // Jump to the end of the second set of cloned items
+    trackTranslateX.value = -(sortedProducts.value.length * 2 + currentIndex.value) * itemWidth.value;
+    currentIndex.value = sortedProducts.value.length * 2 + currentIndex.value;
+    // Set a timeout to allow the transition to complete before resetting
     setTimeout(() => {
       isManualScroll.value = false;
       startAutoScroll();
@@ -233,9 +243,11 @@ const scrollRight = () => {
   currentIndex.value++;
   trackTranslateX.value = -currentIndex.value * itemWidth.value;
 
-  if (currentIndex.value >= bestSellers.value.length * 3) {
-    trackTranslateX.value = -bestSellers.value.length * itemWidth.value;
-    currentIndex.value = bestSellers.value.length;
+  if (currentIndex.value >= sortedProducts.value.length * 3) { // Adjusted to handle 3 sets
+    // If we've scrolled past the end of the duplicated set, jump back to the middle
+    trackTranslateX.value = -sortedProducts.value.length * itemWidth.value;
+    currentIndex.value = sortedProducts.value.length;
+    // Set a timeout to allow the transition to complete before resetting
     setTimeout(() => {
       isManualScroll.value = false;
       startAutoScroll();
@@ -248,104 +260,182 @@ const scrollRight = () => {
   }
 };
 
+
+// --- Product Data Logic ---
+const validProducts = computed(() => {
+  return bestSellers.value.filter(product => {
+    return product &&
+           typeof product === 'object' &&
+           !Array.isArray(product) &&
+           product._id &&
+           product.nombre &&
+           typeof product.nombre === 'string' &&
+           product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0; // Ensure product has at least one image
+  });
+});
+
+const sortedProducts = computed(() => {
+  return [...validProducts.value].sort((a, b) => {
+    if (b.promedioCalificacion !== a.promedioCalificacion) {
+      return b.promedioCalificacion - a.promedioCalificacion;
+    }
+    return b.totalResenas - a.totalResenas;
+  });
+});
+
+const startImageRotation = (product) => {
+  if (!product || !product.imagenes || product.imagenes.length <= 1) return;
+
+  let currentIndex = product.imagenes.indexOf(currentImages[product._id] || product.imagenes[0]);
+
+  imageIntervals[product._id] = setInterval(() => {
+    currentIndex = (currentIndex + 1) % product.imagenes.length;
+    currentImages[product._id] = product.imagenes[currentIndex];
+  }, 1200);
+};
+
+const stopImageRotation = (product) => {
+  if (imageIntervals[product._id]) {
+    clearInterval(imageIntervals[product._id]);
+    delete imageIntervals[product._id];
+    if (product && product.imagenes && product.imagenes.length > 0) {
+      currentImages[product._id] = product.imagenes[0];
+    }
+  }
+};
+
+const toggleFavorite = (product) => {
+  if (favorites.value.has(product._id)) {
+    favorites.value.delete(product._id)
+  } else {
+    favorites.value.add(product._id)
+  }
+}
+
 const getProductImage = (product) => {
   if (product && product.imagenes && Array.isArray(product.imagenes) && product.imagenes.length > 0) {
     return currentImages[product._id] || product.imagenes[0]
   }
-  return '/placeholder.png'
+  return '/placeholder.png' // Ensure you have a generic placeholder image in your public folder
 }
 
-const startImageRotation = (product) => {
-  if (!product || !product.imagenes || !Array.isArray(product.imagenes) || product.imagenes.length < 2) return
-  stopImageRotation()
-  
-  let i = 0
-  imageInterval = setInterval(() => {
-    const imgWrapper = document.querySelector(`[data-product-id="${product._id}"] .product-image`)
-    if (imgWrapper) {
-      imgWrapper.style.opacity = '0'
-      setTimeout(() => {
-        i = (i + 1) % product.imagenes.length
-        currentImages[product._id] = product.imagenes[i]
-        setTimeout(() => {
-          imgWrapper.style.opacity = '1'
-        }, 50)
-      }, 300)
-    }
-  }, 2000)
+const goToProduct = (product) => {
+  if (!product.slug) {
+    console.error('Slug no proporcionado para la navegación')
+    return
+  }
+  router.push(`/Details/${encodeURIComponent(product.slug.trim())}`)
 }
 
-const stopImageRotation = () => {
-  clearInterval(imageInterval)
-  imageInterval = null
-}
+const generateSlug = (name) => {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
 
 const fetchBestSellers = async () => {
   loading.value = true
   try {
-    const res = await getData('/productos', { 
-      sort: 'stock_asc',
-      limit: 8 
-    })
-    
-    if (res) {
-      let productos = []
-      
-      if (Array.isArray(res)) {
-        productos = res
-      } else if (res.productos && Array.isArray(res.productos)) {
-        productos = res.productos
-      } else {
-        console.error('Formato de respuesta no esperado:', res)
-        productos = []
-      }
-      
-      productos.sort((a, b) => {
-        const stockA = a.stock || 0
-        const stockB = b.stock || 0
-        return stockA - stockB
-      })
-   
-      bestSellers.value = productos.map(product => {
-        return {
-          ...product,
-          _id: product._id || `temp-${Math.random()}`,
-          nombre: product.nombre || 'Producto sin nombre',
-          descripcion: product.descripcion || 'Sin descripción',
-          precio: product.precio || 0,
-          brand: product.brand || 'Sin marca',
-          imagenes: Array.isArray(product.imagenes) ? product.imagenes : []
+    console.log('Bestsellers: Iniciando fetch de productos...')
+    const response = await getData('productos')
+
+    console.log('Bestsellers: Respuesta completa del servidor (RAW):', response)
+
+    if (!response) {
+      console.error('Bestsellers: No se recibió respuesta del servidor')
+      bestSellers.value = []
+      return
+    }
+
+    const productos = Array.isArray(response) ? response : []
+
+    if (productos.length === 0) {
+      console.log('Bestsellers: No hay productos disponibles')
+      bestSellers.value = []
+      return
+    }
+
+    const productosConCalificaciones = await Promise.all(
+      productos.map(async (product) => {
+        if (!product || !product._id) {
+          console.error('Bestsellers: Producto inválido en la lista:', product)
+          return null
+        }
+
+        try {
+          const ratings = await reviewsService.getProductRatings(product._id)
+          const slug = product.slug || generateSlug(product.nombre)
+
+          return {
+            _id: product._id,
+            nombre: product.nombre || 'Producto sin nombre',
+            descripcion: product.descripcion || 'Sin descripción',
+            precio: parseFloat(product.precio) || 0,
+            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
+            enOferta: Boolean(product.enOferta),
+            marca: product.marca || null,
+            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
+            promedioCalificacion: ratings?.promedioTotal || 0,
+            totalResenas: ratings?.totalReseñas || 0,
+            slug: slug
+          }
+        } catch (error) {
+          console.error(`Bestsellers: Error al obtener calificaciones para producto ${product._id}:`, error)
+          const slug = product.slug || generateSlug(product.nombre)
+          return {
+            _id: product._id,
+            nombre: product.nombre || 'Producto sin nombre',
+            descripcion: product.descripcion || 'Sin descripción',
+            precio: parseFloat(product.precio) || 0,
+            precioOferta: product.precioOferta ? parseFloat(product.precioOferta) : null,
+            enOferta: Boolean(product.enOferta),
+            marca: product.marca || null,
+            imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
+            promedioCalificacion: 0,
+            totalResenas: 0,
+            slug: slug
+          }
         }
       })
-    } else {
-      bestSellers.value = []
+    )
+
+    bestSellers.value = productosConCalificaciones.filter(product => product !== null)
+
+    console.log('Bestsellers: Productos procesados y asignados a bestSellers.value:', bestSellers.value.length)
+
+    // Wait for the DOM to update after data is loaded and rendered
+    await nextTick();
+    calculateCarouselDimensions(); // Calculate dimensions after products are rendered
+    // Set initial position to the start of the second set for seamless loop
+    if (sortedProducts.value.length > 0) {
+      currentIndex.value = sortedProducts.value.length; // Start at the beginning of the middle set
+      trackTranslateX.value = -currentIndex.value * itemWidth.value;
+      startAutoScroll(); // Start auto-scrolling
     }
+
+
   } catch (error) {
-    console.error('Error al obtener productos más vendidos:', error)
+    console.error('Bestsellers: Error al obtener o procesar productos:', error)
     bestSellers.value = []
   } finally {
     loading.value = false
   }
 }
 
-const getDetailsPath = (slug) => {
-  if (!slug) {
-    console.error('Slug no proporcionado para la navegación')
-    return '/'
-  }
-  return `/Details/${encodeURIComponent(slug.trim())}`
-}
-
 onMounted(() => {
   fetchBestSellers()
-  window.addEventListener('resize', calculateCarouselDimensions)
-  startAutoScroll()
+  window.addEventListener('resize', calculateCarouselDimensions); // Recalculate on resize
 })
 
 onBeforeUnmount(() => {
   stopAutoScroll()
   window.removeEventListener('resize', calculateCarouselDimensions)
 })
+
+
 </script>
 
 <style scoped>

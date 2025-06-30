@@ -32,24 +32,32 @@ apiClient.interceptors.request.use(
       config.url = normalizeUrl(config.url);
       
       // Log para debugging
-      console.log('URL normalizada:', config.url);
-      console.log('URL completa de la petición:', `${config.baseURL}/${config.url}`);
+      console.log('Axios Interceptor: URL normalizada:', config.url);
+      console.log('Axios Interceptor: URL completa de la petición:', `${config.baseURL}/${config.url}`);
       
       const authStateString = localStorage.getItem('auth');
-      console.log('Auth state from localStorage:', authStateString);
+      console.log('Axios Interceptor: Auth state from localStorage:', authStateString);
 
       if (authStateString) {
-        const authState = JSON.parse(authStateString);
-        const token = authState.token;
+        try {
+          const authState = JSON.parse(authStateString);
+          const token = authState.token;
 
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-          console.log('Token added to request:', token);
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('Axios Interceptor: Token agregado a la petición');
+          } else {
+            console.log('Axios Interceptor: No hay token en el auth state');
+          }
+        } catch (parseError) {
+          console.error('Axios Interceptor: Error al parsear auth state:', parseError);
         }
+      } else {
+        console.log('Axios Interceptor: No hay auth state en localStorage');
       }
 
       // Log completo de la configuración de la petición
-      console.log('Configuración completa de la petición:', {
+      console.log('Axios Interceptor: Configuración completa de la petición:', {
         method: config.method,
         url: config.url,
         baseURL: config.baseURL,
@@ -58,13 +66,13 @@ apiClient.interceptors.request.use(
       });
 
     } catch (error) {
-      console.error('Error en el interceptor de request:', error);
+      console.error('Axios Interceptor: Error en el interceptor de request:', error);
     }
 
     return config;
   },
   (error) => {
-    console.error('Error en la configuración de la petición:', error);
+    console.error('Axios Interceptor: Error en la configuración de la petición:', error);
     return Promise.reject(error);
   }
 );
@@ -72,23 +80,23 @@ apiClient.interceptors.request.use(
 // Interceptor para manejar errores de autenticación
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('Respuesta exitosa:', {
+    console.log('Axios Interceptor: Respuesta exitosa:', {
       status: response.status,
-      data: response.data,
-      headers: response.headers
+      url: response.config?.url,
+      data: response.data
     });
     return response;
   },
   async (error) => {
-    console.error('Error en la respuesta:', {
+    console.error('Axios Interceptor: Error en la respuesta:', {
       status: error.response?.status,
+      url: error.config?.url,
       data: error.response?.data,
-      config: error.config,
       message: error.message
     });
     
     if (error.response?.status === 401) {
-      console.warn('Error 401: No autorizado. Sesión expirada o inválida.');
+      console.warn('Axios Interceptor: Error 401: No autorizado. Sesión expirada o inválida.');
       const authStore = useAuthStore();
       authStore.logout();
       window.location.href = '/login';

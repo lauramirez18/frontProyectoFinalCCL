@@ -580,7 +580,7 @@ const createBackendOrder = async () => {
 
     console.log('Order data to send:', JSON.stringify(orderData, null, 2));
 
-    const response = await fetch('https://backmartplaceccl.onrender.com/api/ordenes', {
+    const response = await fetch('http://localhost:3000/api/ordenes', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -727,10 +727,10 @@ const renderPayPalButtons = () => {
         };
 
         console.log('=== DATOS ENVIADOS AL BACKEND ===');
-        console.log('URL:', 'https://backmartplaceccl.onrender.com/api/ordenes/confirmar-pago');
+        console.log('URL:', 'http://localhost:3000/api/ordenes/confirmar-pago');
         console.log('Payload:', payload);
 
-        const response = await fetch('https://backmartplaceccl.onrender.com/api/ordenes/confirmar-pago', {
+        const response = await fetch('http://localhost:3000/api/ordenes/confirmar-pago', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
