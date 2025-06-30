@@ -454,32 +454,36 @@ const fetchCategoryData = async () => {
         }
       }
 
-      // Cargar filtros disponibles
-      await fetchAvailableFilters()
-
-      // Cargar rango de precios
-      try {
-        const pricesResponse = await getData(`productos/rango-precios/${category.value._id}`)
-        minPrice.value = pricesResponse.min || 0
-        maxPrice.value = pricesResponse.max || 1000000
-        priceRange.value = { min: minPrice.value, max: maxPrice.value }
-      } catch (pricesError) {
-        console.warn('No se pudo cargar el rango de precios:', pricesError)
-        minPrice.value = 0
-        maxPrice.value = 1000000
-        priceRange.value = { min: 0, max: 1000000 }
-      }
-
-      // Cargar filtros alfabéticos
-      try {
-        const alphaResponse = await getData(`productos/filtros-alfabeticos/${category.value._id}`)
-        if (alphaResponse && alphaResponse.filtrosAlfabeticos) {
-          alphabeticFields.value.marca.letters = alphaResponse.filtrosAlfabeticos.marca || []
-          alphabeticFields.value.modelo.letters = alphaResponse.filtrosAlfabeticos.modelo || []
-        }
-      } catch (alphaError) {
-        console.warn('No se pudieron cargar los filtros alfabéticos:', alphaError)
-      }
+      // Cargar filtros, rango de precios y filtros alfabéticos en paralelo
+      await Promise.all([
+        (async () => {
+          await fetchAvailableFilters()
+        })(),
+        (async () => {
+          try {
+            const pricesResponse = await getData(`productos/rango-precios/${category.value._id}`)
+            minPrice.value = pricesResponse.min || 0
+            maxPrice.value = pricesResponse.max || 1000000
+            priceRange.value = { min: minPrice.value, max: maxPrice.value }
+          } catch (pricesError) {
+            console.warn('No se pudo cargar el rango de precios:', pricesError)
+            minPrice.value = 0
+            maxPrice.value = 1000000
+            priceRange.value = { min: 0, max: 1000000 }
+          }
+        })(),
+        (async () => {
+          try {
+            const alphaResponse = await getData(`productos/filtros-alfabeticos/${category.value._id}`)
+            if (alphaResponse && alphaResponse.filtrosAlfabeticos) {
+              alphabeticFields.value.marca.letters = alphaResponse.filtrosAlfabeticos.marca || []
+              alphabeticFields.value.modelo.letters = alphaResponse.filtrosAlfabeticos.modelo || []
+            }
+          } catch (alphaError) {
+            console.warn('No se pudieron cargar los filtros alfabéticos:', alphaError)
+          }
+        })()
+      ])
 
     } catch (error) {
       console.error('Error al cargar datos de categoría:', error)
@@ -610,9 +614,11 @@ const resetAllFilters = () => {
 // Inicialización
 const initializeFromRoute = async () => {
   console.log('Products: Iniciando inicialización desde ruta...')
-  await fetchCategoryData()
-  console.log('Products: Datos de categoría cargados, iniciando carga de productos...')
-  await productosStore.cargarTodo()
+  // Carga datos de categoría y productos en paralelo
+  await Promise.all([
+    fetchCategoryData(), // Esto carga marcas, filtros, etc.
+    productosStore.cargarTodo() // Esto carga los productos
+  ])
   console.log('Products: Inicialización completada')
 }
 
