@@ -17,49 +17,16 @@
         <div v-else class="cart-items-container">
           <div v-for="(item, index) in authStore.cartItems" :key="index" class="product-card-wrapper">
             <q-card class="product-card tech-card" flat>
-              <div class="img-wrapper">
-                <q-img
-                  :src="item.image"
-                  :alt="item.name"
-                  ratio="1"
-                  class="product-image"
-                >
-                  <template v-slot:loading>
-                    <q-spinner-dots color="white" size="40px" />
-                  </template>
-                  <div class="tech-overlay">
-                    <div class="rating-container">
-                      <div class="rating-stars tech-rating">
-                        <q-rating
-                          v-if="item.promedioCalificacion !== undefined"
-                          v-model="item.promedioCalificacion"
-                          max="5"
-                          size="1.2em"
-                          color="yellow"
-                          icon="star"
-                          icon-selected="star"
-                          icon-half="star_half"
-                          readonly
-                        />
-                        <span v-if="item.totalResenas !== undefined" class="rating-count text-white q-ml-sm">
-                          ({{ item.totalResenas || 0 }})
-                        </span>
-                      </div>
-                    </div>
+              <div class="cart-item-horizontal">
+                <q-avatar size="54px" class="cart-avatar">
+                  <img :src="item.image" :alt="item.name" />
+                </q-avatar>
+                <div class="cart-item-info">
+                  <div class="brand-caption" v-if="item.seller">
+                    {{ item.seller }}
                   </div>
-                </q-img>
-              </div>
-              <q-card-section class="product-info">
-                <div class="brand-caption" v-if="item.seller">
-                  {{ item.seller }}
-                </div>
-                <div class="product-title">{{ item.name }}</div>
-                <div class="price-section">
-                  <div class="price-container">
-                    <div class="current-price">
-                      ${{ formatPrice(item.price) }}
-                    </div>
-                  </div>
+                  <div class="product-title">{{ item.name }}</div>
+                  <div class="current-price">${{ formatPrice(item.price) }}</div>
                   <div class="cart-qty-actions">
                     <button class="quantity-btn" @click="decreaseQuantity(item)">-</button>
                     <span class="quantity-value">{{ item.quantity }}</span>
@@ -69,7 +36,7 @@
                     </button>
                   </div>
                 </div>
-              </q-card-section>
+              </div>
             </q-card>
           </div>
         </div>

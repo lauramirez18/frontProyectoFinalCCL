@@ -41,7 +41,7 @@
             >
               <q-card class="product-card tech-card" flat>
                 <div class="img-wrapper"
-                  @mouseenter="startImageRotation(product)"
+                  @mouseenter="startImageRotation(product.imagenes[0])"
                   @mouseleave="stopImageRotation"
                   :data-product-id="product._id"
                 >
