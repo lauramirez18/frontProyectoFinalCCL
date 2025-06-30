@@ -18,7 +18,7 @@ const normalizeUrl = (url) => {
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:3000/api',
-  /* baseURL: 'https://backmartplaceccl.onrender.com/api', */
+  /*  baseURL: 'https://backmartplaceccl.onrender.com/api', */
   headers: {
     'Content-Type': 'application/json'
   }
