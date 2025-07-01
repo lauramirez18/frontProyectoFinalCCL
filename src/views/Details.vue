@@ -57,7 +57,7 @@
           <div class="product-pricing">
             <div class="price-header">PRECIO FINAL</div>
             <div class="price-details">
-              <div v-if="producto.enOferta" class="price-offer">
+              <div v-if="producto.enOferta && (!producto.fechaFinOferta || new Date(producto.fechaFinOferta) >= new Date())" class="price-offer">
                 <span class="offer-price"> ${{ formatThousands(producto.precioOferta) }}</span>
                 <span class="original-price">$ {{ formatThousands(producto.precio) }}</span>
                 <q-badge color="negative" class="discount-badge">
@@ -66,7 +66,7 @@
               </div>
               <div v-else class="current-price">${{ formatThousands(producto.precio) }}</div>
 
-              <div v-if="producto.enOferta && producto.fechaFinOferta" class="offer-validity">
+              <div v-if="producto.enOferta && producto.fechaFinOferta && new Date(producto.fechaFinOferta) >= new Date()" class="offer-validity">
                 Oferta válida hasta el <span class="date-highlight">{{ formatDate(producto.fechaFinOferta) }}</span>
               </div>
             </div>
